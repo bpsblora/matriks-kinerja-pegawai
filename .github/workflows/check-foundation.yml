@@ -1,0 +1,24 @@
+name: Validate Firebase foundation
+on:
+  push:
+    branches: [main, 'setup/**']
+  pull_request:
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check JSON and locked Firestore rules
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          config = json.loads(pathlib.Path('firebase.json').read_text())
+          assert config['firestore']['rules'] == 'firestore.rules'
+          rules = pathlib.Path('firestore.rules').read_text()
+          assert 'allow read, write: if false;' in rules
+          assert 'allow read, write: if true;' not in rules
+          assert pathlib.Path('public/index.html').is_file()
+          print('Foundation config OK; no deployment performed')
+          PY
