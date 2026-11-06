@@ -3,12 +3,13 @@
 ## Peran sistem
 - **ChatGPT / GitHub**: pengembangan, review, audit kode, dan riwayat versi. Tidak menerima database produksi.
 - **Firebase Hosting**: penyajian frontend (halaman login tidak berarti data terbuka).
-- **Firebase Authentication**: login Google individual.
+- **Firebase Authentication**: UID individual yang diterbitkan melalui custom token setelah verifikasi username/password pada backend.
 - **Cloud Firestore**: penyimpanan data bersama dan realtime.
 - **Cloud Functions / backend**: tindakan istimewa dengan verifikasi identitas/otorisasi server.
 
 ## Struktur data yang direncanakan (belum final)
-- `users/{uid}`: email, displayName, role, active, memberships; provision hanya oleh Admin.
+- `users/{uid}`: username, role, active, employeeId dan teamIds; dibuat/diedit oleh Admin melalui backend tepercaya.
+- `authCredentials/{hash(username)}`: hash password bcrypt dan referensi UID, hanya boleh diakses backend, bukan browser.
 - `years/{year}`: status penyusunan, metadata, penetapan dan finalisasi.
 - `employees/{employeeId}`: identitas pegawai minimal yang disetujui.
 - `teams/{year_teamId}`: nama, ketua dan anggota.
@@ -21,7 +22,7 @@
 
 ## Perlu migrasi dari prototipe v2.6
 1. Audit dan hilangkan password simulasi yang tersimpan di HTML/JavaScript.
-2. Ubah autentikasi lokal menjadi Google Sign-In dan whitelist UID.
+2. Ubah autentikasi lokal menjadi username/password individual terverifikasi backend dan UID Firebase unik; jangan pernah gunakan Gmail bersama sebagai akun login pegawai.
 3. Ubah seluruh `localStorage` data operasional menjadi pembacaan/penulisan Firestore berbasis role.
 4. Pertahankan seluruh tampilan utama, termasuk pop-up Pembagian KRO serta monitoring tiga kelompok.
 5. Migrasikan hanya data referensi yang sudah disetujui, melalui proses admin yang diaudit; pisahkan 2026 (acuan) dan 2027 (penetapan baru).
