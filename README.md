@@ -42,6 +42,13 @@ Tindakan sensitif seperti pengaturan role dan finalisasi harus divalidasi oleh p
 
 Setiap perubahan di cabang `setup/firebase-foundation` akan melewati build dan memperbarui channel preview `matriks-dev` melalui federasi identitas GitHub–Google Cloud. Perubahan operasional/data pegawai tetap memerlukan review terpisah. Lihat [panduan deployment otomatis](docs/DEPLOY_OTOMATIS_GITHUB.md).
 
+### Pemeriksaan otomatis November 2026
+
+- Koneksi identitas GitHub ke Google Cloud berhasil dibuat tanpa private key JSON.
+- Izin Service Usage Viewer telah diberikan kepada akun layanan deployment melalui Google Cloud Shell.
+- Perubahan README ini memicu uji ulang workflow preview Firebase pada cabang pengembangan; hasil deployment diperiksa melalui GitHub Actions.
+- Channel tetap `matriks-dev` untuk **referensi anonim 2026**, bukan website operasional dengan database pegawai.
+
 ## Penanggung jawab
 
 - Pemilik repository: akun GitHub `bpsblora`.
