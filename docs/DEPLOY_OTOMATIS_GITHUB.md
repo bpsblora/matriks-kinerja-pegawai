@@ -1,37 +1,40 @@
-# Deployment otomatis preview Firebase melalui GitHub
+# Otomatisasi Firebase Preview: tanpa login localhost dan tanpa kunci JSON
 
-**Tujuan:** setelah satu kali setup izin deployment, permintaan perubahan ke ChatGPT akan diperbarui di GitHub, dan setiap push ke cabang `setup/firebase-foundation` menjalankan build lalu deploy preview Firebase.
+Konfigurasi otomatis memakai **Google Workload Identity Federation (OIDC)**, bukan `firebase init hosting:github`, yang dapat gagal akibat OAuth callback localhost di Cloud Shell.
 
-## Yang sudah disiapkan
-Workflow `.github/workflows/auto-deploy-dev-preview.yml` akan:
-1. Memastikan aturan Firestore tetap deny-all dan dataset demo anonim.
-2. Melakukan build Vite di runner GitHub.
-3. Memperbarui channel Firebase Hosting `matriks-dev`, bukan channel live, **hanya jika secret koneksi sudah ada**.
-4. Memperbarui link yang sama: channel `matriks-dev`; masa berlaku channel diperpanjang dengan deploy baru.
-5. **Tidak** mendeploy Cloud Functions, Firestore Rules, maupun data pegawai asli.
+## Setup hanya sekali
+Masuk ke Google Cloud Shell dengan akun pengelola proyek dan GitHub CLI `bpsblora` yang sudah terautentikasi. Pada direktori repo:
 
-## Setup izin satu kali oleh pemilik Firebase
-Perintah di Google Cloud Shell (dalam folder repo):
 ```bash
 cd ~/matriks-kinerja-pegawai
 git pull --ff-only
-firebase init hosting:github
+bash scripts/setup-github-preview-wif.sh
 ```
-Ikuti wizard Firebase resmi:
-- Pilih repo privat `bpsblora/matriks-kinerja-pegawai`.
-- Izinkan akun GitHub `bpsblora` dan akun Google pemilik Firebase pada antarmuka resmi.
-- Jika diminta proyek Firebase: `mkp-bps-blora`.
-- **Jangan setujui otomatis deploy ke live ketika PR di-merge**. Pilih **No**.
-- Jika menawarkan pembuatan workflow tambahan, biarkan wizard selesai; **jangan commit atau push workflow baru** sebelum ditinjau karena repo sudah memiliki workflow khusus preview.
-- Wizard biasanya otomatis menyiapkan service account deployment dan GitHub Actions repository secret `FIREBASE_SERVICE_ACCOUNT_MKP_BPS_BLORA`. Cek di GitHub Settings > Secrets and variables > Actions > Repository secrets; **hanya cek nama, jangan kirim nilainya atau JSON service account**.
-- Wizard dapat menambahkan file workflow lokal; kirim status `git status --short` (tidak ada token/password) untuk pemeriksaan jika ada perubahan.
 
-## Jika wizard tidak berhasil
-Pengelola TI dapat menyiapkan autentikasi GitHub Actions dengan Workload Identity Federation, alur tanpa service-account JSON, melalui workflow manual `deploy-dev-preview.yml`. Alternatif ini memerlukan konfigurasi role IAM dan variabel repo.
+Script menjelaskan perubahan dan meminta konfirmasi **LANJUT**:
+- Memastikan project aktif `mkp-bps-blora`.
+- Mengaktifkan API IAM, IAM Credentials, Security Token Service.
+- Membuat Workload Identity Pool `matriks-github-preview`, dengan provider `repo-branch` yang **hanya** menerima token repo `bpsblora/matriks-kinerja-pegawai` pada ref `refs/heads/setup/firebase-foundation`.
+- Membuat service account `matriks-gh-preview@mkp-bps-blora.iam.gserviceaccount.com`.
+- Memberi peran Firebase Hosting Admin dan API Keys Viewer; tidak memberi akses Firestore/Admin/Cloud Functions.
+- Mengizinkan provider impersonation dan menyimpan 2 variabel GitHub:
+  `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_DEPLOY_SERVICE_ACCOUNT`.
+- Tidak membuat atau mengunggah file JSON private key, OAuth code, maupun password.
 
-## Setelah secret tersedia
-ChatGPT dapat mengubah file di branch pengembangan `setup/firebase-foundation`. Tiap commit otomatis memicu Github Actions workflow **Auto-update Firebase Matriks DEV Preview**. Hasilnya tetap preview, bukan website utama.
+## Penggunaan setelah setup
+1. Pengguna menyampaikan revisi di chat.
+2. ChatGPT mengubah kode di branch `setup/firebase-foundation`.
+3. GitHub Actions workflow `.github/workflows/auto-deploy-dev-preview.yml` menjalankan build dan, setelah koneksi tersedia, memperbarui channel `matriks-dev` di Firebase.
+4. Link preview lama masih bisa dipakai (perhatikan kedaluwarsa diperpanjang 7 hari per deployment).
 
-**Penting:** jangan menjalankan `firebase deploy` tanpa `--only hosting` dan tanpa review, jangan memasukkan data pegawai asli ke proyek DEV `nam5`, dan jangan merge draft PR ini sebelum backend/izin siap.
+GitHub Actions **tidak akan deploy ke live**, tidak menulis Rules/Firestore dan tidak mengaktifkan fungsi login peran. Semua data preview tetap anonim.
 
-Referensi resmi: https://firebase.google.com/docs/hosting/github-integration
+## Jika ada error
+- `PERMISSION_DENIED`: akun GCP mungkin tidak punya izin membuat IAM Pool/Service Account atau mengubah IAM. Hubungi admin GCP.
+- `gh: not logged in`: jalankan `gh auth status` dan periksa login GitHub bpsblora.
+- Jika workflow tidak memicu setelah commit, periksa tab GitHub Actions dan pengaturan eksekusi untuk branch PR.
+- Jangan gunakan kembali callback localhost `firebase init hosting:github` untuk Cloud Shell tanpa port forwarding.
+
+Rujukan:
+- https://github.com/google-github-actions/auth
+- https://firebase.google.com/docs/projects/iam/roles-predefined-product
