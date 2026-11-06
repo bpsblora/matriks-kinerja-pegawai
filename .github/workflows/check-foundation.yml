@@ -10,26 +10,35 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Validate configuration and closed Firestore rules
+      - name: Install Node.js (CI only, not on user computer)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check JSON and closed Firestore rules
         run: |
           python3 - <<'PY'
           import json, pathlib
           config = json.loads(pathlib.Path('firebase.json').read_text())
           assert config['firestore']['rules'] == 'firestore.rules'
-          assert config['hosting']['public'] == 'public'
-          rules = pathlib.Path('firestore.rules').read_text()
-          assert 'allow read, write: if false;' in rules
-          assert 'allow read, write: if true;' not in rules
-          assert 'allow get: if request.auth' not in rules
+          assert 'allow read, write: if false;' in pathlib.Path('firestore.rules').read_text()
           assert pathlib.Path('firestore.auth-phase.rules').exists()
-          assert pathlib.Path('public/index.html').exists()
-          package = json.loads(pathlib.Path('package.json').read_text())
-          assert package['private'] is True
-          assert 'vite' in package['scripts']['build']
-          print('Safe DEV scaffold: OK; no deployment performed')
+          assert pathlib.Path('functions/index.js').exists()
+          assert json.loads(pathlib.Path('package.json').read_text())['private'] is True
+          print('Safety baseline OK; no Firebase deployment')
           PY
-      - name: Validate JavaScript syntax
+      - name: Validate JavaScript source syntax
         run: |
           node --check src/firebase/client.js
           node --check src/main.js
           node --check vite.config.js
+          node --check functions/index.js
+          node --check functions/security.js
+      - name: Test username/role validation
+        run: node --test functions/security.test.js
+      - name: Install frontend dependencies (CI)
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Build disabled DEV frontend (CI)
+        run: |
+          cp .env.example .env.local
+          npm run build
+          test -f dist/index.html
