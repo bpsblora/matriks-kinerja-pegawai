@@ -94,3 +94,7 @@ exports.usernameSignIn = onCall({
   const token = await getAuth().createCustomToken(credential.uid);
   return { token };
 });
+
+
+// Account-management API: entirely server-side and disabled by default.
+Object.assign(exports, require("./accessAdmin.js"));
