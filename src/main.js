@@ -85,7 +85,7 @@ const privilegedText = document.createElement("p");
 const privilegedRef = createReference2026View();
 const adminMenu = document.createElement("div");
 adminMenu.className = "admin-only";
-privilegedPanel.append(privilegedHeading, privilegedText, privilegedRef, adminMenu);
+privilegedPanel.append(privilegedHeading, privilegedText, adminMenu, privilegedRef);
 const status = document.createElement("section");
 status.className = "status";
 const statusHeading = document.createElement("h2");
