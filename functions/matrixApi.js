@@ -99,7 +99,7 @@ exports.mutateMatrixRecord=onCall(opt,async req=>{
    if(kind==="kros"&&patch.code&&patch.code!==id)
      respond("invalid-argument","Kode KRO harus sama dengan ID.");
    if(kind==="allocations"){
-     if(!S.validateRecord(kind,id,combined))respond("invalid-argument","Alokasi tidak valid.");
+     try { S.validateRecord(kind,id,Object.fromEntries(Object.entries(combined).filter(([key])=>S.FIELDS[kind].includes(key)))); } catch(e){respond("invalid-argument",e.message);}
      const act=await tx.get(items(year,"activities").doc(combined.activityId));
      if(!act.exists||act.data().teamId!==combined.teamId)
        respond("failed-precondition","Kegiatan bukan milik tim yang dipilih.");
