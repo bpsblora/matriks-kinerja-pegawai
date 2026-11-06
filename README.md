@@ -17,6 +17,16 @@ Repository **privat** untuk pengembangan Matriks Kinerja Pegawai dan migrasi pro
 - Menu Admin dan login peran **belum aktif** sampai Cloud Functions, Rules, dan akun Admin pertama siap.
 - Firebase Hosting menggunakan hasil build `dist`. Preview `matriks-dev` sudah tersedia; pengaturan Workload Identity Federation GitHub → Firebase telah selesai di Cloud Shell pada 6 November 2026. Workflow `auto-deploy-dev-preview.yml` sedang diuji untuk pembaruan otomatis.
 
+## Integrasi V25 menuju database bersama
+
+Fondasi backend dan antarmuka akun Admin/Ketua Tim/Kepala sudah ditambahkan:
+- `src/liveMatrix.js` dan `src/liveMatrix.css`: dashboard peran, Kelola Tim/Pegawai, Pembagian KRO, Input Alokasi, Timeline, Monitoring, Rekonsiliasi, Standar Waktu, Riwayat, dan Finalisasi.
+- `functions/matrixApi.js` dan `functions/matrixSchema.js`: API Firestore terproteksi, perubahan atomik, validasi peran/tim, finalisasi Kepala, dan pencatatan audit.
+- `functions/bootstrapAdmin.cjs`: pembuatan akun Admin pertama melalui terminal tepercaya.
+- `scripts/import-legacy-2026.mjs`: impor PRIVAT seluruh seed data 2026 dari file asli V25 v2.6. Data asli tidak dibundel ke website.
+- Seluruh endpoint data dan login peran tetap **nonaktif** sampai Cloud Functions diaktifkan melalui proyek/data location yang disetujui; preview GitHub tetap anonim dan read-only.
+- [Rincian dan prasyarat operasional](docs/INTEGRASI_OPERASIONAL_V25.md).
+
 ## Arah arsitektur
 
 GitHub (kode + review) -> Firebase Hosting (web) -> Authentication (Google untuk mode lihat; custom token akun peran untuk pengelolaan) + Cloud Firestore (data bersama).
