@@ -128,14 +128,22 @@ exports.mutateMatrixRecord=onCall(opt,async req=>{
      respond("permission-denied","Perpindahan data antar-tim perlu proses Admin khusus.");
    if(kind==="kros"&&patch.code&&patch.code!==id)
      respond("invalid-argument","Kode KRO harus sama dengan ID.");
-   if(kind==="allocations"){
-     try { S.validateRecord(kind,id,Object.fromEntries(Object.entries(combined).filter(([key])=>S.FIELDS[kind].includes(key)))); } catch(e){respond("invalid-argument",e.message);}
+   if(kind==="allocations"||kind==="annualAllocations"){
+     try { S.validateRecord(kind,id,Object.fromEntries(Object.entries(combined).filter(([key])=>S.FIELDS[kind].includes(key)))); }
+     catch(e){respond("invalid-argument",e.message);}
      const act=await tx.get(items(year,"activities").doc(combined.activityId));
      if(!act.exists||act.data().teamId!==combined.teamId)
        respond("failed-precondition","Kegiatan bukan milik tim yang dipilih.");
      const employee=await tx.get(items(year,"employees").doc(combined.employeeId));
      if(!employee.exists||employee.data().active===false)
        respond("failed-precondition","Pegawai tidak aktif atau belum terdaftar.");
+     if(a.role==="ketua_tim"){
+       const teamDoc=await tx.get(items(year,"teams").doc(combined.teamId));
+       const roster=teamDoc.exists?teamDoc.data():null;
+       const allowed=new Set([...(Array.isArray(roster?.memberIds)?roster.memberIds:[]),roster?.leaderId]);
+       if(!allowed.has(combined.employeeId))
+         respond("permission-denied","Pegawai bukan anggota tim yang diampu.");
+     }
    }
    if(kind==="activities"||kind==="groups"||kind==="schedules"||kind==="targets"){
      if(!combined.teamId)respond("invalid-argument","Tim kerja wajib dipilih.");
