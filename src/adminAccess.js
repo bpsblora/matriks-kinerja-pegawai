@@ -1,0 +1,1 @@
+export function createAccessAdminView(){const el=document.createElement("section");el.className="admin-access";el.textContent="Kelola Akun Akses — khusus Admin";return el;}
