@@ -9,7 +9,7 @@ const {getFirestore,FieldValue,FieldPath}=require("firebase-admin/firestore");
 const {getAuth}=require("firebase-admin/auth");
 const S=require("./matrixSchema");
 const db=()=>getFirestore();
-const opt={region:"us-central1",memory:"256MiB",timeoutSeconds:60,maxInstances:5};
+const opt={region:process.env.MATRIX_FUNCTION_REGION||"us-central1",memory:"256MiB",timeoutSeconds:60,maxInstances:5};
 const respond=(code,msg)=>{throw new HttpsError(code,msg);};
 const isAdmin=a=>a.role==="admin";
 const isHead=a=>a.role==="kepala";
