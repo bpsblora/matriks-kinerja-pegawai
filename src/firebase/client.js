@@ -3,6 +3,7 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getFunctions } from "firebase/functions";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -23,6 +24,7 @@ for (const key of requiredKeys) {
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const functions = getFunctions(app, import.meta.env.VITE_FIREBASE_FUNCTION_REGION || "us-central1");
 
-// Belum ada akses data, login, atau pembagian peran dari modul ini.
+// Username/password diperiksa oleh backend Cloud Functions (saat diaktifkan).
 // Firestore tetap ditutup oleh firestore.rules (deny-all).
