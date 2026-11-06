@@ -33,9 +33,12 @@ if(writes&&!confirm){
 }
 const html=fs.readFileSync(file,"utf8");
 function embedded(id){
- const match=new RegExp('<script\\s+id=["\\\']'+id+'["\\\'][^>]*>([\\s\\S]*?)<\\/script>',"i").exec(html);
- if(!match)throw Error("Sumber tidak memuat seed "+id);
- return JSON.parse(match[1]);
+ const start=html.indexOf('id="'+id+'"');
+ if(start<0)throw Error("Sumber tidak memuat seed "+id);
+ const open=html.indexOf(">",start)+1;
+ const end=html.indexOf("</script>",open);
+ if(open<1||end<open)throw Error("Konten seed tidak lengkap: "+id);
+ return JSON.parse(html.slice(open,end));
 }
 const seed=embedded("seed"),kro=embedded("kroSeed"),standards=embedded("standardSeed");
 if(seed.meta?.year!==2026 || seed.activities.length<1400 || seed.employees.length!==40)
