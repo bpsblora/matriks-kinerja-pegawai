@@ -10,6 +10,13 @@ Repository **privat** untuk pengembangan Matriks Kinerja Pegawai dan migrasi pro
 - **Belum ada login operasional, akun pegawai, pembagian peran, atau deployment.**
 - Prototipe v2.6 masih menggunakan data lokal dan login simulasi; jangan unggah atau publikasikan begitu saja.
 
+## Preview Matriks 2026 dan Admin
+- Dashboard referensi 2026: 25 tim, 40 pegawai anonim, 33 KRO, 22 contoh kegiatan.
+- Referensi mencatat 1.412 uraian sumber, tetapi detail semuanya belum dimigrasikan.
+- Menu Admin **Kelola Akun Akses**: tambah/edit username, peran, tim, reset password, serta aktif/nonaktif.
+- Menu Admin dan login peran **belum aktif** sampai Cloud Functions, Rules, dan akun Admin pertama siap.
+- Firebase Hosting telah diarahkan ke `dist`, dan workflow `deploy-dev-preview.yml` siap dikonfigurasi dengan Google Cloud WIF; **belum dideploy**.
+
 ## Arah arsitektur
 
 GitHub (kode + review) -> Firebase Hosting (web) -> Authentication (Google untuk mode lihat; custom token akun peran untuk pengelolaan) + Cloud Firestore (data bersama).
@@ -21,6 +28,8 @@ Tindakan sensitif seperti pengaturan role dan finalisasi harus divalidasi oleh p
 - [Arsitektur dan rencana migrasi](docs/ARSITEKTUR_DAN_MIGRASI.md)
 - [Rancangan akses dua tahap: Google lihat + login peran](docs/KEBIJAKAN_AKSES_DUA_TAHAP.md)
 - [Fondasi backend username/password peran](docs/AUTENTIKASI_USERNAME_PASSWORD.md)
+- [Kelola Akun Akses](docs/MENU_ADMIN_AKUN_AKSES.md)
+- [Checklist deploy 2026](docs/KESIAPAN_DEPLOY_2026.md)
 
 ## Pengendalian keamanan
 
