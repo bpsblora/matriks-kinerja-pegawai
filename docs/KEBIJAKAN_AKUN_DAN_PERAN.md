@@ -1,3 +1,5 @@
+> **Arsip keputusan sebelumnya.** Kebijakan yang berlaku untuk pengembangan saat ini adalah [KEBIJAKAN_AKSES_DUA_TAHAP.md](KEBIJAKAN_AKSES_DUA_TAHAP.md): satu akun Google khusus viewer non-admin, kemudian username/password akun peran untuk mengelola. Tidak perlu daftar Gmail semua pegawai. Jangan menggunakan akun Google owner Firebase sebagai Gmail viewer bersama.
+
 # Kebijakan Identitas dan Akses — Matriks Kinerja Pegawai BPS Blora
 
 ## Keputusan
