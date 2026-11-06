@@ -1,9 +1,10 @@
 import "./style.css";
+import "./liveMatrix.css";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithCustomToken, signOut } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
 import { auth, functions } from "./firebase/client.js";
 import { createReference2026View } from "./reference2026.js";
-import { createAccessAdminView } from "./adminAccess.js";
+import { createLiveMatrixWorkspace } from "./liveMatrix.js";
 
 /*
  * Two-stage DEV authentication preview:
@@ -82,10 +83,9 @@ const privilegedPanel = document.createElement("section");
 const privilegedHeading = document.createElement("h2");
 privilegedHeading.textContent = "Sesi Peran";
 const privilegedText = document.createElement("p");
-const privilegedRef = createReference2026View();
-const adminMenu = document.createElement("div");
-adminMenu.className = "admin-only";
-privilegedPanel.append(privilegedHeading, privilegedText, adminMenu, privilegedRef);
+const liveWorkspace = document.createElement("div");
+liveWorkspace.className = "mx-workspace";
+privilegedPanel.append(privilegedHeading, privilegedText, liveWorkspace);
 const status = document.createElement("section");
 status.className = "status";
 const statusHeading = document.createElement("h2");
@@ -151,6 +151,8 @@ function showPendingGoogle(user) {
 }
 function render(mode, busy = false) {
   signedMode = mode;
+  container.classList.toggle("live-expanded", mode === "role");
+  if (mode !== "role") liveWorkspace.replaceChildren();
   googlePanel.hidden = mode !== "none";
   viewerPanel.hidden = mode !== "viewer";
   roleForm.hidden = mode !== "viewer";
@@ -239,8 +241,9 @@ onAuthStateChanged(auth, async (user) => {
       if (profile?.mode !== "role" || !profile.active) throw Error("role-not-authorized");
       render("role");
       privilegedText.textContent = "Akun peran: " + profile.username + " · Peran: " + profile.role + " · Tim: " + (profile.teamIds||[]).join(", ");
-      adminMenu.replaceChildren();
-      if (profile.role === "admin") adminMenu.append(createAccessAdminView());
+      liveWorkspace.replaceChildren(createLiveMatrixWorkspace({
+        role: profile.role, teamIds: profile.teamIds || [], username: profile.username || "akun_peran"
+      }));
       return;
     }
     await signOut(auth);
