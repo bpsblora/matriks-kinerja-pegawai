@@ -12,14 +12,15 @@ Repository **privat** untuk pengembangan Matriks Kinerja Pegawai dan migrasi pro
 
 ## Arah arsitektur
 
-GitHub (kode + review) -> Firebase Hosting (web) -> Authentication (custom token untuk username/password individual) + Cloud Firestore (data bersama).
+GitHub (kode + review) -> Firebase Hosting (web) -> Authentication (Google untuk mode lihat; custom token akun peran untuk pengelolaan) + Cloud Firestore (data bersama).
 Tindakan sensitif seperti pengaturan role dan finalisasi harus divalidasi oleh proses server tepercaya.
 
 ## Dokumen
 
 - [Langkah setup Firebase](docs/SETUP_FIREBASE.md)
 - [Arsitektur dan rencana migrasi](docs/ARSITEKTUR_DAN_MIGRASI.md)
-- [Autentikasi username/password](docs/AUTENTIKASI_USERNAME_PASSWORD.md)
+- [Rancangan akses dua tahap: Google lihat + login peran](docs/KEBIJAKAN_AKSES_DUA_TAHAP.md)
+- [Fondasi backend username/password peran](docs/AUTENTIKASI_USERNAME_PASSWORD.md)
 
 ## Pengendalian keamanan
 
