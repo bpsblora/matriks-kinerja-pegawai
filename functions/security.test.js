@@ -1,7 +1,7 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { normalizeUsername, credentialKey, passwordInputValid, isActiveProfile } = require("./security.js");
+const { normalizeUsername, credentialKey, passwordInputValid, isActiveProfile, isApprovedGoogleViewer } = require("./security.js");
 
 test("canonical username normalization and validity", () => {
   assert.equal(normalizeUsername("  Petugas_01  "), "petugas_01");
@@ -28,4 +28,15 @@ test("profile only active and valid roles", () => {
   assert.equal(isActiveProfile({active:false,role:"admin"}),false);
   assert.equal(isActiveProfile({active:true,role:"owner"}),false);
   assert.equal(isActiveProfile(null),false);
+});
+
+test("role escalation only from approved verified Google viewer", () => {
+ const uid = "example-viewer-uid-1234";
+ const valid = {uid,token:{email_verified:true,firebase:{sign_in_provider:"google.com"}}};
+ assert.equal(isApprovedGoogleViewer(valid,uid),true);
+ assert.equal(isApprovedGoogleViewer({...valid,uid:"imposter"},uid),false);
+ assert.equal(isApprovedGoogleViewer({...valid,token:{email_verified:false,firebase:{sign_in_provider:"google.com"}}},uid),false);
+ assert.equal(isApprovedGoogleViewer({...valid,token:{email_verified:true,firebase:{sign_in_provider:"custom"}}},uid),false);
+ assert.equal(isApprovedGoogleViewer(valid,""),false);
+ assert.equal(isApprovedGoogleViewer(null,uid),false);
 });
