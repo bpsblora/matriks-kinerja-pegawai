@@ -71,7 +71,7 @@ function headerFilters({team=true,search=true,placeholder="Cari tim, KRO, atau k
   const box=elt("label","field");
   box.append(elt("span","v25-filter-label","Pencarian"));
   const input=elt("input");input.type="search";input.placeholder=placeholder;input.value=state.query;
-  input.addEventListener("input",()=>{state.query=input.value.trim().toLocaleLowerCase("id-ID");renderContent();});
+  input.addEventListener("input",()=>{const cursor=input.selectionStart;state.query=input.value.trim().toLocaleLowerCase("id-ID");renderContent();const next=out.querySelector('input[type="search"]');if(next){next.focus();if(cursor!==null)next.setSelectionRange(cursor,cursor);}});
   box.append(input);toolbar.append(box);
  }
  return toolbar;
