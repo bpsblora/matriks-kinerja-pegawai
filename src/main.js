@@ -1,169 +1,187 @@
 import "./style.css";
-import { onAuthStateChanged, signInWithCustomToken, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithCustomToken, signOut } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
-import { auth, db, functions } from "./firebase/client.js";
+import { auth, functions } from "./firebase/client.js";
 
-// Tidak boleh ada password atau role Administrator yang disimpan di browser.
-// Login tidak akan aktif sampai backend dan profil akun benar-benar siap.
-const authReady = import.meta.env.VITE_USERNAME_AUTH_READY === "true";
-const root = document.getElementById("app");
-const wrap = document.createElement("main");
-wrap.className = "container";
-const eyebrow = document.createElement("div");
-eyebrow.className = "eyebrow";
-eyebrow.textContent = "BPS KABUPATEN BLORA • LINGKUNGAN DEV";
-const heading = document.createElement("h1");
-heading.textContent = "Matriks Kinerja Pegawai";
+/*
+ * Two-stage DEV authentication preview:
+ * 1) Google office viewer: VIEW ONLY.
+ * 2) Server-verified per-role password: another Firebase identity with scoped
+ *    access (not yet implemented in firestore.rules). No editor permissions here.
+ *
+ * The project owner's Google account should NOT be a shared viewer account.
+ * Never identify a user by a role button alone.
+ */
+const viewerUid = import.meta.env.VITE_VIEWER_GOOGLE_UID || "";
+const roleLoginReady = import.meta.env.VITE_ROLE_AUTH_READY === "true";
+const root = document.querySelector("#app");
+const container = document.createElement("main");
+container.className = "container";
+const badge = document.createElement("div");
+badge.className = "eyebrow";
+badge.textContent = "BPS KABUPATEN BLORA · LINGKUNGAN PENGUJIAN";
+const header = document.createElement("h1");
+header.textContent = "Matriks Kinerja Pegawai";
 const intro = document.createElement("p");
-intro.textContent = "Gunakan username dan password Matriks Pegawai yang diberikan Admin. Gmail kantor digunakan untuk mengelola Firebase, bukan sebagai akun bersama untuk login pegawai.";
+intro.textContent = "Masuk dengan akun Google yang ditentukan kantor untuk melihat data. Untuk mengelola matriks, diperlukan akun peran tambahan.";
 
-const form = document.createElement("form");
-form.className = "login-form";
-const usernameLabel = document.createElement("label");
-usernameLabel.textContent = "Username";
-const usernameInput = document.createElement("input");
-usernameInput.name = "username";
-usernameInput.autocomplete = "username";
-usernameInput.required = true;
-usernameInput.minLength = 3;
-usernameInput.maxLength = 32;
-usernameInput.placeholder = "Misalnya: petugas_01";
-usernameLabel.append(usernameInput);
-const passwordLabel = document.createElement("label");
-passwordLabel.textContent = "Password";
-const passwordInput = document.createElement("input");
-passwordInput.name = "password";
-passwordInput.type = "password";
-passwordInput.autocomplete = "current-password";
-passwordInput.required = true;
-passwordInput.placeholder = "Password dari Admin";
-passwordLabel.append(passwordInput);
-const loginButton = document.createElement("button");
-loginButton.type = "submit";
-loginButton.textContent = "Masuk ke Matriks";
-loginButton.disabled = !authReady;
-form.append(usernameLabel, passwordLabel, loginButton);
+const googlePanel = document.createElement("section");
+const googleText = document.createElement("p");
+googleText.textContent = "Tahap 1 — Masuk dengan akun Google khusus akses lihat.";
+const googleButton = document.createElement("button");
+googleButton.type = "button";
+googleButton.textContent = "Masuk dengan Google BPS Blora";
+googlePanel.append(googleText, googleButton);
+
+const viewerPanel = document.createElement("section");
+const viewerHeading = document.createElement("h2");
+viewerHeading.textContent = "Mode Lihat";
+const viewerText = document.createElement("p");
+viewerText.textContent = "Akun Google dikenali. Hak akses hanya untuk melihat data yang disetujui. Data Matriks 2026/2027 belum dipindahkan ke Firestore.";
+const viewerNote = document.createElement("p");
+viewerNote.className = "warning";
+viewerNote.textContent = "Mode Lihat belum aktif: Rules Firestore masih deny-all sampai diuji.";
+viewerPanel.append(viewerHeading, viewerText, viewerNote);
+
+const roleForm = document.createElement("form");
+roleForm.className = "login-form";
+const roleHeading = document.createElement("h2");
+roleHeading.textContent = "Masuk untuk Mengelola";
+const roleInfo = document.createElement("p");
+roleInfo.textContent = "Gunakan username/password peran dari Admin (misalnya ketua tim tertentu, admin, atau kepala).";
+const userLabel = document.createElement("label");
+userLabel.textContent = "Username peran";
+const username = document.createElement("input");
+username.required = true;
+username.minLength = 3;
+username.maxLength = 32;
+username.autocomplete = "username";
+username.placeholder = "Misalnya: katim_neraca";
+userLabel.append(username);
+const passLabel = document.createElement("label");
+passLabel.textContent = "Password peran";
+const password = document.createElement("input");
+password.type = "password";
+password.required = true;
+password.autocomplete = "current-password";
+password.placeholder = "Password yang ditetapkan Admin";
+passLabel.append(password);
+const roleButton = document.createElement("button");
+roleButton.type = "submit";
+roleButton.textContent = "Masuk dengan Peran";
+roleForm.append(roleHeading, roleInfo, userLabel, passLabel, roleButton);
+
+const privilegedPanel = document.createElement("section");
+const privilegedHeading = document.createElement("h2");
+privilegedHeading.textContent = "Sesi Peran";
+const privilegedText = document.createElement("p");
+privilegedPanel.append(privilegedHeading, privilegedText);
 const status = document.createElement("section");
 status.className = "status";
-const title = document.createElement("h2");
-const message = document.createElement("p");
-status.append(title, message);
-const details = document.createElement("p");
-details.className = "meta";
-const actions = document.createElement("div");
-actions.className = "actions";
-const refreshButton = document.createElement("button");
-refreshButton.textContent = "Periksa Izin";
-refreshButton.type = "button";
-refreshButton.className = "secondary";
-const logoutButton = document.createElement("button");
-logoutButton.textContent = "Keluar";
-logoutButton.type = "button";
-logoutButton.className = "secondary";
-actions.append(refreshButton, logoutButton);
-const foot = document.createElement("div");
-foot.className = "meta";
-foot.textContent = "Halaman ini masih pengujian. Data pegawai asli belum dimasukkan, dan akses Firestore tetap tertutup sampai aturan peran diuji.";
-wrap.append(eyebrow, heading, intro, form, status, details, actions, foot);
-root.replaceChildren(wrap);
+const statusHeading = document.createElement("h2");
+const statusText = document.createElement("p");
+status.append(statusHeading, statusText);
+const exitButton = document.createElement("button");
+exitButton.type = "button";
+exitButton.className = "secondary";
+exitButton.textContent = "Keluar";
+const footer = document.createElement("div");
+footer.className = "meta";
+footer.textContent = "Simulasi keamanan DEV: belum ada akun peran aktif, database asli, maupun deployment. Login Google dan role tidak membuka akses Firestore sebelum pengujian Rules.";
+container.append(badge, header, intro, googlePanel, viewerPanel, roleForm, privilegedPanel, status, exitButton, footer);
+root.replaceChildren(container);
 
-const callLogin = httpsCallable(functions, "usernameSignIn", { timeout: 30000 });
-let currentUser = null;
-let seq = 0;
-function setStatus(head, body, tone = "") {
-  title.textContent = head;
-  message.textContent = body;
-  message.className = tone;
+const roleLogin = httpsCallable(functions, "usernameSignIn", {timeout: 30000});
+let signedMode = "none";
+function report(title, detail, tone = "") {
+  statusHeading.textContent = title;
+  statusText.textContent = detail;
+  statusText.className = tone;
 }
-function updateUI(busy = false) {
-  form.hidden = Boolean(currentUser);
-  actions.hidden = !currentUser;
-  loginButton.disabled = busy || !authReady;
-  refreshButton.disabled = busy;
-  logoutButton.disabled = busy;
-  details.textContent = currentUser ? "ID pengguna Firebase: " + currentUser.uid : "";
+function render(mode, busy = false) {
+  signedMode = mode;
+  googlePanel.hidden = mode !== "none";
+  viewerPanel.hidden = mode !== "viewer";
+  roleForm.hidden = mode !== "viewer";
+  privilegedPanel.hidden = mode !== "role";
+  exitButton.hidden = mode === "none";
+  googleButton.disabled = busy;
+  roleButton.disabled = busy || !roleLoginReady;
+  exitButton.disabled = busy;
+  if (mode === "viewer" && !roleLoginReady) {
+    report("Mode Lihat (pengujian)", "Login peran masih dinonaktifkan sampai pengaturan backend dan Security Rules selesai.");
+  } else if (mode === "role") {
+    report("Sesi peran teridentifikasi", "Belum ada hak menulis; Firestore tetap ditutup sementara.");
+  } else if (mode === "none") {
+    report("Masuk melalui Google", "Akses lihat hanya diberikan ke satu akun Google yang disetujui kantor. Jangan gunakan akun pemilik proyek sebagai akun bersama.");
+  }
 }
 
-async function checkAccess(user) {
-  const run = ++seq;
-  updateUI(true);
-  setStatus("Memeriksa izin", "Sistem sedang memeriksa status akun dan peran yang ditetapkan Admin.");
+googleButton.addEventListener("click", async () => {
+  googleButton.disabled = true;
   try {
-    const profileSnap = await getDoc(doc(db, "users", user.uid));
-    if (run !== seq || auth.currentUser?.uid !== user.uid) return;
-    const profile = profileSnap.exists() ? profileSnap.data() : null;
-    if (!profile || profile.active !== true) {
-      setStatus("Akses belum diberikan", "Admin Matriks belum mengaktifkan akun ini.");
-    } else if (!["kepala", "admin", "ketua_tim", "pegawai"].includes(profile.role)) {
-      setStatus("Peran belum sesuai", "Admin perlu memperbaiki peran pengguna.");
-    } else {
-      setStatus("Akun terverifikasi (DEV)", "Peran terdaftar: " + profile.role + ". Modul Matriks v2.6 masih dalam proses integrasi.");
+    const result = await signInWithPopup(auth, new GoogleAuthProvider());
+    if (!viewerUid || result.user.uid !== viewerUid) {
+      await signOut(auth);
+      report("Akun belum diizinkan", "Akun Google ini belum ditetapkan sebagai akun akses lihat oleh pengelola Firebase.", "warning");
     }
   } catch (error) {
-    if (run !== seq || auth.currentUser?.uid !== user.uid) return;
-    setStatus(
-      error?.code === "permission-denied" ? "Akses database masih tertutup" : "Gagal memeriksa izin",
-      error?.code === "permission-denied"
-        ? "Firestore masih menggunakan aturan deny-all. Ini memang sengaja sampai pengujian keamanan selesai."
-        : "Pemeriksaan izin belum tersedia. Coba lagi setelah pengaturan server selesai.",
-      "warning"
-    );
+    report("Login Google belum berhasil", "Periksa akun Google dan domain otorisasi. Kode: " + (error?.code || "tidak diketahui"), "error");
   } finally {
-    if (run === seq) updateUI();
+    googleButton.disabled = false;
   }
-}
-
-form.addEventListener("submit", async (event) => {
+});
+roleForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!authReady) return;
-  loginButton.disabled = true;
-  const username = usernameInput.value.trim().toLowerCase();
-  const password = passwordInput.value;
-  passwordInput.value = ""; // jangan menyimpan password di browser / penyimpanan lokal
+  if (!roleLoginReady || signedMode !== "viewer" || auth.currentUser?.uid !== viewerUid) return;
+  const chosenUsername = username.value.trim().toLowerCase();
+  const enteredPassword = password.value;
+  password.value = "";
+  roleButton.disabled = true;
   try {
-    const result = await callLogin({username, password});
-    if (typeof result?.data?.token !== "string") throw Error("missing-token");
-    await signInWithCustomToken(auth, result.data.token);
+    const response = await roleLogin({username:chosenUsername, password:enteredPassword});
+    if (typeof response?.data?.token !== "string") throw new Error("missing-token");
+    await signInWithCustomToken(auth, response.data.token);
   } catch {
-    setStatus("Tidak dapat masuk", "Username/password salah, akun belum aktif, atau layanan login belum tersedia.", "error");
+    report("Login peran ditolak", "Username/password tidak sesuai atau layanan pengelola belum tersedia.", "error");
   } finally {
-    updateUI();
+    roleButton.disabled = !roleLoginReady;
   }
 });
-
-refreshButton.addEventListener("click", () => {
-  if (auth.currentUser) void checkAccess(auth.currentUser);
-});
-logoutButton.addEventListener("click", async () => {
+exitButton.addEventListener("click", async () => {
   try {
     await signOut(auth);
+    // Google viewer login and the role session are separate; logout requires
+    // authenticating again through the Google gate.
   } catch {
-    setStatus("Gagal keluar", "Silakan coba kembali.", "error");
+    report("Gagal keluar", "Silakan coba kembali.", "error");
   }
 });
+
 onAuthStateChanged(auth, async (user) => {
-  ++seq;
-  // Aplikasi pegawai tidak memakai Google shared-login. Putuskan sesi lama.
-  if (user) {
-    try {
-      const tokenResult = await user.getIdTokenResult();
-      if (tokenResult.signInProvider !== "custom") {
-        await signOut(auth);
-        return;
-      }
-    } catch {
-      await signOut(auth);
+  if (!user) {
+    render("none");
+    return;
+  }
+  try {
+    const token = await user.getIdTokenResult();
+    if (auth.currentUser?.uid !== user.uid) return;
+    const provider = token.signInProvider;
+    if (provider === "google.com" && viewerUid && user.uid === viewerUid) {
+      render("viewer");
       return;
     }
+    if (provider === "custom") {
+      // A role session is a distinct Firebase UID; the backend only issues it
+      // after a verified Google viewer signs in and supplies a valid password.
+      render("role");
+      privilegedText.textContent = "Peran telah masuk (UID: " + user.uid + "). Rincian izin akan diterapkan setelah pengujian Rules.";
+      return;
+    }
+    await signOut(auth);
+    report("Akses ditolak", "Identitas akun tidak sesuai dengan kebijakan akses kantor.", "warning");
+  } catch {
+    await signOut(auth).catch(() => {});
+    report("Sesi belum dapat diverifikasi", "Silakan login kembali.", "error");
   }
-  currentUser = user;
-  updateUI();
-  if (user) void checkAccess(user);
-  else setStatus(
-    authReady ? "Masuk dengan akun Matriks" : "Login masih dalam persiapan",
-    authReady
-      ? "Masukkan username dan password individual dari Admin Matriks."
-      : "Fondasi login telah dibuat, tetapi belum diaktifkan. Admin akan membuat akun setelah pengujian keamanan selesai."
-  );
 });
