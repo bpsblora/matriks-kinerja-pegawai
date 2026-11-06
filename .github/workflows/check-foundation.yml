@@ -24,14 +24,23 @@ jobs:
           assert pathlib.Path('firestore.auth-phase.rules').exists()
           assert pathlib.Path('functions/index.js').exists()
           assert json.loads(pathlib.Path('package.json').read_text())['private'] is True
+          assert config['hosting']['public'] == 'dist'
+          ref = json.loads(pathlib.Path('src/data/reference2026.json').read_text())
+          assert ref['meta']['anonymized'] is True
+          assert len(ref['teams']) == 25 and len(ref['employees']) == 40
+          assert len(ref['kros']) == 33 and len(ref['sampleActivities']) == 22
+          assert 'passwordHash' not in str(ref)
           print('Safety baseline OK; no Firebase deployment')
           PY
       - name: Validate JavaScript source syntax
         run: |
           node --check src/firebase/client.js
           node --check src/main.js
+          node --check src/reference2026.js
+          node --check src/adminAccess.js
           node --check vite.config.js
           node --check functions/index.js
+          node --check functions/accessAdmin.js
           node --check functions/security.js
       - name: Test username/role validation
         run: node --test functions/security.test.js
