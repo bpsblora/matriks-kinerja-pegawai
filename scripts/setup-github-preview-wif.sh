@@ -59,6 +59,9 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
 gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/serviceusage.apiKeysViewer" --quiet >/dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/serviceusage.serviceUsageViewer" --quiet >/dev/null
 
 gcloud iam service-accounts add-iam-policy-binding "$SERVICE_ACCOUNT_EMAIL" \
   --project="$PROJECT_ID" \
