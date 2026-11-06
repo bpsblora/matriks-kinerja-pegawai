@@ -98,3 +98,6 @@ exports.usernameSignIn = onCall({
 
 // Account-management API: entirely server-side and disabled by default.
 Object.assign(exports, require("./accessAdmin.js"));
+
+// Privileged Firestore matrix workflow (disabled until explicit backend approval).
+Object.assign(exports, require("./matrixApi.js"));
