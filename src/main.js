@@ -9,7 +9,9 @@ import { auth, functions } from "./firebase/client.js";
  * 2) Server-verified per-role password: another Firebase identity with scoped
  *    access (not yet implemented in firestore.rules). No editor permissions here.
  *
- * The project owner's Google account should NOT be a shared viewer account.
+ * Current requested single-office-account model is documented as HIGH RISK:
+ * sharing the Firebase owner's Google password grants access outside the app.
+ * This is a DISABLED DEV preview; cannot be treated as production approval.
  * Never identify a user by a role button alone.
  */
 const viewerUid = import.meta.env.VITE_VIEWER_GOOGLE_UID || "";
@@ -27,11 +29,14 @@ intro.textContent = "Masuk dengan akun Google yang ditentukan kantor untuk melih
 
 const googlePanel = document.createElement("section");
 const googleText = document.createElement("p");
-googleText.textContent = "Tahap 1 — Masuk dengan akun Google khusus akses lihat.";
+googleText.textContent = "Tahap 1 — Masuk menggunakan Gmail BPS Blora untuk Mode Lihat.";
 const googleButton = document.createElement("button");
 googleButton.type = "button";
 googleButton.textContent = "Masuk dengan Google BPS Blora";
-googlePanel.append(googleText, googleButton);
+const googleWarning = document.createElement("p");
+googleWarning.className = "warning";
+googleWarning.textContent = "Catatan: akun Gmail ini juga mengelola Firebase. Membagikan sandinya dapat memberi akses ke layanan Google dan cloud di luar website. Untuk saat ini Mode Lihat belum diaktifkan bagi data asli.";
+googlePanel.append(googleText, googleButton, googleWarning);
 
 const viewerPanel = document.createElement("section");
 const viewerHeading = document.createElement("h2");
@@ -113,7 +118,7 @@ function render(mode, busy = false) {
   } else if (mode === "role") {
     report("Sesi peran teridentifikasi", "Belum ada hak menulis; Firestore tetap ditutup sementara.");
   } else if (mode === "none") {
-    report("Masuk melalui Google", "Akses lihat hanya diberikan ke satu akun Google yang disetujui kantor. Jangan gunakan akun pemilik proyek sebagai akun bersama.");
+    report("Masuk melalui Google", "Khusus pengujian: satu akun Google BPS Blora. Gunakan data fiktif; berbagi Gmail pemilik Firebase membawa risiko akses cloud di luar aplikasi.");
   }
 }
 
