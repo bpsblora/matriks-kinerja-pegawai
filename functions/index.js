@@ -12,7 +12,7 @@ const { initializeApp } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
 const { getFirestore } = require("firebase-admin/firestore");
 const bcrypt = require("bcryptjs");
-const { normalizeUsername, credentialKey, passwordInputValid, isActiveProfile } = require("./security.js");
+const { normalizeUsername, credentialKey, passwordInputValid, isActiveProfile, isApprovedGoogleViewer } = require("./security.js");
 
 initializeApp();
 const db = getFirestore();
@@ -49,6 +49,12 @@ exports.usernameSignIn = onCall({
     throw new HttpsError("failed-precondition", "Login aplikasi masih dalam tahap persiapan.");
   }
 
+  // Require the Google viewer gate first: a password by itself is insufficient.
+  // This value must be configured on the trusted backend, never supplied by UI.
+  if (!isApprovedGoogleViewer(request.auth, process.env.VIEWER_GOOGLE_UID)) {
+    throw new HttpsError("permission-denied", "Akun Google tidak diizinkan memasuki mode pengelola.");
+  }
+
   const username = normalizeUsername(request.data?.username);
   const password = request.data?.password;
   if (!username || !passwordInputValid(password)) {
@@ -80,6 +86,9 @@ exports.usernameSignIn = onCall({
     throw new HttpsError("unauthenticated", "Username atau password tidak sesuai.");
   }
 
+  // Role credentials represent a role account, not an identified human.
+  // For ketua_tim, scope teamIds to the designated team(s) on the server.
+  // Do not rely on generic all-teams "katim" credentials.
   // Never trust a role from the client. The profile is checked server-side.
   // A custom token gives the authenticated Firebase UID, not direct Admin rights.
   const token = await getAuth().createCustomToken(credential.uid);
