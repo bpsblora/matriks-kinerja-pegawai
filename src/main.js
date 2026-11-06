@@ -2,6 +2,8 @@ import "./style.css";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithCustomToken, signOut } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
 import { auth, functions } from "./firebase/client.js";
+import { createReference2026View } from "./reference2026.js";
+import { createAccessAdminView } from "./adminAccess.js";
 
 /*
  * Two-stage DEV authentication preview:
@@ -42,11 +44,11 @@ const viewerPanel = document.createElement("section");
 const viewerHeading = document.createElement("h2");
 viewerHeading.textContent = "Mode Lihat";
 const viewerText = document.createElement("p");
-viewerText.textContent = "Akun Google dikenali. Hak akses hanya untuk melihat data yang disetujui. Data Matriks 2026/2027 belum dipindahkan ke Firestore.";
+viewerText.textContent = "Tampilan referensi Matriks 2026 tersedia dalam bentuk anonim. Data operasional belum dimigrasikan ke Firestore.";
 const viewerNote = document.createElement("p");
 viewerNote.className = "warning";
 viewerNote.textContent = "Mode Lihat belum aktif: Rules Firestore masih deny-all sampai diuji.";
-viewerPanel.append(viewerHeading, viewerText, viewerNote);
+viewerPanel.append(viewerHeading, viewerText, viewerNote, createReference2026View());
 
 const roleForm = document.createElement("form");
 roleForm.className = "login-form";
@@ -80,7 +82,10 @@ const privilegedPanel = document.createElement("section");
 const privilegedHeading = document.createElement("h2");
 privilegedHeading.textContent = "Sesi Peran";
 const privilegedText = document.createElement("p");
-privilegedPanel.append(privilegedHeading, privilegedText);
+const privilegedRef = createReference2026View();
+const adminMenu = document.createElement("div");
+adminMenu.className = "admin-only";
+privilegedPanel.append(privilegedHeading, privilegedText, privilegedRef, adminMenu);
 const status = document.createElement("section");
 status.className = "status";
 const statusHeading = document.createElement("h2");
@@ -97,6 +102,7 @@ container.append(badge, header, intro, googlePanel, viewerPanel, roleForm, privi
 root.replaceChildren(container);
 
 const roleLogin = httpsCallable(functions, "usernameSignIn", {timeout: 30000});
+const getAccessContext = httpsCallable(functions, "getAccessContext", {timeout: 30000});
 let signedMode = "none";
 function report(title, detail, tone = "") {
   statusHeading.textContent = title;
@@ -176,11 +182,17 @@ onAuthStateChanged(auth, async (user) => {
       render("viewer");
       return;
     }
-    if (provider === "custom") {
-      // A role session is a distinct Firebase UID; the backend only issues it
-      // after a verified Google viewer signs in and supplies a valid password.
+    if (provider === "custom" && roleLoginReady) {
+      // Frontend never trusts its own role buttons or a custom token alone.
+      // Only the trusted backend can validate an active role and team scope.
+      const response = await getAccessContext({});
+      if (auth.currentUser?.uid !== user.uid) return;
+      const profile = response?.data;
+      if (profile?.mode !== "role" || !profile.active) throw Error("role-not-authorized");
       render("role");
-      privilegedText.textContent = "Peran telah masuk (UID: " + user.uid + "). Rincian izin akan diterapkan setelah pengujian Rules.";
+      privilegedText.textContent = "Akun peran: " + profile.username + " · Peran: " + profile.role + " · Tim: " + (profile.teamIds||[]).join(", ");
+      adminMenu.replaceChildren();
+      if (profile.role === "admin") adminMenu.append(createAccessAdminView());
       return;
     }
     await signOut(auth);
