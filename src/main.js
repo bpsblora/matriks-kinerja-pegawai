@@ -27,7 +27,7 @@ eyebrow.textContent = "LINGKUNGAN PENGUJIAN • BPS KABUPATEN BLORA";
 const heading = document.createElement("h1");
 heading.textContent = "Matriks Kinerja Pegawai";
 const intro = document.createElement("p");
-intro.textContent = "Uji identitas Google dan daftar pengguna yang diizinkan. Belum terhubung ke data matriks tahun 2026/2027.";
+intro.textContent = "Hanya akun email BPS Blora yang telah disetujui Admin yang dapat memperoleh akses sesuai perannya. Halaman ini masih uji login; data matriks 2026/2027 belum tersedia.";
 const footer = document.createElement("div");
 footer.className = "meta";
 footer.textContent = "Aplikasi pengujian. Jangan masukkan data pegawai asli sebelum persetujuan TI, aturan akses, dan audit selesai.";
@@ -71,7 +71,7 @@ async function checkAccess(user) {
     const snap = await getDoc(doc(db, "users", user.uid));
     if (run !== sequence || auth.currentUser?.uid !== user.uid) return;
     if (!snap.exists()) {
-      setStatus("Belum terdaftar", "Login Google berhasil, tetapi UID ini belum ditambahkan ke daftar pengguna oleh Admin.");
+      setStatus("Belum terdaftar", "Identitas Google dikenali, tetapi email/UID ini belum disetujui Admin BPS Blora. Akses aplikasi tidak diberikan.");
     } else {
       const profile = snap.data();
       if (profile.active !== true) {
@@ -115,5 +115,5 @@ onAuthStateChanged(auth, (user) => {
   showAccount(user);
   setButtons();
   if (user) void checkAccess(user);
-  else setStatus("Masuk menggunakan akun Google", "Gunakan akun Google pribadimu yang nantinya terdaftar sebagai pengguna Matriks Pegawai. Akun bersama kantor hanya untuk mengelola proyek.");
+  else setStatus("Masuk menggunakan akun Google", "Masuk dengan email resmi BPS Blora yang didaftarkan Admin. Setiap pegawai menggunakan identitas akunnya masing-masing; Gmail pengelola Firebase tidak dipakai bersama untuk masuk aplikasi.");
 });
