@@ -1,12 +1,13 @@
 "use strict";
 // Trusted server validators. Never use client-supplied roles or free-form paths.
-const TYPES = Object.freeze(["teams","employees","kros","activities","allocations","standards","schedules","targets","workflow"]);
+const TYPES = Object.freeze(["teams","employees","kros","activities","allocations","annualAllocations","standards","schedules","targets","workflow"]);
 const FIELDS = Object.freeze({
   teams:["name","leaderId","memberIds","active","notes"],
   employees:["name","active","type","position"],
   kros:["code","name","teamIds","active","notes"],
   activities:["teamId","kroCode","group","description","unit","standardHours","annualVolume","calculationMode","active"],
   allocations:["activityId","employeeId","teamId","month","hours","volume","notes"],
+  annualAllocations:["activityId","employeeId","teamId","hours","volume","notes"],
   standards:["group","name","hours","unit","active"],
   schedules:["teamId","activityId","startDate","endDate","notes","active"],
   targets:["teamId","activityId","month","volume","notes"],
@@ -73,7 +74,7 @@ function canManage(role,teamIds,kind,teamId){
   if(role==="admin")return TYPES.includes(kind);
   if(role==="kepala")return false;
   if(role!=="ketua_tim")return false;
-  return ["activities","allocations","schedules","targets","workflow"].includes(kind)
+  return ["activities","allocations","annualAllocations","schedules","targets","workflow"].includes(kind)
     &&typeof teamId==="string"&&teamIds.includes(teamId);
 }
 function accessible(role,teamIds,kind,row){
