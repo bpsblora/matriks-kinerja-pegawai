@@ -8,8 +8,8 @@
     "node": "22"
   },
   "scripts": {
-    "test": "node --test security.test.js",
-    "check": "node --check index.js && node --check security.js"
+    "test": "node --test security.test.js matrixSchema.test.js",
+    "check": "node --check index.js && node --check accessAdmin.js && node --check matrixApi.js && node --check matrixSchema.js && node --check bootstrapAdmin.cjs"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0",
