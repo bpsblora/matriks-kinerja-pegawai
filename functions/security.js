@@ -29,4 +29,17 @@ function isActiveProfile(profile) {
   return Boolean(profile && profile.active === true && ROLES.includes(profile.role));
 }
 
-module.exports = { normalizeUsername, credentialKey, passwordInputValid, isActiveProfile, ROLES };
+
+// The shared Google viewer is only a gate: it does not grant editing rights.
+// Never authorize role escalation from an unrecognized or custom-token session.
+function isApprovedGoogleViewer(auth, approvedUid) {
+  if (typeof approvedUid !== "string" || approvedUid.length < 12) return false;
+  const token = auth?.token;
+  return Boolean(
+    auth?.uid === approvedUid &&
+    token?.firebase?.sign_in_provider === "google.com" &&
+    token?.email_verified === true
+  );
+}
+
+module.exports = { normalizeUsername, credentialKey, passwordInputValid, isActiveProfile, isApprovedGoogleViewer, ROLES };
