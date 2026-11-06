@@ -10,15 +10,26 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Check JSON and locked Firestore rules
+      - name: Validate configuration and closed Firestore rules
         run: |
           python3 - <<'PY'
           import json, pathlib
           config = json.loads(pathlib.Path('firebase.json').read_text())
           assert config['firestore']['rules'] == 'firestore.rules'
+          assert config['hosting']['public'] == 'public'
           rules = pathlib.Path('firestore.rules').read_text()
           assert 'allow read, write: if false;' in rules
           assert 'allow read, write: if true;' not in rules
-          assert pathlib.Path('public/index.html').is_file()
-          print('Foundation config OK; no deployment performed')
+          assert 'allow get: if request.auth' not in rules
+          assert pathlib.Path('firestore.auth-phase.rules').exists()
+          assert pathlib.Path('public/index.html').exists()
+          package = json.loads(pathlib.Path('package.json').read_text())
+          assert package['private'] is True
+          assert 'vite' in package['scripts']['build']
+          print('Safe DEV scaffold: OK; no deployment performed')
           PY
+      - name: Validate JavaScript syntax
+        run: |
+          node --check src/firebase/client.js
+          node --check src/main.js
+          node --check vite.config.js
