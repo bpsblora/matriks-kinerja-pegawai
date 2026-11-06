@@ -151,9 +151,9 @@ export function createLiveMatrixWorkspace(context) {
   const label=node("div");label.append(node("h3","",title));if(subtitle)label.append(node("p","mx-muted",subtitle));
   top.append(label);box.append(top);return {box,top};
  }
- async function change(kind,id,record,operation){
+ async function change(kind,id,record,operation,existing=null){
   try{
-   await api.mutate({year:state.year,kind,id,record,operation});
+   await api.mutate({year:state.year,kind,id,record,operation,...(existing?.updatedAt?{expectedUpdatedAt:existing.updatedAt}:{})});
    dialog.close();state.fetched.delete(kind);
    alert("Perubahan berhasil disimpan ke database bersama.");await refresh();
   }catch(e){alert("Gagal menyimpan: "+(e?.message||"Periksa izin."),true);}
@@ -195,12 +195,12 @@ export function createLiveMatrixWorkspace(context) {
    }
    const uid=id.value.trim()|| (kind==="kros"?obj.code:"");
    if(!uid){alert("ID tidak boleh kosong.",true);return;}
-   void change(kind,uid,obj,existing?"update":"create");
+   void change(kind,uid,obj,existing?"update":"create",existing);
   });
   form.append(submit);
   if(existing){
    form.append(button("Hapus Data",()=>{
-    if(window.confirm("Hapus "+(existing.name||existing.description||existing.id)+"?"))void change(kind,existing.id,{},"delete");
+    if(window.confirm("Hapus "+(existing.name||existing.description||existing.id)+"?"))void change(kind,existing.id,{},"delete",existing);
    },"mx-danger"));
   }
   modal((existing?"Edit ":"Tambah ")+titleOf(kind),form);
@@ -309,7 +309,12 @@ export function createLiveMatrixWorkspace(context) {
     const volume=node("input");volume.type="number";volume.min="0";volume.step="any";volume.value="1";
     form.append(field("Bulan",month),field("Jam per Pegawai",hours),field("Volume",volume));
     const employees=node("div","mx-checkboxes");
-    rows("employees").filter(e=>e.active!==false).forEach(e=>{
+    rows("employees").filter(e=>{
+      if(e.active===false)return false;
+      if(context.role==="admin")return true;
+      const roster=one("teams",selected.teamId);
+      return Boolean(roster&&(roster.memberIds||[]).includes(e.id)||roster?.leaderId===e.id);
+    }).forEach(e=>{
       const label=node("label"),check=node("input");check.type="checkbox";check.value=e.id;
       label.append(check,node("span","",e.name||e.id));employees.append(label);
     });
