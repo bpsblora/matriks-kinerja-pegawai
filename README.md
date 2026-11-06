@@ -6,24 +6,26 @@ Repository **privat** untuk pengembangan Matriks Kinerja Pegawai dan migrasi pro
 
 - Repository telah terhubung dengan ChatGPT melalui akun GitHub pengembang.
 - Cabang `setup/firebase-foundation` memuat konfigurasi **persiapan**, bukan aplikasi operasional.
-- **Belum ada proyek Firebase yang dihubungkan, belum ada database bersama, dan belum ada deployment.**
+- Firebase DEV `mkp-bps-blora` sudah dibuat. Google Authentication aktif; Firestore `(default)` sudah ada di lokasi `nam5` tetapi **tetap deny-all**.
+- **Belum ada login operasional, akun pegawai, pembagian peran, atau deployment.**
 - Prototipe v2.6 masih menggunakan data lokal dan login simulasi; jangan unggah atau publikasikan begitu saja.
 
 ## Arah arsitektur
 
-GitHub (kode + review) -> Firebase Hosting (web) -> Authentication (login Google individual) + Cloud Firestore (data bersama).
+GitHub (kode + review) -> Firebase Hosting (web) -> Authentication (custom token untuk username/password individual) + Cloud Firestore (data bersama).
 Tindakan sensitif seperti pengaturan role dan finalisasi harus divalidasi oleh proses server tepercaya.
 
 ## Dokumen
 
 - [Langkah setup Firebase](docs/SETUP_FIREBASE.md)
 - [Arsitektur dan rencana migrasi](docs/ARSITEKTUR_DAN_MIGRASI.md)
+- [Autentikasi username/password](docs/AUTENTIKASI_USERNAME_PASSWORD.md)
 
 ## Pengendalian keamanan
 
 - `firestore.rules` sengaja **deny all**. Jangan mengubahnya sebelum aturan hak akses diuji.
 - `.env` dan `.env.*` diabaikan Git (kecuali `.env.example`). **Dilarang** menyimpan password, service account private key, ataupun data pegawai di Git.
-- Halaman `public/index.html` hanya pemberitahuan bahwa sistem masih disiapkan.
+- `index.html` menampilkan form login DEV yang **nonaktif secara default**. `public/index.html` adalah placeholder statis lama.
 - Tidak ada workflow deployment otomatis ke Firebase sampai infrastruktur dan perizinan siap.
 
 ## Penanggung jawab
