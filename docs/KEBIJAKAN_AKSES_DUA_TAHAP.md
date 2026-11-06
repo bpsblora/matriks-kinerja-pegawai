@@ -4,7 +4,7 @@ Tanggal: 6 November 2026. **Desain disepakati secara konseptual; belum deploy, b
 
 ## Kebutuhan pengguna
 1. Seluruh pegawai tidak perlu didata alamat Gmail masing-masing.
-2. Masuk menggunakan **satu akun Google kantor** yang ditetapkan untuk *Mode Lihat*.
+2. Sesuai pilihan pengguna, masuk menggunakan **Gmail BPS Blora yang sama dengan pengelola Firebase** untuk *Mode Lihat* (pilihan ini **berisiko tinggi** karena berbagi kredensial pemilik cloud).
 3. Setelah Google berhasil, tampilkan matriks yang telah diizinkan dibaca, tanpa izin mengubah.
 4. Pengguna yang ingin mengubah data masuk lagi dengan username/password sesuai fungsi:
    - `katim_<tim>`: Ketua Tim untuk tim tertentu.
@@ -13,7 +13,8 @@ Tanggal: 6 November 2026. **Desain disepakati secara konseptual; belum deploy, b
 5. Saat keluar dari Mode Pengelola, sesi editor harus ditutup; untuk kembali ke Mode Lihat pengguna bisa masuk Google lagi. Tidak ada hak akses tambahan dari pilihan tombol saja.
 
 ## Pengamanan yang tidak boleh dilewati
-- **Jangan membagikan sandi Gmail pemilik Firebase/Google Cloud** ke seluruh pegawai. Akun tersebut memiliki kontrol terhadap infrastruktur dan data. Jika alur memakai akun Google bersama, gunakan **akun Google terpisah khusus *viewer*** yang TIDAK mempunyai peran Owner/Editor maupun akses Firebase Console.
+- **Pengguna meminta Gmail yang sama dengan pemilik Firebase**, bukan akun viewer baru. Ini dicatat sebagai *desain UX yang diminta*, **bukan persetujuan keamanan untuk dipakai operasional**. Jika sandi dibagikan, pengguna berpotensi mengakses Gmail, Firebase Console, layanan Google lainnya, mengubah konfigurasi cloud, bahkan menonaktifkan pengaman aplikasi. Hak "lihat saja" di website **tidak membatasi hak Google Cloud pemilik**.
+- Untuk penggunaan data pegawai asli, harus ada persetujuan TI beserta pengendalian akses Google Cloud yang efektif. Alternatif minimum yang direkomendasikan tetap akun Google viewer terpisah tanpa izin pengelola cloud; tidak membutuhkan daftar email masing-masing pegawai.
 - Alternatif kantor yang paling aman adalah SSO individual atau akun personal; tetapi permintaan ini sengaja tidak mensyaratkan daftar Gmail pegawai.
 - Karena satu akun Google digunakan bersama, *Mode Lihat* tidak bisa mengaudit pembaca berdasarkan orang. Username/password `admin`, `kepala`, atau `katim_<tim>` yang dipakai bergantian juga hanya menunjukkan **identitas akun peran**, bukan individu yang melakukan perubahan.
 - Akun kepala dan admin tidak boleh memakai password literal `kepala`/`admin`; password kuat ditentukan admin, disimpan sebagai hash server-side, dan dapat dirotasi.
@@ -27,7 +28,7 @@ Tanggal: 6 November 2026. **Desain disepakati secara konseptual; belum deploy, b
 
 ## Keadaan kode DEV sekarang
 - `src/main.js`: form Google dan *Mode Lihat*, lalu form `username/password` peran.
-- `VITE_VIEWER_GOOGLE_UID`: UID yang menentukan akun viewer; belum diisi.
+- `VITE_VIEWER_GOOGLE_UID`: UID Google BPS Blora yang akan dipakai dalam uji login. Belum diisi; tidak membuka izin pemilik Firebase pada sisi aplikasi. Jika account owner dipakai, risiko akses Cloud di luar website tetap ada.
 - `VITE_ROLE_AUTH_READY=false`: login peran **belum dapat digunakan**.
 - `functions/index.js`: login peran menolak permintaan kecuali `AUTH_LOGIN_ENABLED=true` DAN pemanggil login sebagai akun Google viewer dengan UID `VIEWER_GOOGLE_UID` yang sudah ditentukan di backend.
 - `firestore.rules`: masih **deny-all** sehingga **belum ada data yang bisa dilihat maupun diubah** di aplikasi.
@@ -35,7 +36,7 @@ Tanggal: 6 November 2026. **Desain disepakati secara konseptual; belum deploy, b
 - Belum ada deployment, user role aktif, atau credential nyata.
 
 ## Pekerjaan berikutnya yang wajib
-1. Persetujuan TI untuk akun viewer khusus non-admin dan cloud.
+1. Persetujuan TI secara eksplisit atas risiko akun pengelola Firebase dipakai bersama. Jika tidak disetujui, buat satu akun viewer khusus tanpa hak Cloud (tidak memerlukan akun per pegawai).
 2. Bootstrap akun role melalui backend tepercaya (bukan akun yang dibuat sendiri dari browser).
 3. Uji dua tahap login, pengamanan brute-force, App Check, timeout sesi dan penghapusan akses.
 4. Desain snapshot read-only untuk Mode Lihat, dengan filter tahun/status final dan perlindungan data pribadi.
