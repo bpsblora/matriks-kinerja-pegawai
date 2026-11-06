@@ -7,3 +7,34 @@
 .login-form input:focus{outline:2px solid #3e8bd7;outline-offset:1px}
 .login-form button{justify-self:start}
 .login-form[hidden],.actions[hidden]{display:none}
+
+/* Matriks 2026 reference and administrator tools */
+.reference-view{margin-top:18px}
+.reference-view section{margin:24px 0}
+.reference-head h2,.admin-access h2{font-size:1.32rem;margin-bottom:4px}
+.reference-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+.reference-stat{background:#f0f6fd;border:1px solid #d8e6f6;border-radius:12px;padding:13px;display:grid;gap:4px}
+.reference-stat span{font:600 .78rem Arial,sans-serif;color:#456885}
+.reference-stat strong{font:800 1.6rem Arial,sans-serif;color:#15548e}
+.reference-filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.reference-filters select,.reference-filters input,.account-fields select,.account-fields input{border:1px solid #b7cde3;border-radius:9px;background:#fff;padding:10px;min-width:0;color:#193c60;font:400 .88rem Arial,sans-serif}
+.reference-filters input{flex:1;min-width:200px}
+.year-mark{font:700 .72rem Arial,sans-serif;padding:9px;background:#ddeefb;color:#15548e;border-radius:9px}
+.team-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-height:400px;overflow:auto}
+.team-card{padding:13px;border:1px solid #d7e4f2;border-radius:11px;background:#fafcff}
+.team-card strong{font-size:.95rem}.team-card p{font:400 .8rem Arial,sans-serif;margin:5px 0}.team-card small{font:400 .75rem Arial,sans-serif;color:#68809b}
+.table-wrap{overflow-x:auto;max-height:435px;overflow-y:auto;border:1px solid #d8e5f1;border-radius:10px}
+.table-wrap table{width:100%;border-collapse:collapse;text-align:left;font:400 .8rem Arial,sans-serif}
+.table-wrap th{background:#eaf2fc;color:#31516f;position:sticky;top:0;z-index:1}
+.table-wrap th,.table-wrap td{padding:11px;border-bottom:1px solid #e4edf6;vertical-align:top}
+.table-wrap tbody tr:nth-child(even){background:#fafcff}
+.admin-access{margin-top:26px;border-top:1px solid #d8e5f1;padding-top:20px}
+.account-dialog{width:min(95vw,540px);max-height:90vh;overflow-y:auto;border:1px solid #c8d9eb;border-radius:16px;padding:24px;background:#fff;color:#224561;box-shadow:0 15px 60px #153c633c}
+.account-dialog::backdrop{background:#102f4a96}
+.account-dialog h2{font-size:1.22rem}
+.account-fields{display:grid;gap:12px;margin:16px 0}
+.account-field{display:grid;gap:7px;font:600 .84rem Arial,sans-serif}
+.account-fields select[multiple]{height:118px}
+.account-actions{display:flex;flex-wrap:wrap;gap:6px}
+.account-actions button{font-size:.72rem;padding:7px 9px}
+@media(max-width:620px){.reference-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.team-grid{grid-template-columns:1fr}}
