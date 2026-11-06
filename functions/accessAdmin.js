@@ -10,7 +10,7 @@ const {
   normalizeUsername, credentialKey, passwordInputValid, isActiveProfile
 } = require("./security.js");
 
-const region = "us-central1";
+const region = process.env.MATRIX_FUNCTION_REGION || "us-central1";
 const options = {region, memory:"256MiB", timeoutSeconds:30, maxInstances:5};
 const db = () => getFirestore();
 const ROLE_SET = new Set(["ketua_tim", "admin", "kepala"]);
