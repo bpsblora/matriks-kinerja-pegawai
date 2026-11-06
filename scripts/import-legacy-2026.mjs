@@ -16,10 +16,11 @@ const {initializeApp,applicationDefault,getApps}=require("firebase-admin/app");
 const {getFirestore,FieldValue}=require("firebase-admin/firestore");
 const args=process.argv.slice(2);
 const file=args.find(x=>x.endsWith(".html"));
-const project=args[args.indexOf("--project")+1];
+const projectIndex=args.indexOf("--project");
+const project=projectIndex>=0?args[projectIndex+1]:null;
 const writes=args.includes("--write");
 const confirm=process.env.MATRIX_IMPORT_APPROVAL==="YES_TI_APPROVED_PRIVATE_PROD";
-if(!file||!project||project==="--write"){
+if(!file||!project||project.startsWith("--")){
  console.error("Usage: node scripts/import-legacy-2026.mjs /secure/V25_v2_6.html --project APPROVED_PROD_PROJECT [--write]");
  process.exit(2);
 }
