@@ -5,7 +5,7 @@ Status: Firebase DEV `mkp-bps-blora` sudah dibuat, tetapi **belum siap operasion
 ## A. Akun dan kepemilikan
 1. Gunakan akun Google resmi BPS Blora untuk membuat proyek Firebase DEV setelah disetujui TI.
 2. Gunakan GitHub `bpsblora/matriks-kinerja-pegawai` (private) untuk kode; `muhalfarisxi` adalah kolaborator.
-3. Pegawai tidak memerlukan Gmail masing-masing. Satu akun Google *viewer* khusus non-admin menjadi gerbang Mode Lihat, kemudian akun peran terpisah di aplikasi diperlukan untuk mengelola. Gmail pemilik Firebase tidak boleh dibagi sebagai viewer.
+3. Pegawai tidak memerlukan Gmail masing-masing. Sesuai permintaan, Gmail BPS Blora yang sama dengan pemilik Firebase dipakai sebagai gerbang Mode Lihat, lalu akun peran dipakai untuk pengelolaan. **Pilihan ini berisiko tinggi:** berbagi password owner juga memberi potensi akses Google Cloud/Gmail di luar website. Ini hanya rancangan DEV, bukan izin penggunaan produksi; lihat `KEBIJAKAN_AKSES_DUA_TAHAP.md`.
 4. Jadikan pengelola TI yang ditunjuk sebagai administrator cadangan. Aktifkan MFA.
 
 ## B. Firebase Console
