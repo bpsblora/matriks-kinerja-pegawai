@@ -90,7 +90,9 @@ const status = document.createElement("section");
 status.className = "status";
 const statusHeading = document.createElement("h2");
 const statusText = document.createElement("p");
-status.append(statusHeading, statusText);
+const accountInfo = document.createElement("div");
+accountInfo.className = "auth-account-info";
+status.append(statusHeading, statusText, accountInfo);
 const exitButton = document.createElement("button");
 exitButton.type = "button";
 exitButton.className = "secondary";
@@ -99,6 +101,11 @@ const footer = document.createElement("div");
 footer.className = "meta";
 footer.textContent = "Simulasi keamanan DEV: belum ada akun peran aktif, database asli, maupun deployment. Login Google dan role tidak membuka akses Firestore sebelum pengujian Rules.";
 container.append(badge, header, intro, googlePanel, viewerPanel, roleForm, privilegedPanel, status, exitButton, footer);
+const publicDemo = document.createElement("a");
+publicDemo.className = "demo-link";
+publicDemo.href = "./demo.html";
+publicDemo.textContent = "Lihat referensi Matriks 2026 tanpa login (data anonim)";
+container.insertBefore(publicDemo, status);
 root.replaceChildren(container);
 
 const roleLogin = httpsCallable(functions, "usernameSignIn", {timeout: 30000});
@@ -108,6 +115,39 @@ function report(title, detail, tone = "") {
   statusHeading.textContent = title;
   statusText.textContent = detail;
   statusText.className = tone;
+  accountInfo.replaceChildren();
+}
+function showPendingGoogle(user) {
+  render("pending");
+  report(
+    "Akun Google berhasil diverifikasi",
+    "Identitas Google sudah terhubung ke Firebase Authentication. Agar akun BPS Blora ini dapat memasuki Mode Lihat, pengelola perlu menetapkan UID sebagai akun viewer."
+  );
+  const label = document.createElement("p");
+  label.className = "meta";
+  label.textContent = "Email terdeteksi: " + (user.email || "tidak tersedia");
+  const uid = document.createElement("code");
+  uid.textContent = user.uid;
+  const detail = document.createElement("p");
+  detail.className = "meta";
+  detail.textContent = "UID Firebase: ";
+  detail.append(uid);
+  const copy = document.createElement("button");
+  copy.type = "button";
+  copy.className = "secondary";
+  copy.textContent = "Salin UID";
+  copy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(user.uid);
+      copy.textContent = "UID Disalin";
+    } catch {
+      copy.textContent = "Pilih teks UID untuk menyalin";
+    }
+  });
+  const guide = document.createElement("p");
+  guide.className = "meta";
+  guide.textContent = "UID bukan password atau token. Akun selain UID yang disetujui tidak mendapatkan akses Mode Lihat. Login peran tetap belum aktif.";
+  accountInfo.append(label, detail, copy, guide);
 }
 function render(mode, busy = false) {
   signedMode = mode;
@@ -133,11 +173,15 @@ googleButton.addEventListener("click", async () => {
   try {
     const result = await signInWithPopup(auth, new GoogleAuthProvider());
     if (!viewerUid || result.user.uid !== viewerUid) {
-      await signOut(auth);
-      report("Akun belum diizinkan", "Akun Google ini belum ditetapkan sebagai akun akses lihat oleh pengelola Firebase.", "warning");
+      showPendingGoogle(result.user);
     }
   } catch (error) {
-    report("Login Google belum berhasil", "Periksa akun Google dan domain otorisasi. Kode: " + (error?.code || "tidak diketahui"), "error");
+    const reason = error?.code === "auth/unauthorized-domain"
+      ? "Alamat preview Firebase belum masuk Authorized domains. Tambahkan hostname preview di Firebase Console → Authentication → Settings → Authorized domains."
+      : error?.code === "auth/popup-blocked"
+      ? "Browser memblokir pop-up Google. Izinkan pop-up untuk alamat preview ini."
+      : "Periksa akun Google dan konfigurasi Authentication. Kode: " + (error?.code || "tidak diketahui");
+    report("Login Google belum berhasil", reason, "error");
   } finally {
     googleButton.disabled = false;
   }
@@ -178,8 +222,12 @@ onAuthStateChanged(auth, async (user) => {
     const token = await user.getIdTokenResult();
     if (auth.currentUser?.uid !== user.uid) return;
     const provider = token.signInProvider;
-    if (provider === "google.com" && viewerUid && user.uid === viewerUid) {
-      render("viewer");
+    if (provider === "google.com") {
+      if (viewerUid && user.uid === viewerUid && token.claims?.email_verified === true) {
+        render("viewer");
+      } else {
+        showPendingGoogle(user);
+      }
       return;
     }
     if (provider === "custom" && roleLoginReady) {
