@@ -1,0 +1,68 @@
+name: Auto-update Firebase Matriks DEV Preview
+on:
+  push:
+    branches:
+      - setup/firebase-foundation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-matriks-dev-preview
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify anonymous preview and closed database
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rules = Path("firestore.rules").read_text()
+          assert "allow read, write: if false;" in rules
+          ref = json.loads(Path("src/data/reference2026.json").read_text())
+          assert ref["meta"]["anonymized"] is True
+          assert len(ref["employees"]) == 40
+          assert len(ref["teams"]) == 25
+          assert len(ref["kros"]) == 33
+          print("DEV preview data and Firestore rules verified.")
+          PY
+      - name: Install frontend dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Build website
+        run: |
+          cp .env.example .env.local
+          npm run build
+          test -f dist/index.html
+          test -f dist/demo.html
+      - name: Verify Firebase deployment authorization
+        id: check-deploy
+        shell: bash
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MKP_BPS_BLORA }}
+        run: |
+          if [ -n "$FIREBASE_SA" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Firebase deployment is not connected yet. A project admin must configure FIREBASE_SERVICE_ACCOUNT_MKP_BPS_BLORA once. Build succeeded, preview not updated."
+          fi
+      - name: Deploy to existing matriks-dev PREVIEW channel only
+        if: steps.check-deploy.outputs.ready == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MKP_BPS_BLORA }}
+          projectId: mkp-bps-blora
+          channelId: matriks-dev
+          expires: 7d
+
+# This workflow intentionally NEVER deploys to the live channel, Firestore,
+# Authentication or Cloud Functions. Production release needs separate review.
