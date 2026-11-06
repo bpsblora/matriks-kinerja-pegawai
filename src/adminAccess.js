@@ -2,7 +2,7 @@ import { httpsCallable } from "firebase/functions";
 import { functions } from "./firebase/client.js";
 import ref from "./data/reference2026.json";
 
-export function createAccessAdminView() {
+export function createAccessAdminView(teams = []) {
   const el=document.createElement("section");
   el.className="admin-access";
   el.innerHTML='<h2>Kelola Akun Akses</h2><p>Admin dapat mengelola akun peran, username, password dan tim kerja.</p><div class="actions"><button id="aAdd">+ Tambah Akun</button><button id="aReload" class="secondary">Muat Ulang</button></div><p id="aMsg"></p><div id="aList" class="table-wrap"></div><dialog id="aDlg" class="account-dialog"></dialog>';
@@ -22,7 +22,7 @@ export function createAccessAdminView() {
     [["ketua_tim","Ketua Tim"],["admin","Admin"],["kepala","Kepala BPS"]].forEach(([v,t])=>{const o=E("option",t);o.value=v;role.append(o);});
     role.value=a.role||"ketua_tim";
     const teams=E("select");teams.multiple=true;teams.size=4;
-    ref.teams.forEach(t=>{const o=E("option",t.name);o.value=t.id;o.selected=a.teamIds?.includes(t.id)||false;teams.append(o);});
+    (teams.length ? teams : ref.teams).forEach(t=>{const o=E("option",t.name);o.value=t.id;o.selected=a.teamIds?.includes(t.id)||false;teams.append(o);});
     body.append(L("Username",name),L("Peran",role),L("Tim (Ctrl+klik)",teams));
     return {body,values:()=>({username:name.value.trim(),role:role.value,teamIds:[...teams.selectedOptions].map(x=>x.value)})};
   }
