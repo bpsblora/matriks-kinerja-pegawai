@@ -406,7 +406,7 @@ export function createLiveMatrixWorkspace(context) {
   else if(state.page==="history")renderHistory();
   else if(state.page==="final")renderFinal();
   else if(state.page==="accounts"&&context.role==="admin")
-    content.append(createAccessAdminView());
+    content.append(createAccessAdminView(rows('teams')));
   if(state.yearInfo?.status==="finalized"){
     content.prepend(node("div","mx-alert","Tahun telah difinalisasi. Semua perubahan data diblokir oleh backend."));
   }
