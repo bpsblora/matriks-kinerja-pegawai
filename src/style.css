@@ -38,3 +38,10 @@
 .account-actions{display:flex;flex-wrap:wrap;gap:6px}
 .account-actions button{font-size:.72rem;padding:7px 9px}
 @media(max-width:620px){.reference-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.team-grid{grid-template-columns:1fr}}
+
+/* Google viewer account provisioning — no access without an approved UID. */
+.auth-account-info{display:grid;justify-items:start;gap:5px;margin-top:12px}
+.auth-account-info p{margin:0 0 3px;line-height:1.6}
+.auth-account-info code{font-size:13px;overflow-wrap:anywhere}
+.auth-account-info button{margin:4px 0;font-size:12px}
+.demo-link{display:inline-flex;align-items:center;font:700 13px Arial,sans-serif;color:#1767ad;padding:10px 0;margin:8px 0 4px}
