@@ -39,7 +39,7 @@ async function recordAttempt(key) {
 }
 
 exports.usernameSignIn = onCall({
-  region: "us-central1", // DEV project database is nam5; PROD needs a separate Jakarta configuration.
+  region: process.env.MATRIX_FUNCTION_REGION || "us-central1", // Set PROD region explicitly after TI review.
   memory: "256MiB",
   timeoutSeconds: 30,
   maxInstances: 5,
