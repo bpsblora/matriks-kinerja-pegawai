@@ -75,7 +75,15 @@ exports.listMatrixRecords=onCall(opt,async req=>{
  let query=items(year,kind).orderBy(FieldPath.documentId()).limit(pageSize);
  if(cursor)query=query.startAfter(cursor);
  const snap=await query.get();
- const records=snap.docs.filter(doc=>isAllowedToSee(a,kind,doc.data(),doc.id))
+ let employeeScope=null;
+ if(kind==="employees"&&a.role==="ketua_tim"){
+   const teamDocs=await Promise.all(a.teamIds.map(tid=>items(year,"teams").doc(tid).get()));
+   employeeScope=new Set(teamDocs.filter(x=>x.exists).flatMap(x=>[
+     ...(Array.isArray(x.data().memberIds)?x.data().memberIds:[]),x.data().leaderId
+   ]));
+ }
+ const records=snap.docs.filter(doc=>
+   (employeeScope===null||employeeScope.has(doc.id))&&isAllowedToSee(a,kind,doc.data(),doc.id))
   .map(doc=>safeFields(kind,doc.data(),doc.id));
  return {records,nextCursor:snap.size===pageSize?snap.docs[snap.docs.length-1].id:null,year,kind};
 });
@@ -173,6 +181,13 @@ exports.saveActivityAllocations=onCall(opt,async req=>{
   if(!act.exists||act.data().teamId!==teamId)respond("failed-precondition","Uraian bukan milik tim tersebut.");
   const employees=await Promise.all(ids.map(id=>tx.get(items(year,"employees").doc(id))));
   if(employees.some(e=>!e.exists||e.data().active===false))respond("failed-precondition","Ada pegawai yang belum aktif.");
+  if(a.role==="ketua_tim"){
+    const teamDoc=await tx.get(items(year,"teams").doc(teamId));
+    const roster=teamDoc.exists?teamDoc.data():null;
+    const allowed=new Set([...(Array.isArray(roster?.memberIds)?roster.memberIds:[]),roster?.leaderId]);
+    if(ids.some(id=>!allowed.has(id)))
+      respond("permission-denied","Ketua Tim hanya dapat mengalokasikan pegawai yang ditetapkan pada timnya.");
+  }
   const existing=await Promise.all(refs.map(ref=>tx.get(ref)));
   const stamp=FieldValue.serverTimestamp();
   refs.forEach((ref,i)=>{
