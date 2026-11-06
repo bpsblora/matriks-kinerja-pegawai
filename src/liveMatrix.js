@@ -172,13 +172,22 @@ export function createLiveMatrixWorkspace(context) {
       el=node("select");el.append(option("","Pilih "+title));
       const key=type==="team"?"teams":type==="kro"?"kros":"activities";
       rows(key).forEach(row=>el.append(option(row.id,row.name||row.description||row.code||row.id)));
+    } else if(type==="array"){
+      el=node("div","mx-multi-choice");
+      const choices=key==="memberIds"?rows("employees"):rows("teams");
+      choices.forEach(item=>{
+        const label=node("label");
+        const input=node("input");input.type="checkbox";input.value=item.id;
+        input.checked=(existing?.[key]||[]).includes(item.id);
+        label.append(input,node("span","",item.name||item.id));el.append(label);
+      });
     } else {
-      el=node("input");el.type=type==="array"?"text":type==="checkbox"?"checkbox":type;
+      el=node("input");el.type=type==="checkbox"?"checkbox":type;
       if(type==="number"){el.min="0";el.step="any";}
     }
     const val=existing?.[key];
     if(type==="checkbox")el.checked=val!==false;
-    else if(type==="array")el.value=(val||[]).join(", ");
+    else if(type==="array"){}
     else if(val!==undefined)el.value=String(val);
     else if(key==="teamId"&&state.selectedTeam)el.value=state.selectedTeam;
     else if(key==="kroCode"&&state.selectedKro)el.value=state.selectedKro;
@@ -189,7 +198,7 @@ export function createLiveMatrixWorkspace(context) {
    for(const [k,v] of Object.entries(inputs)){
     const t=schema.find(row=>row[0]===k)[2];
     if(t==="checkbox")obj[k]=v.checked;
-    else if(t==="array")obj[k]=v.value.split(",").map(x=>x.trim()).filter(Boolean);
+    else if(t==="array")obj[k]=[...v.querySelectorAll("input:checked")].map(x=>x.value);
     else if(t==="number")obj[k]=Number(v.value||0);
     else obj[k]=v.value.trim();
    }
