@@ -1,11 +1,13 @@
-# Akun Pegawai Individual — Autentikasi Username dan Password
+> **Perubahan keputusan (6 November 2026):** Pengguna memilih **Google BPS Blora untuk Mode Lihat, ditambah login username/password akun peran bila perlu mengubah data**. Panduan utama saat ini adalah [KEBIJAKAN_AKSES_DUA_TAHAP.md](KEBIJAKAN_AKSES_DUA_TAHAP.md). Dokumen berikut merekam fondasi backend yang masih dapat digunakan untuk **login tahap kedua**, bukan login langsung pegawai. Akun Google pemilik Firebase tidak boleh dibagikan sebagai akun viewer.
+
+# Backend Username dan Password Peran — Autentikasi Tahap Kedua
 
 **Status: rancangan teknis DEV, BELUM DIAKTIFKAN.** Jangan masukkan password asli ke repository/ChatGPT dan jangan melakukan deploy Cloud Functions sampai disetujui pengelola TI.
 
 ## Arsitektur yang disepakati
-- Gmail BPS Blora: pemilik proyek Google Cloud/Firebase, bukan identitas login bersama di website.
-- Setiap pegawai: **username dan password aplikasi berbeda**, tanpa perlu Gmail sendiri.
-- Frontend Firebase Hosting memanggil Cloud Function `usernameSignIn` yang memverifikasi username/password di sisi server.
+- Akun Google viewer kantor: gerbang Mode Lihat (bukan pemilik Firebase).
+- Pengelola memakai **username/password akun peran** (katim per tim, admin atau kepala), tanpa mendata Gmail tiap pegawai. Akun peran yang dipakai bersama tidak dapat mengidentifikasi orang secara individual.
+- Setelah masuk sebagai viewer Google, frontend memanggil Cloud Function `usernameSignIn` untuk memverifikasi username/password peran di sisi server. Backend juga mewajibkan UID viewer yang disetujui.
 - Jika benar, Firebase Admin SDK menandatangani **custom token** UID unik. Frontend memanggil `signInWithCustomToken` untuk membuka sesi Firebase.
 - Seluruh akses Firestore dikontrol dengan Rules dan/atau backend yang memeriksa UID, status aktif, keanggotaan tim serta peran. Dropdown peran di browser tidak bisa memberikan akses.
 - Peran: `kepala`, `admin`, `ketua_tim`, `pegawai`.
@@ -17,7 +19,7 @@
 - `functions/security.test.js`: unit test untuk aturan validasi.
 - `src/main.js`: form username/password menggantikan login Google bersama.
 - `src/firebase/client.js`: koneksi Functions pada region DEV.
-- `VITE_USERNAME_AUTH_READY=false` untuk **menonaktifkan login di web**.
+- `VITE_VIEWER_GOOGLE_UID` belum diisi dan `VITE_ROLE_AUTH_READY=false`, sehingga **login role masih nonaktif**.
 - Backend login juga hanya aktif jika `AUTH_LOGIN_ENABLED=true` disetel secara sengaja oleh operator setelah audit keamanan.
 - `firestore.rules` tetap **deny all**. Tidak boleh otomatis mengubahnya untuk menyalakan login.
 
