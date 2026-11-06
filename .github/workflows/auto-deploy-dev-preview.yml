@@ -1,4 +1,5 @@
 name: Auto-update Firebase Matriks DEV Preview
+
 on:
   push:
     branches:
@@ -7,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: firebase-matriks-dev-preview
@@ -20,7 +22,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Verify anonymous preview and closed database
+
+      - name: Verify anonymous preview and closed Firestore
         shell: bash
         run: |
           python3 - <<'PY'
@@ -33,36 +36,47 @@ jobs:
           assert len(ref["employees"]) == 40
           assert len(ref["teams"]) == 25
           assert len(ref["kros"]) == 33
-          print("DEV preview data and Firestore rules verified.")
+          print("DEV preview and rules verified.")
           PY
+
       - name: Install frontend dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
+
       - name: Build website
         run: |
           cp .env.example .env.local
           npm run build
           test -f dist/index.html
           test -f dist/demo.html
-      - name: Verify Firebase deployment authorization
-        id: check-deploy
-        shell: bash
+
+      - name: Check keyless deployment configuration
+        id: deploy-config
         env:
-          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MKP_BPS_BLORA }}
+          WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+        shell: bash
         run: |
-          if [ -n "$FIREBASE_SA" ]; then
+          if [ -n "$WIF_PROVIDER" ] && [ -n "$SERVICE_ACCOUNT" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Firebase deployment is not connected yet. A project admin must configure FIREBASE_SERVICE_ACCOUNT_MKP_BPS_BLORA once. Build succeeded, preview not updated."
+            echo "::notice::Firebase preview deployment not connected. Set GCP_WORKLOAD_IDENTITY_PROVIDER and GCP_DEPLOY_SERVICE_ACCOUNT in repository variables once."
           fi
-      - name: Deploy to existing matriks-dev PREVIEW channel only
-        if: steps.check-deploy.outputs.ready == 'true'
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MKP_BPS_BLORA }}
-          projectId: mkp-bps-blora
-          channelId: matriks-dev
-          expires: 7d
 
-# This workflow intentionally NEVER deploys to the live channel, Firestore,
-# Authentication or Cloud Functions. Production release needs separate review.
+      - name: Authenticate with Google Cloud (OIDC, no JSON keys)
+        if: steps.deploy-config.outputs.ready == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Install Firebase CLI
+        if: steps.deploy-config.outputs.ready == 'true'
+        run: npm install --global firebase-tools
+
+      - name: Deploy matriks-dev PREVIEW only
+        if: steps.deploy-config.outputs.ready == 'true'
+        run: firebase hosting:channel:deploy matriks-dev --project mkp-bps-blora --expires 7d --non-interactive
+
+# No live deployment, Firestore writes, database import, or Functions deploy.
+# No service-account JSON keys stored in the repo or GitHub secrets.
