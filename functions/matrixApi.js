@@ -14,6 +14,21 @@ const respond=(code,msg)=>{throw new HttpsError(code,msg);};
 const isAdmin=a=>a.role==="admin";
 const isHead=a=>a.role==="kepala";
 const own=(a,t)=>isAdmin(a)||isHead(a)||a.teamIds.includes(t);
+const REQUIRED={
+ teams:["name"],employees:["name"],kros:["code","name","teamIds"],
+ groups:["teamId","name"],activities:["teamId","description","unit","standardHours","annualVolume"],
+ allocations:["teamId","activityId","employeeId","month","hours"],
+ annualAllocations:["teamId","activityId","employeeId","volume","hours"],
+ standards:["name","group","hours"],schedules:["teamId","activityId","startDate","endDate"],
+ targets:["teamId","activityId","month","volume"],workflow:["teamId","stage","status"]
+};
+function requiredCreate(kind,data){
+ const needs=REQUIRED[kind]||[];
+ return needs.every(key=>Object.prototype.hasOwnProperty.call(data,key)
+   &&data[key]!==null&&data[key]!==undefined
+   &&(typeof data[key]!=="string"||data[key].trim().length>0));
+}
+
 
 function enabled(){
  if(process.env.MATRIX_BACKEND_ENABLED!=="true")
@@ -89,7 +104,14 @@ exports.mutateMatrixRecord=onCall(opt,async req=>{
    if(state.status==="finalized")respond("failed-precondition","Tahun telah difinalisasi Kepala BPS.");
    const before=prior.exists?prior.data():null;
    if(op==="create"&&before)respond("already-exists","ID sudah digunakan.");
+   if(op==="create"&&!requiredCreate(kind,patch))respond("invalid-argument","Field wajib belum lengkap.");
    if(op!=="create"&&!before)respond("not-found","Data tidak ditemukan.");
+   const expected=req.data?.expectedUpdatedAt;
+   if(op!=="create"&&expected!==undefined){
+     const updated=before.updatedAt?.toDate?.()?.toISOString?.()||null;
+     if(typeof expected!=="string"||updated!==expected)
+       respond("failed-precondition","Data telah berubah sejak dibuka. Sinkronkan sebelum menyimpan.");
+   }
    const combined={...(before||{}),...patch};
    const targetTeam=kind==="teams"?id:combined.teamId;
    if(!S.canManage(a.role,a.teamIds,kind,targetTeam))
@@ -106,6 +128,17 @@ exports.mutateMatrixRecord=onCall(opt,async req=>{
      const employee=await tx.get(items(year,"employees").doc(combined.employeeId));
      if(!employee.exists||employee.data().active===false)
        respond("failed-precondition","Pegawai tidak aktif atau belum terdaftar.");
+   }
+   if(kind==="activities"||kind==="groups"||kind==="schedules"||kind==="targets"){
+     if(!combined.teamId)respond("invalid-argument","Tim kerja wajib dipilih.");
+     const teamDoc=await tx.get(items(year,"teams").doc(combined.teamId));
+     if(!teamDoc.exists||teamDoc.data().active===false)
+       respond("failed-precondition","Tim tidak aktif atau belum tersedia.");
+     if(combined.kroCode){
+       const kroDoc=await tx.get(items(year,"kros").doc(combined.kroCode));
+       if(!kroDoc.exists||!(kroDoc.data().teamIds||[]).includes(combined.teamId))
+         respond("failed-precondition","KRO belum ditetapkan untuk tim ini.");
+     }
    }
    if(kind==="schedules"&&combined.startDate&&combined.endDate&&combined.startDate>combined.endDate)
      respond("invalid-argument","Tanggal mulai tidak boleh lebih besar dari tanggal selesai.");
