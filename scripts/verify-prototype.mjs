@@ -1,10 +1,15 @@
 import fs from "node:fs";
+import vm from "node:vm";
 import assert from "node:assert/strict";
 const paths=Array.from({length:17},(_,i)=>"assets/v26/part-"+String(i+1).padStart(3,"0")+".txt");
 for(const path of paths)assert(fs.existsSync(path),"File V25 belum lengkap: "+path);
 const html=paths.map(path=>fs.readFileSync(path,"utf8")).join("");
 assert(html.includes("Prototipe V25 v2.6"),"Versi bukan v2.6");
 assert(html.includes("function enterPrototypeEdit()"),"Gerbang Gmail belum menggantikan login demo");
+const inline=html.match(/<script>([\\s\\S]*?)<\\/script>/);
+assert(inline,"Script fungsional V25 tidak tersedia");
+new vm.Script(inline[1],{filename:"prototipe-v26-inline.js"});
+
 assert(!html.includes("demo2026"),"Password demo lama tidak boleh ikut");
 const extract=id=>{
   const needle='<script id="'+id+'" type="application/json">';
