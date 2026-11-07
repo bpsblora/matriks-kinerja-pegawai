@@ -8,6 +8,7 @@ const {onCall,HttpsError}=require("firebase-functions/v2/https");
 const {getFirestore,FieldValue,FieldPath}=require("firebase-admin/firestore");
 const {getAuth}=require("firebase-admin/auth");
 const S=require("./matrixSchema");
+const {isApprovedGoogleViewer}=require("./security");
 const db=()=>getFirestore();
 const opt={region:process.env.MATRIX_FUNCTION_REGION||"us-central1",memory:"256MiB",timeoutSeconds:60,maxInstances:5};
 const respond=(code,msg)=>{throw new HttpsError(code,msg);};
@@ -48,6 +49,15 @@ async function actor(req){
    respond("permission-denied","Akun belum aktif atau peran tidak sesuai.");
  return {uid,role:p.role,username:p.username,teamIds:Array.isArray(p.teamIds)?p.teamIds:[]};
 }
+// Viewer access is read-only and only allowed for the approved Google UID.
+ // No browser may bypass the closed Firestore rules or assign its own role.
+async function reader(req) {
+ if(isApprovedGoogleViewer(req.auth,process.env.VIEWER_GOOGLE_UID)) {
+   enabled();
+   return {uid:req.auth.uid,role:"viewer",username:"Mode Lihat",teamIds:[]};
+ }
+ return actor(req);
+}
 function typeAndYear(req){
  let year;
  try{year=S.year(req.data?.year);}catch(e){respond("invalid-argument",e.message);}
@@ -59,7 +69,7 @@ const yr=(year)=>db().collection("matrixYears").doc(year);
 const items=(year,kind)=>yr(year).collection(kind);
 const auditRef=()=>db().collection("matrixAudit").doc();
 function isAllowedToSee(a,kind,row,id){
- return S.accessible(a.role,a.teamIds,kind,{...row,id});
+ return a.role==="viewer" || S.accessible(a.role,a.teamIds,kind,{...row,id});
 }
 function safeFields(kind,row,id) {
  const record={id};
@@ -68,7 +78,7 @@ function safeFields(kind,row,id) {
  return record;
 }
 exports.listMatrixRecords=onCall(opt,async req=>{
- const a=await actor(req),{year,kind}=typeAndYear(req);
+ const a=await reader(req),{year,kind}=typeAndYear(req);
  const pageSize=Math.min(250,Math.max(1,Number(req.data?.pageSize)||150));
  const cursor=req.data?.cursor;
  if(cursor!==undefined&&(typeof cursor!=="string"||!S.DOC_ID.test(cursor)))respond("invalid-argument","Cursor tidak valid.");
@@ -89,11 +99,11 @@ exports.listMatrixRecords=onCall(opt,async req=>{
 });
 
 exports.getMatrixYearState=onCall(opt,async req=>{
- const a=await actor(req);let y;
+ const a=await reader(req);let y;
  try{y=S.year(req.data?.year);}catch(e){respond("invalid-argument",e.message);}
  const snap=await yr(y).get();
  const item=snap.exists?snap.data():{};
- return {year:y,status:item.status||"draft",finalizedAt:item.finalizedAt?.toDate?.()?.toISOString?.()||null,
+ return {year:y,initialized:snap.exists,status:item.status||"draft",finalizedAt:item.finalizedAt?.toDate?.()?.toISOString?.()||null,
   finalizedBy:item.finalizedBy||null,role:a.role,teamIds:a.teamIds};
 });
 
