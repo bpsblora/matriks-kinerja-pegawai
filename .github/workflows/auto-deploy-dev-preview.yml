@@ -50,7 +50,7 @@ jobs:
           cp .env.example .env.local
           npm run build
           test -f dist/index.html
-          test -f dist/demo.html
+          test ! -f dist/demo.html
           test -f dist/v26/part-001.txt
           test -f dist/v26/part-017.txt
 
