@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 const paths=Array.from({length:17},(_,i)=>"assets/v26/part-"+String(i+1).padStart(3,"0")+".txt");
 for(const path of paths)assert(fs.existsSync(path),"File V25 belum lengkap: "+path);
 const html=paths.map(path=>fs.readFileSync(path,"utf8")).join("");
-assert(html.includes("V25 Terpadu v2.6"),"Versi bukan v2.6");
+assert(html.includes("Prototipe V25 v2.6"),"Versi bukan v2.6");
 assert(html.includes("function enterPrototypeEdit()"),"Gerbang Gmail belum menggantikan login demo");
 assert(!html.includes("demo2026"),"Password demo lama tidak boleh ikut");
 const extract=id=>{
