@@ -52,6 +52,8 @@ jobs:
           node --check functions/bootstrapAdmin.cjs
           node --check scripts/import-legacy-2026.mjs
           node --check scripts/import-kro-2027.mjs
+          node --check scripts/verify-prototype.mjs
+          node scripts/verify-prototype.mjs
           node --check functions/security.js
       - name: Test username/role validation
         run: node --test functions/security.test.js functions/matrixSchema.test.js
