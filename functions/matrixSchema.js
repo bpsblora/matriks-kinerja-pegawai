@@ -4,7 +4,7 @@ const TYPES = Object.freeze(["teams","employees","kros","groups","activities","a
 const FIELDS = Object.freeze({
   teams:["name","leaderId","memberIds","active","notes"],
   employees:["name","active","type","position"],
-  kros:["code","name","teamIds","active","notes"],
+  kros:["code","name","teamIds","suggestedTeamIds","active","notes"],
   groups:["teamId","kroCode","name","active"],
   activities:["teamId","kroCode","group","description","unit","standardHours","annualVolume","calculationMode","active"],
   allocations:["activityId","employeeId","teamId","month","hours","volume","notes"],
@@ -55,7 +55,7 @@ function validateRecord(kind,id,input){
     else if(k==="activityId"){assert(typeof v==="string"&&DOC_ID.test(v),"ID kegiatan tidak valid.");out[k]=v;}
     else if(k==="kroCode"||k==="code"){assert(typeof v==="string"&&(v===""||KRO.test(v)),"Kode KRO tidak valid.");out[k]=v;}
     else if(k==="memberIds")out[k]=ids(v,EMPLOYEE,80);
-    else if(k==="teamIds")out[k]=ids(v,TEAM,35);
+    else if(k==="teamIds"||k==="suggestedTeamIds")out[k]=ids(v,TEAM,35);
     else if(k==="active") {assert(typeof v==="boolean","Status harus boolean.");out[k]=v;}
     else if(k==="month")out[k]=number(v,1,12);
     else if(k==="hours"||k==="standardHours")out[k]=number(v,0,1000);
