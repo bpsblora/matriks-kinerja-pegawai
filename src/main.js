@@ -19,6 +19,7 @@ import { createLiveMatrixWorkspace } from "./liveMatrix.js";
  */
 const viewerUid = import.meta.env.VITE_VIEWER_GOOGLE_UID || "";
 const roleLoginReady = import.meta.env.VITE_ROLE_AUTH_READY === "true";
+const matrixBackendReady = import.meta.env.VITE_MATRIX_BACKEND_READY === "true";
 const root = document.querySelector("#app");
 const container = document.createElement("main");
 container.className = "container";
@@ -49,7 +50,10 @@ viewerText.textContent = "Tampilan referensi Matriks 2026 tersedia dalam bentuk 
 const viewerNote = document.createElement("p");
 viewerNote.className = "warning";
 viewerNote.textContent = "Mode Lihat belum aktif: Rules Firestore masih deny-all sampai diuji.";
-viewerPanel.append(viewerHeading, viewerText, viewerNote, createReference2026View());
+const viewerReference = createReference2026View();
+const viewerMatrix = document.createElement("div");
+viewerMatrix.className = "mx-workspace";
+viewerPanel.append(viewerHeading, viewerText, viewerNote, viewerReference, viewerMatrix);
 
 const roleForm = document.createElement("form");
 roleForm.className = "login-form";
@@ -99,7 +103,7 @@ exitButton.className = "secondary";
 exitButton.textContent = "Keluar";
 const footer = document.createElement("div");
 footer.className = "meta";
-footer.textContent = "Simulasi keamanan DEV: belum ada akun peran aktif, database asli, maupun deployment. Login Google dan role tidak membuka akses Firestore sebelum pengujian Rules.";
+footer.textContent = "Firebase Preview: login Google terverifikasi · Data referensi anonim. Firestore langsung tetap ditutup; database peran baru digunakan setelah backend server disiapkan dan diaktifkan.";
 container.append(badge, header, intro, googlePanel, viewerPanel, roleForm, privilegedPanel, status, exitButton, footer);
 const publicDemo = document.createElement("a");
 publicDemo.className = "demo-link";
@@ -149,10 +153,24 @@ function showPendingGoogle(user) {
   guide.textContent = "UID bukan password atau token. Akun selain UID yang disetujui tidak mendapatkan akses Mode Lihat. Login peran tetap belum aktif.";
   accountInfo.append(label, detail, copy, guide);
 }
+function mountViewerMatrix() {
+  viewerMatrix.replaceChildren();
+  viewerReference.hidden = matrixBackendReady;
+  if (matrixBackendReady) {
+    viewerText.textContent = "Matriks bersama dibaca melalui layanan server Firebase. Akun Google hanya dapat melihat.";
+    viewerNote.textContent = "Mode Lihat: tidak mempunyai izin tambah, ubah, hapus, atau finalisasi.";
+    viewerMatrix.append(createLiveMatrixWorkspace({role:"viewer",teamIds:[],username:"Mode Lihat"}));
+  } else {
+    viewerText.textContent = "Data referensi 2026 masih anonim; database operasional belum diaktifkan.";
+    viewerNote.textContent = "Sementara tersedia tampilan referensi. Pengaktifan data bersama harus melalui pemeriksaan backend dan persetujuan pengelola.";
+  }
+}
 function render(mode, busy = false) {
   signedMode = mode;
   container.classList.toggle("live-expanded", mode === "role");
   if (mode !== "role") liveWorkspace.replaceChildren();
+  if (mode === "viewer") mountViewerMatrix();
+  else viewerMatrix.replaceChildren();
   googlePanel.hidden = mode !== "none";
   viewerPanel.hidden = mode !== "viewer";
   roleForm.hidden = mode !== "viewer";
@@ -162,9 +180,9 @@ function render(mode, busy = false) {
   roleButton.disabled = busy || !roleLoginReady;
   exitButton.disabled = busy;
   if (mode === "viewer" && !roleLoginReady) {
-    report("Mode Lihat (pengujian)", "Login peran masih dinonaktifkan sampai pengaturan backend dan Security Rules selesai.");
+    report("Google masuk — Mode Lihat", matrixBackendReady ? "Data bersama hanya dapat dibaca. Untuk mengelola matriks diperlukan akun peran terverifikasi." : "Referensi anonim 2026 tersedia. Backend bersama dan login peran belum diaktifkan.");
   } else if (mode === "role") {
-    report("Sesi peran teridentifikasi", "Belum ada hak menulis; Firestore tetap ditutup sementara.");
+    report("Sesi peran terverifikasi", "Hak akses setiap menu ditentukan server berdasarkan akun, tim, dan status tahun. Firestore langsung tetap tertutup.");
   } else if (mode === "none") {
     report("Masuk melalui Google", "Khusus pengujian: satu akun Google BPS Blora. Gunakan data fiktif; berbagi Gmail pemilik Firebase membawa risiko akses cloud di luar aplikasi.");
   }
