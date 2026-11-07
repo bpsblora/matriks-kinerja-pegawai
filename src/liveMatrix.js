@@ -29,7 +29,7 @@ const FIELDS={
 const req=(name)=>httpsCallable(functions,name,{timeout:60000});
 const api={
  list:req("listMatrixRecords"),year:req("getMatrixYearState"),mutate:req("mutateMatrixRecord"),
- batch:req("saveActivityAllocations"),approve:req("changeMatrixYearStatus"),
+ batch:req("saveActivityAllocations"),annual:req("saveAnnualActivityAllocations"),approve:req("changeMatrixYearStatus"),
  init:req("initMatrixYear"),audit:req("listMatrixAudit")
 };
 const node=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=String(text);return el;};
@@ -124,7 +124,8 @@ export function createLiveMatrixWorkspace(context) {
   navbar.querySelectorAll("button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
   void refresh();
  }
- NAV.concat(context.role==="admin"?[ADMIN_NAV]:[]).forEach(([id,title])=>{
+ NAV.filter(([id])=>id!=="history"||["admin","kepala"].includes(context.role))
+ .concat(context.role==="admin"?[ADMIN_NAV]:[]).forEach(([id,title])=>{
   const b=button(title,()=>navigate(id));b.dataset.page=id;navbar.append(b);
  });
  yearPick.addEventListener("change",()=>{state.year=Number(yearPick.value);
@@ -325,6 +326,12 @@ export function createLiveMatrixWorkspace(context) {
    [["Satuan",selected.unit],["Volume Tahunan",fmt(selected.annualVolume)],["Standar (jam)",fmt(selected.standardHours)]]
     .forEach(([key,value])=>{const div=node("div");div.append(node("small","",key),node("strong","",value));stats.append(div);});
    right.box.append(stats);
+   const annualRows=rows("annualAllocations").filter(a=>a.activityId===selected.id);
+   if(annualRows.length){
+     right.box.append(node("h4","","Alokasi Tahunan Tersimpan"));
+     right.box.append(table(["Pegawai","Volume Tahunan","Jam Tahunan"],
+       annualRows.map(x=>[nameEmployee(x.employeeId),fmt(x.volume),fmt(x.hours)])));
+   }
    if(permitted("activities",selected.teamId))right.box.append(button("Edit Uraian",()=>openEditor("activities",selected),"mx-secondary"));
    if(permitted("allocations",selected.teamId)){
     const form=node("div","mx-allocation-form");
@@ -356,6 +363,21 @@ export function createLiveMatrixWorkspace(context) {
        state.fetched.delete("allocations");alert("Alokasi berhasil disimpan untuk "+ids.length+" pegawai.");await refresh();
       }catch(e){alert("Gagal mengalokasikan: "+(e?.message||"Server belum aktif."),true);}
     },"mx-primary"));
+    right.box.append(button("Simpan Alokasi Tahunan",async()=>{
+      const ids=[...employees.querySelectorAll("input:checked")].map(x=>x.value);
+      const n=Number(hours.value),v=Number(volume.value);
+      if(!ids.length||!Number.isFinite(n)||n<0||!Number.isFinite(v)||v<0){
+        alert("Pilih pegawai dan masukkan jam/volume yang valid.",true);return;
+      }
+      if(!window.confirm("Simpan "+n+" jam TAHUNAN untuk masing-masing "+ids.length+" pegawai?"))return;
+      try{
+        await api.annual({year:state.year,activityId:selected.id,teamId:selected.teamId,
+          employeeIds:ids,hours:n,volume:v});
+        state.fetched.delete("annualAllocations");
+        alert("Alokasi tahunan berhasil disimpan.");
+        await refresh();
+      }catch(e){alert("Alokasi tahunan gagal: "+(e?.message||"Backend belum aktif."),true);}
+    },"mx-secondary"));
    }
   }else right.box.append(node("p","mx-muted","Pilih uraian kegiatan untuk menampilkan rincian."));
   area.append(left.box,right.box);content.append(area);
