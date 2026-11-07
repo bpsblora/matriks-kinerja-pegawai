@@ -9,7 +9,7 @@ import {createAccessAdminView} from "./adminAccess.js";
 const MONTHS=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 const CATEGORIES=["teams","employees","kros","groups","activities","allocations","annualAllocations","standards","schedules","targets","workflow"];
 const NAV=[
- ["dashboard","Dashboard"],["teams","Kelola Tim"],["kros","Pembagian KRO"],
+ ["dashboard","Dashboard"],["teams","Kelola Tim"],["employees","Daftar Pegawai"],["kros","Pembagian KRO"],
  ["activities","Input Alokasi"],["schedules","Timeline Kerja"],
  ["monitor","Monitoring Pegawai"],["recon","Rekonsiliasi"],
  ["standards","Standar Waktu"],["history","Riwayat"],["final","Finalisasi Matriks"]
@@ -18,7 +18,7 @@ const ADMIN_NAV=["accounts","Kelola Akun Akses"];
 const FIELDS={
  teams:[["name","Nama Tim","text"],["leaderId","Ketua Tim (ID Pegawai)","text"],["memberIds","Anggota (ID dipisahkan koma)","array"],["active","Status Aktif","checkbox"]],
  employees:[["name","Nama Pegawai","text"],["type","Jenis Pegawai","text"],["position","Jabatan","text"],["active","Status Aktif","checkbox"]],
- kros:[["code","Kode KRO","text"],["name","Nama KRO","text"],["teamIds","Tim Pengampu (ID dipisahkan koma)","array"],["active","Status Aktif","checkbox"]],
+ kros:[["code","Kode KRO","text"],["name","Nama KRO","text"],["teamIds","Tim Pengampu (centang tim)","array"],["active","Status Aktif","checkbox"]],
  groups:[["name","Nama Kegiatan","text"],["teamId","Tim Kerja","team"],["kroCode","Kode KRO","kro"],["active","Status Aktif","checkbox"]],
  activities:[["description","Uraian Kegiatan","text"],["teamId","Tim Kerja","team"],["kroCode","KRO","kro"],["group","Kelompok Kegiatan","text"],["unit","Satuan","text"],["annualVolume","Volume Tahunan","number"],["standardHours","Jam Standar per Satuan","number"],["calculationMode","Metode Perhitungan","text"],["active","Status Aktif","checkbox"]],
  standards:[["name","Nama Standar","text"],["group","Kelompok","text"],["unit","Satuan","text"],["hours","Jam Standar","number"],["active","Status Aktif","checkbox"]],
@@ -101,11 +101,11 @@ export function createLiveMatrixWorkspace(context) {
    const y=await api.year({year:state.year});state.yearInfo=y.data;
    const required={
     dashboard:["teams","employees","kros","activities","allocations"],
-    teams:["teams","employees","kros"],
+    teams:["teams","employees","kros"],employees:["employees","teams"],
     kros:["kros","teams","activities"],
-    activities:["teams","kros","groups","activities","employees","allocations"],
+    activities:["teams","kros","groups","activities","employees","allocations","annualAllocations"],
     schedules:["teams","activities","schedules"],monitor:["teams","employees","activities","allocations"],
-    recon:["teams","kros","activities","allocations","employees"],
+    recon:["teams","kros","activities","allocations","annualAllocations","employees"],
     standards:["standards","teams","activities"],final:["teams","kros","activities","allocations"],
     history:[],accounts:["teams"]
    }[state.page]||[];
@@ -219,7 +219,7 @@ export function createLiveMatrixWorkspace(context) {
  function field(label,input){const w=node("label","mx-field");w.append(node("span","",label),input);return w;}
  function showTable(title,kind,columns,getValues,opts={}){
   const {box,top}=card(title,opts.subtitle||"");
-  if(opts.add&&context.role!=="kepala")top.append(button("+ Tambah",()=>openEditor(kind),"mx-primary"));
+  if(opts.add&&context.role==="admin")top.append(button("+ Tambah",()=>openEditor(kind),"mx-primary"));
   const t=node("table","mx-table");const th=node("thead"),tr=node("tr");
   [...columns,...(opts.edit?["Tindakan"]:[])].forEach(x=>tr.append(node("th","",x)));th.append(tr);t.append(th);
   const tbody=node("tbody");
@@ -227,7 +227,18 @@ export function createLiveMatrixWorkspace(context) {
   items.forEach(item=>{
     const row=node("tr");getValues(item).forEach(v=>row.append(node("td","",labelText(v))));
     if(opts.edit){
-      const cell=node("td");if(permitted(kind,item.teamId||item.id))cell.append(button("Edit",()=>openEditor(kind,item),"mx-link"));
+      const cell=node("td");
+      if(permitted(kind,item.teamId||item.id)) {
+        cell.append(button("Edit",()=>openEditor(kind,item),"mx-link"));
+        if(kind==="kros"&&state.year===2027&&context.role==="admin"&&
+          !(item.teamIds||[]).length&&(item.suggestedTeamIds||[]).length) {
+          cell.append(button("Ambil Saran",()=>{
+            const names=item.suggestedTeamIds.map(nameTeam).join(", ");
+            if(!window.confirm("Tetapkan KRO "+item.code+" ke tim rekomendasi: "+names+"?"))return;
+            void change("kros",item.id,{teamIds:item.suggestedTeamIds},"update",item);
+          },"mx-secondary"));
+        }
+      }
       row.append(cell);
     }
     tbody.append(row);
@@ -251,16 +262,21 @@ export function createLiveMatrixWorkspace(context) {
  function renderTeams(){
   content.append(filterBar(false));
   showTable("Susunan Tim","teams",["Tim","Ketua (ID)","Anggota (ID)","Status"],
-   t=>[t.name,t.leaderId,(t.memberIds||[]).join(", "),t.active===false?"Nonaktif":"Aktif"],
+   t=>[t.name,nameEmployee(t.leaderId),(t.memberIds||[]).map(nameEmployee).join(", "),t.active===false?"Nonaktif":"Aktif"],
    {add:context.role==="admin",edit:context.role==="admin",filter:xs=>xs.filter(x=>matches(x.name,x.id))});
-  showTable("Daftar Pegawai","employees",["ID","Nama","Jenis","Status"],
-   e=>[e.id,e.name,e.type,e.active===false?"Nonaktif":"Aktif"],
-   {add:context.role==="admin",edit:context.role==="admin",filter:xs=>xs.filter(x=>matches(x.name,x.id))});
+ }
+ function renderEmployees(){
+  content.append(filterBar(false));
+  showTable("Daftar Pegawai Aktif","employees",["ID","Nama","Jenis","Jabatan","Status"],
+   e=>[e.id,e.name,e.type,e.position,e.active===false?"Nonaktif":"Aktif"],
+   {add:context.role==="admin",edit:context.role==="admin",
+    filter:xs=>xs.filter(x=>matches(x.name,x.id,x.position||""))});
  }
  function renderKros(){
   content.append(filterBar());
-  showTable("Pembagian KRO ke Tim","kros",["Kode","Nama KRO","Tim Pengampu"],
-   k=>[k.code,k.name,(k.teamIds||[]).map(nameTeam).join(", ")],
+  showTable("Pembagian KRO ke Tim","kros",["Kode","Nama KRO","Tim Ditetapkan","Rekomendasi dari 2026"],
+   k=>[k.code,k.name,(k.teamIds||[]).map(nameTeam).join(", ")||"Belum ditetapkan",
+     state.year===2027?(k.suggestedTeamIds||[]).map(nameTeam).join(", ")||"—":"—"],
    {add:context.role==="admin",edit:context.role==="admin",
     filter:xs=>xs.filter(k=>matches(k.code,k.name,(k.teamIds||[]).map(nameTeam).join(" ")))});
   const missing=rows("teams").filter(t=>!rows("kros").some(k=>(k.teamIds||[]).includes(t.id)));
@@ -411,6 +427,7 @@ export function createLiveMatrixWorkspace(context) {
   navbar.querySelectorAll("button").forEach(b=>b.classList.toggle("active",b.dataset.page===state.page));
   if(state.page==="dashboard")renderDashboard();
   else if(state.page==="teams")renderTeams();
+  else if(state.page==="employees")renderEmployees();
   else if(state.page==="kros")renderKros();
   else if(state.page==="activities")renderActivities();
   else if(state.page==="schedules")renderSchedules();
@@ -424,7 +441,7 @@ export function createLiveMatrixWorkspace(context) {
   if(state.yearInfo?.status==="finalized"){
     content.prepend(node("div","mx-alert","Tahun telah difinalisasi. Semua perubahan data diblokir oleh backend."));
   }
-  if(context.role==="admin"&&!rows("teams").length&&state.page!=="accounts"){
+  if(context.role==="admin"&&!state.yearInfo?.initialized&&state.page!=="accounts"){
    const create=button("+ Siapkan Tahun "+state.year,async()=>{
     try{await api.init({year:state.year});alert("Tahun siap diisi.");await refresh(true);}
     catch(e){alert("Gagal menyiapkan tahun: "+e.message,true);}
