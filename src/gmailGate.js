@@ -40,7 +40,7 @@ async function loadPrototype(){
       return response.text();
     }));
     const html=parts.join("");
-    if(!html.includes("V25 Terpadu v2.6")||!html.includes('id="seed"')||!html.includes("function enterPrototypeEdit()"))
+    if(!html.includes("Prototipe V25 v2.6")||!html.includes('id="seed"')||!html.includes("function enterPrototypeEdit()"))
       throw new Error("Paket prototipe tidak lengkap.");
     cachedSource=html;
     return html;
