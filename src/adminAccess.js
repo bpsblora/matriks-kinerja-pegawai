@@ -21,10 +21,10 @@ export function createAccessAdminView(teams = []) {
     const role=E("select");
     [["ketua_tim","Ketua Tim"],["admin","Admin"],["kepala","Kepala BPS"]].forEach(([v,t])=>{const o=E("option",t);o.value=v;role.append(o);});
     role.value=a.role||"ketua_tim";
-    const teams=E("select");teams.multiple=true;teams.size=4;
-    (teams.length ? teams : ref.teams).forEach(t=>{const o=E("option",t.name);o.value=t.id;o.selected=a.teamIds?.includes(t.id)||false;teams.append(o);});
-    body.append(L("Username",name),L("Peran",role),L("Tim (Ctrl+klik)",teams));
-    return {body,values:()=>({username:name.value.trim(),role:role.value,teamIds:[...teams.selectedOptions].map(x=>x.value)})};
+    const teamSelect=E("select");teamSelect.multiple=true;teamSelect.size=5;
+    (Array.isArray(teams)&&teams.length ? teams : ref.teams).forEach(t=>{const o=E("option",t.name);o.value=t.id;o.selected=a.teamIds?.includes(t.id)||false;teamSelect.append(o);});
+    body.append(L("Username",name),L("Peran",role),L("Tim (pilih beberapa dengan Ctrl+klik)",teamSelect));
+    return {body,values:()=>({username:name.value.trim(),role:role.value,teamIds:[...teamSelect.selectedOptions].map(x=>x.value)})};
   }
   el.querySelector("#aAdd").onclick=()=>{const f=form(),pass=P();f.body.append(L("Password awal",pass),B("Buat Akun",()=>{const pw=pass.value;pass.value="";if(pw.length<12){msg.textContent="Password minimal 12 karakter";return;}void save(calls.create,{...f.values(),password:pw});}));modal("Tambah Akun Akses",f.body);};
   async function load(){msg.textContent="Memuat akun…";list.replaceChildren();
