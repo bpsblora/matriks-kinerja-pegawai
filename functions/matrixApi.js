@@ -219,6 +219,51 @@ exports.saveActivityAllocations=onCall(opt,async req=>{
  });
 });
 
+// Annual allocations are independent from monthly allocations.
+// For a 4-hour meeting with 3 people, each gets 4 hours, never 4/3 hours.
+exports.saveAnnualActivityAllocations=onCall(opt,async req=>{
+ const a=await actor(req);
+ let year;try{year=S.year(req.data?.year);}catch(e){respond("invalid-argument",e.message);}
+ const activityId=req.data?.activityId,teamId=req.data?.teamId,
+  ids=req.data?.employeeIds,hours=Number(req.data?.hours),volume=Number(req.data?.volume??1);
+ if(typeof activityId!=="string"||!S.DOC_ID.test(activityId)||!S.TEAM.test(teamId)
+   ||!Array.isArray(ids)||ids.length<1||ids.length>40||new Set(ids).size!==ids.length
+   ||!ids.every(id=>S.EMPLOYEE.test(id))||!Number.isFinite(hours)||hours<0||hours>1000
+   ||!Number.isFinite(volume)||volume<0||volume>100000000)
+   respond("invalid-argument","Alokasi tahunan tidak sesuai.");
+ if(!S.canManage(a.role,a.teamIds,"annualAllocations",teamId))
+   respond("permission-denied","Akun tidak berwenang mengubah alokasi tahunan.");
+ const refs=ids.map(id=>items(year,"annualAllocations").doc(activityId+"__"+id));
+ return db().runTransaction(async tx=>{
+   const meta=await tx.get(yr(year));
+   if(!meta.exists||meta.data().status==="finalized")
+     respond("failed-precondition","Tahun belum siap atau sudah difinalisasi.");
+   const act=await tx.get(items(year,"activities").doc(activityId));
+   if(!act.exists||act.data().teamId!==teamId)
+     respond("failed-precondition","Kegiatan bukan milik tim ini.");
+   const team=await tx.get(items(year,"teams").doc(teamId));
+   const people=await Promise.all(ids.map(id=>tx.get(items(year,"employees").doc(id))));
+   if(!team.exists||people.some(p=>!p.exists||p.data().active===false))
+     respond("failed-precondition","Tim atau pegawai tidak aktif.");
+   if(a.role==="ketua_tim"){
+     const roster=new Set([...(team.data().memberIds||[]),team.data().leaderId]);
+     if(ids.some(id=>!roster.has(id)))
+       respond("permission-denied","Pegawai bukan anggota tim yang ditetapkan.");
+   }
+   const existing=await Promise.all(refs.map(ref=>tx.get(ref)));
+   const stamp=FieldValue.serverTimestamp();
+   refs.forEach((ref,i)=>tx.set(ref,{
+     activityId,employeeId:ids[i],teamId,volume,hours,
+     updatedAt:stamp,updatedBy:a.uid,
+     ...(existing[i].exists?{}:{createdAt:stamp,createdBy:a.uid})
+   },{merge:true}));
+   tx.create(auditRef(),{year,kind:"annualAllocations",recordId:activityId,
+     action:"batch.allocate-annual",actorUid:a.uid,actorRole:a.role,teamId,
+     participants:ids.length,individualHours:hours,at:stamp});
+   return {success:true,participants:ids.length,individualHours:hours};
+ });
+});
+
 exports.changeMatrixYearStatus=onCall(opt,async req=>{
  const a=await actor(req);let year;
  try{year=S.year(req.data?.year);}catch(e){respond("invalid-argument",e.message);}
