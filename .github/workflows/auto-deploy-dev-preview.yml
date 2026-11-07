@@ -39,6 +39,9 @@ jobs:
           print("DEV preview and rules verified.")
           PY
 
+      - name: Verify complete V25 v2.6 anonymous prototype
+        run: node scripts/verify-prototype.mjs
+
       - name: Install frontend dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
 
@@ -48,6 +51,8 @@ jobs:
           npm run build
           test -f dist/index.html
           test -f dist/demo.html
+          test -f dist/v26/part-001.txt
+          test -f dist/v26/part-017.txt
 
       - name: Check keyless deployment configuration
         id: deploy-config
