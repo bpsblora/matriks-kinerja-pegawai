@@ -1,0 +1,934 @@
+si tahun 2026 · Matriks Kegiatan Pegawai 2026.xlsx (V25): '+BASE.teams.length+' tim, '+BASE.employees.filter(e=>e.type==='pegawai').length+' pegawai, '+BASE.activities.length+' uraian, dan '+BASE.monthly_allocations_source.length+' alokasi bulanan. Data sumber perlu validasi sebelum ditetapkan ulang.':'';
+ summary.classList.toggle('hidden',!isBaseYear);
+
+ const teamMembers=$('teamAdminMembers');if(teamMembers&&!$('teamMemberTarget')){const hint=document.createElement('div');hint.id='teamMemberTarget';teamMembers.before(hint)}
+ const rosterHost=document.createElement('section');rosterHost.id='establishedTeamSummary';rosterHost.className='panel team-summary-card';
+ if(!$('establishedTeamSummary')){
+  if(isBaseYear){if(grid)grid.after(rosterHost);else page.appendChild(rosterHost)}
+  else if(panel)panel.after(rosterHost);
+  else page.appendChild(rosterHost);
+ }
+
+ const legacy=document.createElement('div');legacy.id='kroLegacyInvisible';legacy.style.display='none';
+ const oldKro=grid?.querySelector('.team-kro-panel');
+ if(oldKro){if(isBaseYear)legacy.appendChild(oldKro);else $('annualKroPanelSlot').appendChild(oldKro);}
+ if(isBaseYear){kroPage.appendChild(legacy)}
+ else{legacy.appendChild($('annualKroStage'));kroPage.appendChild(legacy)}
+ const audit=$('kroAuditPanel');if(audit)kroPage.appendChild(audit);
+ if(!isBaseYear){
+  if(hero&&panel)page.insertBefore(hero,panel);
+  if(grid)$('annualTeamGridSlot').appendChild(grid);
+  const steps=panel.querySelectorAll('.annual-step');if(steps[2])steps[2].style.display='none';
+  const badge=panel.querySelector('.annual-badge');if(badge)badge.textContent='SEBELUM PEMBAGIAN KRO';
+  $('annualStaffSearch').addEventListener('input',renderYearStaff);
+  $('annualConfirmStaff').addEventListener('click',confirmStaffYear);
+  $('annualAddStaff').addEventListener('click',()=>{annualEditorFromStage=true;openEmployeeEditor();$('empAssign').checked=false;$('empAssignBox').classList.add('hidden')});
+  $('annualEditStaff').addEventListener('click',()=>{annualEditingStaff=true;staffDraft=new Set(yearSetup.staff.ids||[]);renderYearSetup();$('annualStaffChooser').open=true;$('annualStaffChooser').scrollIntoView({behavior:'smooth',block:'start'})});
+  $('annualCancelStaff').addEventListener('click',()=>{annualEditingStaff=false;staffDraft=new Set(yearSetup.staff.ids||[]);renderYearSetup()});
+  $('annualCopyRoster').addEventListener('click',copyPreviousRoster);
+  $('annualConfirmTeam').addEventListener('click',confirmTeamYear);
+  // Komponen V25 disimpan untuk kompatibilitas, namun penyuntingan utama KRO ada di halaman Pembagian KRO.
+  $('annualConfirmKro').addEventListener('click',confirmKroYear);
+  $('annualEditTeam').addEventListener('click',()=>{annualEditingTeamId=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;renderYearSetup();$('annualTeamGridSlot').scrollIntoView({behavior:'smooth',block:'start'})});
+  $('annualEditKro').addEventListener('click',()=>{annualEditingKroId=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;renderYearSetup();$('annualKroPanelSlot').scrollIntoView({behavior:'smooth',block:'start'})});
+  $('annualStageTeamSelect').addEventListener('change',e=>{const tid=e.target.value;annualEditingTeamId=null;annualEditingKroId=null;const sel=$('teamAdminSelect');sel.value=tid;renderTeamAdminPage()});
+  $('annualGoInput').addEventListener('click',()=>{const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;if(!allowYearTask(tid))return;selectedTeam=tid;setPage('input');$('teamSelect').value=tid;$('teamSelect').dispatchEvent(new Event('change'))});
+  // Panel KRO lama hanya menjadi referensi lanjutan; tidak ada lagi langkah KRO di Kelola Tim.
+  const stage=$('annualKroStage');stage.querySelector('.annual-team-actions')?.classList.add('hidden');
+  renderYearSetup();
+ }
+ const text=hero?.querySelector('p');if(text)text.textContent='Tetapkan daftar pegawai, ketua, dan anggota tim. KRO diatur melalui menu Pembagian KRO.';
+ refreshStageNav();
+}
+function refreshTeamStore(){
+ if(!Array.isArray(demoTeams)||!demoTeams.length)demoTeams=BASE.teams.map(t=>({id:t.id,name:t.name,kro:t.kro||''}));
+ BASE.teams.splice(0,BASE.teams.length,...demoTeams.map(t=>({id:t.id,name:t.name,kroCodes:t.kroCodes||[]})));
+ teamMap.clear();BASE.teams.forEach(t=>teamMap.set(t.id,t));
+}
+function saveTeamStore(){try{localStorage.setItem(TEAM_STORE_KEY,JSON.stringify(demoTeams))}catch(e){} refreshTeamStore();}
+function syncAllTeamSelectors(){
+ const teamOpts=BASE.teams.map(t=>({value:t.id,label:t.name}));
+ const keep=(sel, fallback='')=>{if(!sel)return;const cur=sel.value;const exists=teamOpts.some(x=>x.value===cur);return exists?cur:(fallback||teamOpts[0]?.value||'')};
+ fillSelect($('teamSelect'),teamOpts,keep($('teamSelect'))||teamOpts[0]?.value||'');
+ fillSelect($('monitorTeam'),[{value:'',label:'Semua Tim'},...teamOpts],$('monitorTeam')?.value||'');
+ if($('timelineTeam'))fillSelect($('timelineTeam'),[{value:'',label:'Seluruh Tim'},...teamOpts],$('timelineTeam').value||'');
+ if($('reconTeam'))fillSelect($('reconTeam'),[{value:'',label:'Semua Tim'},...teamOpts],$('reconTeam').value||'');
+ if($('rosterTeam'))fillSelect($('rosterTeam'),teamOpts,$('rosterTeam').value||teamOpts[0]?.value||'');
+ if($('teamAdminSelect')){const scoped=currentRole==='ketua'?teamOpts.filter(t=>t.value===roleTeamId):teamOpts;fillSelect($('teamAdminSelect'),scoped,(currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value)||scoped[0]?.value||'');}
+}
+let selectedKroCodes=new Set();
+function roleCanManageTeam(tid){return currentRole==='admin'||currentRole==='kepala'||(currentRole==='ketua'&&roleTeamId===tid)}
+// Rekomendasi tidak pernah menetapkan KRO secara otomatis.
+// Tim pendukung tidak dipaksakan memiliki KRO tersendiri di POK.
+const REKOMENDASI_KRO_LINTAS_TIM={
+ T001:{'2886.EBD.961':'Dukungan SAKIP dan evaluasi kinerja organisasi; lihat ruang lingkup Layanan Reformasi Kinerja.'},
+ T005:{'2886.EBA.962':'Penataan dan kebersihan lingkungan kantor terkait layanan umum.'},
+ T006:{'2886.EBA.962':'Kegiatan kebugaran pegawai sebagai dukungan layanan umum kantor.'},
+ T021:{'2897.BMA.004':'Publikasi dan komunikasi statistik melalui media sosial.','2897.BMA.006':'Diseminasi informasi statistik; periksa ruang lingkup kegiatan di POK 2027.'},
+ T022:{'2886.EBD.961':'Reformasi birokrasi dan Zona Integritas berkaitan dengan reformasi kinerja.'},
+ T023:{'2896.BMA.004':'Pengembangan inovasi dapat mendukung analisis dan pengembangan statistik.'},
+ T024:{'2886.EBD.961':'Pengelolaan risiko sebagai dukungan manajemen dan reformasi kinerja.'}
+};
+const KRO_2026_REFERENCE=(()=>{try{return JSON.parse(document.getElementById('kroSeed').textContent).kros||[]}catch(e){return []}})();
+const KRO_SIMILAR_STOP=new Set(['statistik','laporan','publikasi','dan','atau','dari','untuk','pada','kegiatan','penyusunan','survei','pelaksanaan','dokumen','pengembangan','layanan','nasional','pengelolaan','tahunan','terpadu','pembinaan']);
+function kroWords(s){return new Set(String(s||'').toLocaleLowerCase('id').replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>=4&&!KRO_SIMILAR_STOP.has(w)))}
+function kroSimilarity(a,b){const x=kroWords(a),y=kroWords(b);if(!x.size||!y.size)return 0;let equal=0;for(const w of x)if(y.has(w))equal++;return equal/Math.max(x.size,y.size)}
+function kroRecommendation(k,tid){
+ if(activeYear>=2028){
+  try{const old=JSON.parse(localStorage.getItem('bps-blora-v19-team-store-'+(activeYear-1)));if(old?.find(t=>t.id===tid)?.kroCodes?.includes(k.code))return {kind:'langsung',label:'Acuan tahun sebelumnya',reason:'KRO sama dengan penugasan tim '+(activeYear-1)};}catch(e){}
+ }
+ if((k.mappings||[]).some(m=>m.team_id===tid))return {kind:'langsung',label:'Acuan 2026',reason:'Ada kesesuaian pemetaan tim dari matriks 2026 dan referensi POK 2027.'};
+ if(activeYear>=2027&&activeYear<=2027){
+  const old=KRO_2026_REFERENCE.filter(k=>k.mappings?.some(m=>m.team_id===tid));
+  const exact=old.find(p=>p.code===k.code);
+  if(exact)return {kind:'langsung',label:'Sama seperti 2026',reason:'Kode KRO tercantum untuk tim ini pada referensi 2026.'};
+  let closest=null,best=0;
+  for(const p of old){const v=kroSimilarity(p.name,k.name);if(v>best){closest=p;best=v}}
+  if(best>=0.66&&closest)return {kind:'serupa',label:'KRO serupa 2026',reason:'Mirip dengan '+closest.code+' — '+closest.name+' (2026); mohon periksa cakupan pekerjaan.'};
+  const support=REKOMENDASI_KRO_LINTAS_TIM[tid]?.[k.code];
+  if(support)return {kind:'pendukung',label:'Usulan dukungan lintas tim',reason:support+' Bukan KRO khusus milik tim; perlu konfirmasi.'};
+ }
+ return null;
+}
+function suggestedKroForTeam(k,tid){return !!kroRecommendation(k,tid)}
+function renderKroChecks(){
+ const q=$('teamAdminKroQuery').value.trim().toLocaleLowerCase('id'),tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
+ // Show KRO recommended from the previous year's allocation first, but NEVER check automatically.
+ const rows=POK_KROS.filter(k=>(k.code+' '+k.name).toLocaleLowerCase('id').includes(q)).sort((a,b)=>{
+   const as=selectedKroCodes.has(a.code),bs=selectedKroCodes.has(b.code);
+   if(as!==bs)return as?-1:1;
+   const ar=suggestedKroForTeam(a,tid),br=suggestedKroForTeam(b,tid);
+   return ar!==br?(ar?-1:1):a.code.localeCompare(b.code,'id');
+ });
+ const recommended=POK_KROS.filter(k=>suggestedKroForTeam(k,tid));
+ $('teamAdminKroSelection').textContent=selectedKroCodes.size+' dari '+POK_KROS.length+' KRO dipilih';
+ const note=$('teamKroRecommendation');if(note)note.textContent=activeYear>=2027?
+  recommended.length+' KRO disarankan dari tahun '+(activeYear-1)+'; pilihan baru berlaku setelah disimpan.':
+  'Penugasan KRO mengikuti hasil identifikasi 2026.';
+ const btn=$('applyKroRecommendations');if(btn){btn.classList.toggle('hidden',activeYear<=2026);btn.disabled=!recommended.length;btn.textContent='✓ Pilih '+recommended.length+' KRO rekomendasi '+(activeYear-1)}
+ $('teamAdminKroList').innerHTML=rows.map(k=>{const selected=selectedKroCodes.has(k.code),rec=suggestedKroForTeam(k,tid);
+  const suggestion=kroRecommendation(k,tid);const recommendation=suggestion?`<span class="kro-recommend" title="${esc(suggestion.reason)}">${esc(suggestion.label)}</span>`:'';
+  const note=k.name.trim().toLowerCase().startsWith('xxxx')?'<span class="kro-review">Nama di POK perlu konfirmasi</span>':'';
+  return `<label class="team-kro-option ${selected?'selected':''}"><input data-kro-choice="${esc(k.code)}" type="checkbox" ${selected?'checked':''}><span><strong>${esc(k.code)}</strong><small>${esc(k.name)}</small><div class="kro-option-meta">${recommendation}${note}</div></span></label>`;
+ }).join('')||'<div class="empty">Tidak ada KRO sesuai pencarian.</div>';
+ $('teamAdminKroList').querySelectorAll('[data-kro-choice]').forEach(el=>el.onchange=()=>{
+    if(el.checked)selectedKroCodes.add(el.dataset.kroChoice);else selectedKroCodes.delete(el.dataset.kroChoice);
+    renderKroChecks();
+ });
+}
+function renderKroMap(){
+ const q=$('teamKroMapQuery').value.trim().toLocaleLowerCase('id');
+ const rows=POK_KROS.filter(k=>(k.code+' '+k.name+' '+(k.mappings||[]).map(m=>teamMap.get(m.team_id)?.name||'').join(' ')).toLocaleLowerCase('id').includes(q));
+ $('teamKroMap').innerHTML=rows.map(k=>{
+   const suggested=(k.mappings||[]).map(m=>teamMap.get(m.team_id)?.name||m.team_id);
+   const selected=demoTeams.filter(t=>(t.kroCodes||[]).includes(k.code)).map(t=>t.name);
+   return `<article class="kro-map-card"><div class="code">${esc(k.code)}</div><div class="name">${esc(k.name)}</div><div class="teams">Acuan penugasan 2026: ${suggested.length?suggested.map(t=>`<span class="team-tag review">${esc(t)}</span>`).join(' '):'Belum ada rekomendasi'}</div><div class="teams">Tim yang telah memilih untuk ${activeYear}: <b>${selected.map(t=>esc(t)).join(', ')||'Belum ditetapkan'}</b></div></article>`;
+ }).join('')||'<div class="empty">KRO tidak ditemukan.</div>';
+}
+function paintTeamAdminMembers(){const q=$('teamAdminMemberSearch').value.trim().toLocaleLowerCase('id'),tid=$('teamAdminSelect').value;const ro=demoRoster[tid]||{members:[]};const members=new Set(ro.members||[]);const rows=BASE.employees.filter(e=>e.type==='pegawai'&&e.full_name.toLocaleLowerCase('id').includes(q));$('teamAdminMembers').innerHTML=rows.map(e=>`<label><input type="checkbox" data-team-member="${esc(e.id)}" ${members.has(e.id)?'checked':''}><span>${esc(e.full_name)}</span></label>`).join('')||'<div class="empty">Pegawai tidak ditemukan.</div>';
+}
+let adminMemberWorking=new Set();
+function renderEstablishedTeams(){
+ const el=$('establishedTeamSummary');if(!el)return;
+ const employeeName=id=>BASE.employees.find(e=>e.id===id)?.full_name||id;
+ const list=demoTeams.map(t=>{const ro=demoRoster[t.id]||{members:[]};const ids=(ro.members||[]).filter(id=>BASE.employees.some(e=>e.id===id));const complete=!!(ro.leaderId&&ids.length)&&(isBaseYear||yearTeamReady(t.id));return {t,ro,ids,complete}});
+ const ready=list.filter(x=>x.complete),missing=list.filter(x=>!x.complete);
+ const canEdit=yearInfo().status!=='closed'&&currentRole!=='pegawai'&&currentRole!=='view';
+ const action=(x,label)=>canEdit&&roleCanManageTeam(x.t.id)?`<button class="btn tiny soft" type="button" data-team-summary-edit="${esc(x.t.id)}">${label}</button>`:'';
+ el.innerHTML=`<div class="section-top team-summary-heading"><div><h3>Ringkasan Penetapan Tim ${activeYear}</h3><p>Pantau susunan tim yang sudah ditetapkan dan tim yang masih perlu dilengkapi.</p></div><span class="badge">${list.length} Tim</span></div>
+  <div class="team-status-count"><span>✓ ${ready.length} tim ditetapkan</span><span>◷ ${missing.length} tim belum lengkap</span></div>
+  <div class="team-summary-subheading">Tim yang Sudah Ditetapkan</div>
+  ${ready.length?`<div class="team-summary-ready">${ready.map(x=>`<article class="team-summary-item"><div class="team-summary-item-top"><div><strong>${esc(x.t.name)}</strong><span class="team-summary-state ready">Sudah Ditetapkan</span></div>${action(x,'Edit Tim')}</div><p>Ketua: <b>${esc(employeeName(x.ro.leaderId))}</b> · ${x.ids.length} anggota</p><details><summary>Lihat anggota (${x.ids.length})</summary><div class="team-summary-members">${x.ids.map(employeeName).map(esc).join(', ')}</div></details></article>`).join('')}</div>`:'<p class="team-summary-empty">Belum ada susunan tim yang ditetapkan.</p>'}
+  ${missing.length?`<details class="team-summary-pending"><summary>Tim yang Perlu Dilengkapi (${missing.length})</summary><div class="team-summary-pending-list">${missing.map(x=>`<div class="team-summary-pending-row"><span>${esc(x.t.name)}</span>${action(x,'Lengkapi Tim')}</div>`).join('')}</div></details>`:'<p class="team-summary-complete">Seluruh tim telah ditetapkan.</p>'}`;
+ el.querySelectorAll('[data-team-summary-edit]').forEach(btn=>btn.onclick=()=>{
+  const tid=btn.dataset.teamSummaryEdit;
+  if(!roleCanManageTeam(tid))return toast('Akses pengelolaan tim ini tidak tersedia.');
+  if($('teamAdminSelect'))$('teamAdminSelect').value=tid;
+  if($('annualStageTeamSelect'))$('annualStageTeamSelect').value=tid;
+  if(!isBaseYear)annualEditingTeamId=tid;
+  renderTeamAdminPage();
+  const stage=$('annualTeamStage');(stage||$('teamAdminGrid'))?.scrollIntoView({behavior:'smooth',block:'start'});
+ });
+}
+function renderTeamAdminPage(){
+ if(!$('pageTeams'))return;refreshTeamStore();syncAllTeamSelectors();
+ const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;const team=demoTeams.find(t=>t.id===tid);if(!team)return;
+ $('teamAdminSelect').value=tid;
+ const isCentral=currentRole==='admin'||currentRole==='kepala';$('teamAdminSelect').disabled=!isCentral;$('teamAdminNew').classList.toggle('hidden',!isCentral);$('teamAdminDelete').classList.toggle('hidden',!isCentral);$('teamAdminName').disabled=!isCentral;$('teamAdminLeader').disabled=!isCentral;
+ $('teamAdminName').value=team.name;
+ const ro=demoRoster[tid]||{members:[]},leaderId=ro.leaderId||'';
+ const leaderOptions=[{value:'',label:'Belum ditetapkan'},...BASE.employees.filter(e=>e.type==='pegawai'&&(isBaseYear||!staffReady()||(yearSetup.staff.ids||[]).includes(e.id))).map(e=>({value:e.id,label:e.full_name}))];
+ if(!leaderId && ro.leaderName)leaderOptions.splice(1,0,{value:'external',label:ro.leaderName+' (di luar master pegawai)'});
+ fillSelect($('teamAdminLeader'),leaderOptions,leaderId||(ro.leaderName?'external':''));
+ $('teamAdminLeaderHint').textContent=ro.leaderName?'Sumber daftar tim 2026; perubahan hanya dapat dilakukan Admin/Kepala.':'';
+ adminMemberWorking=new Set(ro.members||[]);$('teamAdminMemberSearch').value='';drawWorkingMembers();
+ selectedKroCodes=new Set(team.kroCodes||[]);$('teamAdminKroQuery').value='';$('kroListYear').textContent=String(activeYear);$('teamMapYear').textContent=String(activeYear);$('teamKroMapBadge').textContent=nf(POK_KROS.length)+' KRO';$('teamMapSourceInfo').textContent=activeYear>=2027?'Pemetaan sebelumnya hanya rekomendasi; daftar KRO '+activeYear+' perlu dikonfirmasi.':'Pemetaan 2026 menjadi acuan penyusunan tahun berikutnya.';renderKroChecks();renderKroMap();
+ $('teamAdminCount').textContent=nf(demoTeams.length);$('teamAdminMemberCount').textContent=nf(adminMemberWorking.size);$('teamAdminKroCount').textContent=nf(selectedKroCodes.size);
+ $('teamAdminDelete').disabled=!isCentral||activities.some(a=>a.team_id===tid);
+ $('teamAdminAccess').textContent=isCentral?'':'Hak kelola terbatas pada tim sendiri.';
+ $('teamAdminScope').textContent=isCentral?'Tim yang sudah memiliki kegiatan tidak dapat dihapus.':'Nama dan ketua tim ditetapkan Admin/Kepala BPS; keanggotaan diatur di sini.';
+ $('teamAdminKroNote').textContent=activeYear===2026?'Kegiatan tanpa KRO dapat ditata kembali di Input Alokasi.':'Setiap KRO yang dipilih wajib memiliki sedikitnya satu kegiatan aktif pada tahun ini.';
+ $('teamAdminMeta').textContent=activities.some(a=>a.team_id===tid)?'Tim memiliki riwayat kegiatan dan tidak dapat dihapus.':'';
+ renderEmployeeMaster();
+ renderKroAudit();renderYearSetup();renderEstablishedTeams();
+}
+function drawWorkingMembers(){
+ const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
+ const target=$('teamMemberTarget');if(target)target.textContent='Centang pegawai untuk menambahkan ke '+(demoTeams.find(t=>t.id===tid)?.name||'tim ini')+'.';
+ const q=$('teamAdminMemberSearch').value.trim().toLocaleLowerCase('id');$('teamAdminMembers').innerHTML=BASE.employees.filter(e=>(e.active!==false||adminMemberWorking.has(e.id))&&(isBaseYear||!staffReady()||(yearSetup.staff.ids||[]).includes(e.id)||adminMemberWorking.has(e.id))&&e.full_name.toLocaleLowerCase('id').includes(q)).sort((a,b)=>adminMemberWorking.has(a.id)===adminMemberWorking.has(b.id)?a.full_name.localeCompare(b.full_name,'id'):(adminMemberWorking.has(a.id)?-1:1)).map(e=>`<label class="${e.active===false?'inactive':''}"><input type="checkbox" data-team-member="${esc(e.id)}" ${adminMemberWorking.has(e.id)?'checked':''} ${e.active===false&&!adminMemberWorking.has(e.id)?'disabled':''}><span>${esc(e.full_name)}${e.active===false?' · Nonaktif':''}${e.type==='mitra'?' · Pegawai 040':''}</span></label>`).join('')||'<div class="empty">Tidak ada pegawai yang cocok.</div>';
+ $('teamAdminMembers').querySelectorAll('[data-team-member]').forEach(el=>el.onchange=()=>{if(el.checked)adminMemberWorking.add(el.dataset.teamMember);else adminMemberWorking.delete(el.dataset.teamMember);$('teamAdminMemberCount').textContent=nf(adminMemberWorking.size);drawWorkingMembers()});
+}
+function saveTeamAdmin(){
+ const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value,team=demoTeams.find(t=>t.id===tid);if(!team||!roleCanManageTeam(tid))return toast('Tidak memiliki izin mengubah tim tersebut.');
+ const isCentral=currentRole==='admin'||currentRole==='kepala';
+ const name=isCentral?$('teamAdminName').value.trim():team.name;
+ if(!name)return toast('Nama tim wajib diisi.');
+ if(demoTeams.some(t=>t.id!==tid&&t.name.toLowerCase()===name.toLowerCase()))return toast('Nama tim sudah digunakan.');
+
+ const oldName=team.name,oldKro=[...(team.kroCodes||[])],oldMembers=[...((demoRoster[tid]||{}).members||[])],oldLeader=(demoRoster[tid]||{}).leaderId||'';
+ team.name=name;team.kroCodes=[...selectedKroCodes].sort();
+ const existing=demoRoster[tid]||{leaderId:'',leaderName:'',members:[]},chosenLeader=$('teamAdminLeader').value;
+ const leaderId=isCentral?(chosenLeader==='external'?'':chosenLeader):existing.leaderId;
+ const leaderName=isCentral?(chosenLeader==='external'?existing.leaderName:BASE.employees.find(e=>e.id===chosenLeader)?.full_name||''):existing.leaderName;
+ demoRoster[tid]={leaderId,leaderName,members:[...adminMemberWorking]};
+ if(!isBaseYear){const rosterChanged=!equalIds(oldMembers,[...adminMemberWorking])||oldLeader!==leaderId;
+  if(rosterChanged){delete yearSetup.teams[tid];delete yearSetup.kros[tid];}
+  else if(!equalIds(oldKro,team.kroCodes)){delete yearSetup.kros[tid];}
+  storeYearSetup();}
+
+ if(oldName!==name){
+  for(const a of BASE.activities.filter(a=>a.team_id===tid)){state.activityEdits[a.id]={...(state.activityEdits[a.id]||{}),team:name};}
+  for(const a of state.added.filter(a=>a.team_id===tid))a.team=name;
+ }
+ saveTeamStore();try{localStorage.setItem(ROSTER_KEY,JSON.stringify(demoRoster))}catch(e){}
+ if(oldMembers.length!==adminMemberWorking.size||oldKro.join('|')!==team.kroCodes.join('|')||oldName!==name)logChange('Perbarui tim kerja',oldName+' · '+adminMemberWorking.size+' anggota · '+team.kroCodes.length+' KRO');
+ persist();rebuild();syncAllTeamSelectors();if(currentRole==='ketua')selectedTeam=roleTeamId;if($('teamSelect'))$('teamSelect').value=selectedTeam;
+ renderKroOptions(teamKroCodes(selectedTeam)[0]||NO_KRO);renderGroups();renderYearUI();renderTeamAdminPage();renderTeamRosterHint();if(selectedId)renderStaff();toast('Tim diperbarui. Pilihan pegawai pada Input Alokasi otomatis mengikuti anggota aktif tim ini.');
+}
+async function createTeamAdmin(){
+ if(!(currentRole==='admin'||currentRole==='kepala'))return;
+ const name=await uiPrompt('Nama tim baru:');if(!name||!name.trim())return;const clean=name.trim();if(demoTeams.some(t=>t.name.toLocaleLowerCase('id')===clean.toLocaleLowerCase('id')))return toast('Nama tim sudah ada.');
+ const id='TEAM-'+Date.now();demoTeams.push({id,name:clean,kroCodes:[]});demoRoster[id]={leaderId:'',leaderName:'',members:[]};saveTeamStore();localStorage.setItem(ROSTER_KEY,JSON.stringify(demoRoster));syncAllTeamSelectors();$('teamAdminSelect').value=id;renderTeamAdminPage();logChange('Tambah tim kerja',clean);persist();toast('Tim baru ditambahkan; lengkapi penugasan dan KRO.');
+}
+async function deleteTeamAdmin(){
+ if(!(currentRole==='admin'||currentRole==='kepala'))return;
+ const id=$('teamAdminSelect').value,team=demoTeams.find(t=>t.id===id);if(!team)return;
+ if(activities.some(a=>a.team_id===id))return toast('Tim sudah mempunyai kegiatan; nonaktifkan dan arsipkan kegiatan dahulu.');
+ if(!await uiConfirm('Hapus tim '+team.name+' dari daftar?'))return;
+ demoTeams=demoTeams.filter(t=>t.id!==id);delete demoRoster[id];saveTeamStore();localStorage.setItem(ROSTER_KEY,JSON.stringify(demoRoster));syncAllTeamSelectors();renderTeamAdminPage();logChange('Hapus tim kerja',team.name);persist();toast('Tim tidak digunakan telah dihapus.');
+}
+function roleActor(){return ({admin:'Admin',kepala:'Kepala BPS',ketua:'Ketua Tim',pegawai:'Pegawai · View'})[currentRole]+(currentRole==='ketua'?' · '+(teamMap.get(roleTeamId)?.name||''):'')}
+function canEdit(teamId){return currentRole==='admin'||currentRole==='kepala'||(currentRole==='ketua'&&teamId===roleTeamId)}
+function checkEdit(teamId){if(!canEdit(teamId)){toast('Mode baca saja. Ketua tim hanya dapat mengedit kegiatan dalam timnya.');return false}return true}
+function applyRolePermissions(){
+ const allowed=canEdit(selectedTeam),has=!!selectedId,allowedTask=has&&canEdit(byId.get(selectedId)?.team_id);
+ $('teamSelect').disabled=currentRole==='ketua';
+ $('teamScopeNote').classList.toggle('hidden',currentRole!=='ketua');
+ $('reconTeam').disabled=currentRole==='ketua';
+ $('reconScopeNote').classList.toggle('hidden',currentRole!=='ketua');
+ const ids=['addGroup','editGroup','assignGroupKro','archiveGroup','addDetail','editDetail','archiveDetail','saveMonthly','publishMonthly','startRevision','discardRevision','selectVisible','clearStaff','splitEven','btnImport','btnReset','saveModal'];
+ for(const id of ids){const el=$(id);if(!el)continue;const permitted=(id==='btnImport'||id==='btnReset')?canEdit(null):(id==='saveModal'?allowed:(['editDetail','archiveDetail','saveMonthly','publishMonthly','startRevision','discardRevision','selectVisible','clearStaff','splitEven'].includes(id)?allowedTask:allowed));el.disabled=!permitted||((['editDetail','archiveDetail','saveMonthly','publishMonthly','startRevision','discardRevision'].includes(id))&&!has)||((['editGroup','assignGroupKro','archiveGroup','addDetail'].includes(id))&&!selectedGroup)}
+ for(const id of ['modeSelect','targetInput','standardInput','planStart','planEnd','planNote','workdaysInput','hoursdayInput'])if($(id))$(id).disabled=!allowedTask && !['workdaysInput','hoursdayInput'].includes(id) || (['workdaysInput','hoursdayInput'].includes(id)&&!canEdit(null));
+ for(const el of document.querySelectorAll('#staffList [data-person],#staffList [data-amount]'))el.disabled=!allowedTask||(el.matches('[data-amount]')&&(!chosen.has(el.dataset.amount)||$('modeSelect').value==='bersama'));
+ for(const id of ['monitorWorkdays','monitorDailyHours']) if($(id))$(id).disabled=!canEdit(null);
+ $('rolePill').textContent=currentRole==='pegawai'?'View':currentRole==='ketua'?'Edit · Ketua Tim':'Edit · '+(currentRole==='kepala'?'Kepala':'Admin');$('rolePill').classList.toggle('read',currentRole==='pegawai');
+ $('accessTitle').textContent=currentRole==='pegawai'?'Akses Lihat — seluruh pegawai dapat memantau':currentRole==='ketua'?'Akses Edit — Ketua Tim '+(teamMap.get(roleTeamId)?.name||''):'Akses Edit — '+(currentRole==='kepala'?'Kepala BPS':'Admin');
+ $('accessDesc').textContent=currentRole==='pegawai'?'Monitoring dapat dilihat tanpa login. Masuk Edit untuk mengelola alokasi.':currentRole==='ketua'?'Edit hanya untuk tim yang ditugaskan. Monitoring seluruh pegawai tetap dapat dilihat.': 'Kelola seluruh tim. Perubahan disimpan di browser ini, belum tersinkronisasi.';
+ document.body.classList.toggle('role-readonly',currentRole==='pegawai');
+ $('btnExport').disabled=false;
+ $('historyExport').disabled=false;
+ $('btnLoginEdit').classList.toggle('hidden',currentRole!=='pegawai');
+ $('btnLogout').classList.toggle('hidden',currentRole==='pegawai');
+ $('btnRoster').classList.add('hidden');
+ $('navTeams').classList.toggle('hidden',currentRole==='pegawai');
+ if(activePage==='teams'&&currentRole==='pegawai'){setPage('input');return;}
+ $('sessionUser').textContent=currentRole==='pegawai'?'Akses umum':currentRole==='ketua'?('Ketua: '+(demoRoster[roleTeamId]?.leaderName||teamMap.get(roleTeamId)?.name||'Tim')):(currentRole==='kepala'?'Kepala BPS':'Admin')+' · '+sessionUser;
+ renderTeamRosterHint();syncWorkflowControls();updateWorkspaceSubtitle();
+}
+function syncTeamWorkspace(){
+ const isChief=currentRole==='ketua';
+ // In V7 the assigned team is resolved from the logged-in username; no team selector is exposed.
+ if(isChief){
+  // Assignment of the Ketua Tim is the source for the input/reconciliation filters.
+  // Do not retain a stale activity from another team after switching persona.
+  if(selectedTeam!==roleTeamId){
+   selectedTeam=roleTeamId;selectedGroup='';selectedId=null;chosen=new Set();amounts={};
+   $('taskQuery').value='';$('staffQuery').value='';
+   $('teamSelect').value=roleTeamId;
+   renderGroups();
+  } else {$('teamSelect').value=roleTeamId;}
+  if($('reconTeam').options.length){$('reconTeam').value=roleTeamId;}
+  if($('monitorTeam').options.length){$('monitorTeam').value=roleTeamId;}if($('timelineTeam').options.length)$('timelineTeam').value=roleTeamId;
+  if($('trendScope') && $('trendScope').value!=='team'){$('trendScope').value='team';$('trendEntity').dataset.scope='';}
+  if($('trendEntity') && $('trendEntity').options.length){
+   if($('trendEntity').dataset.scope!=='team')renderTrend();
+   $('trendEntity').value=roleTeamId;
+  }
+ }
+ applyRolePermissions();
+ if(activePage==='monitor')renderMonitoring();
+ if(activePage==='recon')renderRecon();
+ renderInputQuick();
+}
+function v7Accounts(){
+ const admin=[{username:'admin',role:'admin',team:null,label:'Admin · Seluruh Tim'},{username:'kepala',role:'kepala',team:null,label:'Kepala BPS · Seluruh Tim'}];
+ const chief=BASE.teams.map((t,i)=>({username:'ketua'+String(i+1).padStart(2,'0'),role:'ketua',team:t.id,label:'Ketua '+String(i+1).padStart(2,'0')+' · '+t.name}));
+ return admin.concat(chief);
+}
+function renderTeamRosterHint(){
+ const el=$('teamRosterHint');if(!el)return;
+ const team=demoRoster[selectedTeam],chief=team?.leaderName||'Belum ditetapkan',count=(team?.members||[]).length;
+ el.hidden=!team||(!team.leaderId&&!count);el.textContent='Ketua: '+chief+' · '+(count?count+' anggota terdaftar':'anggota belum ditetapkan')+'.';
+ $('staffOnlyTeam').checked=true;$('staffOnlyTeam').disabled=true;
+}
+function setupRoster(){
+ fillSelect($('rosterTeam'),BASE.teams.map(x=>({value:x.id,label:x.name})),BASE.teams[0]?.id);
+ fillSelect($('rosterChief'),[{value:'',label:'Belum ditetapkan'},...BASE.employees.filter(e=>e.type==='pegawai').map(e=>({value:e.id,label:e.full_name}))]);
+ function paint(){const tid=$('rosterTeam').value,ro=demoRoster[tid]||{members:[]};$('rosterChief').value=ro.leaderId||'';
+  const mem=new Set(ro.members||[]);$('rosterMembers').innerHTML=BASE.employees.filter(e=>e.type==='pegawai').map(e=>`<label><input type="checkbox" data-roster-member="${esc(e.id)}" ${mem.has(e.id)?'checked':''}><span>${esc(e.full_name)}</span></label>`).join('');
+  $('rosterCounter').textContent=mem.size+' anggota tersimpan';}
+ $('rosterTeam').onchange=paint;
+ $('rosterMembers').onchange=()=>{$('rosterCounter').textContent=$('rosterMembers').querySelectorAll('[data-roster-member]:checked').length+' anggota dipilih'};
+ $('saveRoster').onclick=()=>{
+  if(!(currentRole==='admin'||currentRole==='kepala'))return;
+  const team=$('rosterTeam').value,leaderId=$('rosterChief').value,members=Array.from($('rosterMembers').querySelectorAll('[data-roster-member]:checked')).map(e=>e.dataset.rosterMember);
+  demoRoster[team]={leaderId,leaderName:BASE.employees.find(e=>e.id===leaderId)?.full_name||'',members};
+  try{localStorage.setItem(ROSTER_KEY,JSON.stringify(demoRoster))}catch(e){}
+  $('rosterScreen').classList.add('hidden');renderTeamRosterHint();if(selectedId)renderStaff();applyRolePermissions();toast('Pemetaan tim disimpan di browser (uji coba).')};
+ $('closeRoster').onclick=()=>$('rosterScreen').classList.add('hidden');
+ $('rosterScreen').onclick=e=>{if(e.target===$('rosterScreen'))$('rosterScreen').classList.add('hidden')};
+ $('btnRoster').onclick=()=>{if(!(currentRole==='admin'||currentRole==='kepala'))return;setPage('teams');};
+ $('teamAdminSelect').onchange=renderTeamAdminPage;
+ $('teamAdminMemberSearch').oninput=drawWorkingMembers;
+ $('teamAdminKroQuery').oninput=renderKroChecks;
+ $('applyKroRecommendations').onclick=()=>{const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
+  for(const k of POK_KROS)if(suggestedKroForTeam(k,tid))selectedKroCodes.add(k.code);
+  renderKroChecks();toast('Rekomendasi ditandai sementara. Klik Simpan Pengaturan Tim untuk menerapkan.');};
+ $('teamKroMapQuery').oninput=renderKroMap;
+ $('teamAdminSave').onclick=saveTeamAdmin;
+ $('kroAuditRefresh').onclick=()=>{renderKroAudit();toast('Pemeriksaan KRO dan kegiatan diperbarui.')};
+ $('empSearch').oninput=renderEmployeeMaster;$('empStatus').onchange=renderEmployeeMaster;$('empType').onchange=renderEmployeeMaster;
+ $('empAdd').onclick=()=>openEmployeeEditor();$('empClose').onclick=closeEmployeeEditor;$('employeeScreen').onclick=e=>{if(e.target===$('employeeScreen'))closeEmployeeEditor()};$('employeeForm').onsubmit=e=>{e.preventDefault();saveEmployeeEditor()};
+ $('teamAdminNew').onclick=createTeamAdmin;
+ $('teamAdminDelete').onclick=deleteTeamAdmin;
+ $('teamAdminGoInput').onclick=()=>{const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;selectedTeam=tid;selectedId=null;selectedGroup='';$('teamSelect').value=tid;renderKroOptions(teamKroCodes(tid)[0]||NO_KRO);renderGroups();setPage('input')};
+}
+function enterView(){
+ try{sessionStorage.removeItem(SESSION_KEY)}catch(e){}
+ currentRole='pegawai';sessionUser='';closeModal();$('loginScreen').classList.add('hidden');$('rosterScreen').classList.add('hidden');
+ if($('monitorTeam'))$('monitorTeam').value='';if($('timelineTeam'))$('timelineTeam').value='';if($('trendScope')){$('trendScope').value='employee';$('trendEntity').dataset.scope='';}
+ syncTeamWorkspace();setPage('monitor');renderTeamRosterHint();syncWorkflowControls();renderYearUI();maybeShowYearWelcome();
+}
+function enterPrototypeEdit(){
+ currentRole='admin';roleTeamId=BASE.teams[0]?.id||'';sessionUser='Google BPS Blora';
+ $('loginScreen').classList.add('hidden');
+ syncTeamWorkspace();setPage('teams');syncWorkflowControls();renderYearUI();maybeShowYearWelcome();
+}
+function setupRoles(){
+ setupRoster();
+ $('loginScreen').classList.add('hidden');
+ $('btnLoginEdit').onclick=enterPrototypeEdit;
+ $('modeView').onclick=enterView;
+ $('btnLogout').onclick=()=>{enterView();toast('Keluar dari Gmail melalui tombol di atas website.');};
+ enterPrototypeEdit();
+}
+
+// Master acuan 2026 dari V25. Standar tahun aktif disimpan sebagai versi/overlay.
+function standardEnabled(r){return state.masterEdits?.[r.id]?.active!==false}
+function masterHours(r){return standardEnabled(r)?(Object.prototype.hasOwnProperty.call(state.masterEdits||{},r.id)?state.masterEdits[r.id].hours:r.hours):null}
+function updateStandardGroups(){const selector=$('stdGroup'),keep=selector.value;fillSelect(selector,[{value:'',label:'Semua Kelompok'},...Array.from(new Set(STANDARDS.map(x=>x.group))).sort().map(x=>({value:x,label:x}))],keep)}
+function renderStandards(){
+ updateStandardGroups();const grp=$('stdGroup').value,query=$('stdQuery').value.trim().toLocaleLowerCase('id'),status=$('stdStatus').value;
+ const rows=STANDARDS.filter(r=>(!grp||r.group===grp)&&(!query||(r.name+' '+r.group).toLocaleLowerCase('id').includes(query))&&(status==='all'||(status==='inactive'?!standardEnabled(r):(standardEnabled(r)&&(status==='missing'?masterHours(r)==null:masterHours(r)!=null)))));
+ const manager=currentRole==='admin'||currentRole==='kepala';const add=$('stdAdd');if(add){add.classList.toggle('hidden',!manager);add.disabled=!manager;}
+ const sourced=STANDARDS.filter(r=>r.source_row!=null).length,valid=STANDARDS.filter(r=>standardEnabled(r)&&masterHours(r)!=null).length;
+ $('standardCount').textContent=rows.length+' standar · '+valid+' aktif terisi';
+ const src=$('standardsSourceNote');if(src)src.textContent=isBaseYear?'Referensi 2026: '+sourced+' standar berasal dari sumber Matriks V25. Perubahan master tidak mengubah alokasi historis.':'Referensi awal berasal dari master 2026 ('+sourced+' standar). Penyesuaian '+activeYear+' dicatat terpisah dan tidak mengubah tahun sebelumnya.';
+ $('stdItems').innerHTML=rows.map(r=>{const h=masterHours(r),active=standardEnabled(r),ref=r.source_row!=null?'Referensi 2026 · baris '+r.source_row:'Standar baru '+activeYear;
+ return `<div class="std-item" style="${active?'':'opacity:.65'}"><div><div class="std-category">${esc(r.group)} · ${esc(ref)}</div><div class="std-name">${esc(r.name)}</div><div class="help">${active?(r.hours==null?'Estimasi waktu perlu ditinjau':'Acuan sumber: '+nf(r.hours)+' jam'):'Dinonaktifkan pada tahun '+activeYear}</div></div><div class="std-control"><div><strong>${active&&h!=null?nf(h)+' jam':'—'}</strong><small>${active?'Per satuan':'Nonaktif'}</small></div>${manager?`<button class="btn tiny soft" type="button" data-editstandard="${esc(r.id)}">✎ Edit</button><button class="btn tiny ${active?'warn':'soft'}" type="button" data-toggle-standard="${esc(r.id)}">${active?'Nonaktifkan':'Aktifkan'}</button>`:''}</div></div>`;
+ }).join('')||'<div class="empty">Tidak ada standar waktu yang sesuai.</div>';
+ $('stdItems').querySelectorAll('[data-editstandard]').forEach(b=>b.onclick=()=>openStandardModal(b.dataset.editstandard));
+ $('stdItems').querySelectorAll('[data-toggle-standard]').forEach(b=>b.onclick=()=>toggleStandard(b.dataset.toggleStandard));
+}
+function openStandardModal(id=null){if(!(currentRole==='admin'||currentRole==='kepala'))return toast('Hanya Admin/Kepala yang dapat mengelola standar waktu.');const r=id?STANDARDS.find(x=>x.id===id):null;if(id&&!r)return;
+ modalMode='master-standard';$('modalTitle').textContent=r?'Edit Standar Waktu':'Tambah Standar Waktu';$('modalSubtitle').textContent='Acuan '+activeYear;
+ $('modalBody').innerHTML=`<div class="formgrid">${modalField('standardGroupModal','Kelompok',r?.group||'')}${modalField('standardNameModal','Nama kegiatan/uraian',r?.name||'')}${modalField('standardHoursModal','Waktu per satuan (jam)',r?masterHours(r)??'':'','number')}<div class="field full"><label>Alasan penetapan atau perubahan</label><textarea id="standardReason" rows="2" placeholder="Misalnya: hasil penyepakatan ketua tim"></textarea></div></div>`;
+ $('modalFootnote').textContent=r?.source_row!=null?'Referensi asli 2026, baris '+r.source_row+'. Perubahan hanya berlaku pada tahun '+activeYear+'.':'Standar tambahan hanya berlaku pada tahun '+activeYear+'.';
+ if(r&&r.source_row!=null){$('standardGroupModal').readOnly=true;$('standardNameModal').readOnly=true;
+  $('standardGroupModal').title='Nama kelompok dari sumber 2026 tidak diubah';$('standardNameModal').title='Nama acuan dari sumber 2026 tidak diubah';}
+ $('modalScreen').classList.remove('hidden');$('modalScreen').dataset.standardId=r?.id||'';$('saveModal').disabled=false;
+}
+function saveStandardModal(){if(!(currentRole==='admin'||currentRole==='kepala'))return toast('Hanya Admin/Kepala yang dapat mengubah master.');const id=$('modalScreen').dataset.standardId,existing=STANDARDS.find(x=>x.id===id),group=$('standardGroupModal')?.value.trim(),name=$('standardNameModal')?.value.trim(),val=$('standardHoursModal')?.value,reason=$('standardReason')?.value.trim();
+ if(!name||!group||!reason)return toast('Isi kelompok, nama standar, dan alasan perubahan.');if(!Number.isFinite(Number(val))||Number(val)<=0)return toast('Standar waktu harus lebih besar dari nol.');
+ const h=Number(val),at=new Date().toISOString();if(existing){const old=masterHours(existing);if(existing.source_row==null){existing.name=name;existing.group=group;const target=state.customStandards.find(x=>x.id===id);if(target){target.name=name;target.group=group;}}state.masterEdits[id]={...(state.masterEdits[id]||{}),hours:h,active:true,reason,editedAt:at,editedBy:roleActor()};logChange('Edit master standar',name+': '+(old==null?'kosong':nf(old))+' → '+nf(h)+' jam · '+reason)}
+ else{const row={id:'S-NEW-'+Date.now(),name,group,hours:h,source_row:null};STANDARDS.push(row);state.customStandards.push({...row});state.masterEdits[row.id]={hours:h,active:true,reason,editedAt:at,editedBy:roleActor()};logChange('Tambah standar waktu',name+' · '+nf(h)+' jam · '+reason)}
+ persist();closeModal();renderStandards();toast('Standar waktu berhasil disimpan untuk '+activeYear+'.')
+}
+async function toggleStandard(id){const r=STANDARDS.find(x=>x.id===id);if(!r||!['admin','kepala'].includes(currentRole))return;const active=standardEnabled(r);if(!(await uiConfirm((active?'Nonaktifkan':'Aktifkan')+' standar "'+r.name+'" untuk tahun '+activeYear+'? Alokasi historis tidak akan dihapus.','Perubahan Status Standar')))return;
+ state.masterEdits[id]={...(state.masterEdits[id]||{}),hours:active?masterHours(r):(state.masterEdits[id]?.hours??r.hours),active:!active,editedAt:new Date().toISOString(),editedBy:roleActor()};logChange(active?'Nonaktifkan standar waktu':'Aktifkan standar waktu',r.name);persist();renderStandards();toast('Status standar diperbarui.')}
+async function applyMasterToTask(id){const r=STANDARDS.find(x=>x.id===id),a=byId.get(selectedId);if(!r||!a||!checkEdit(a.team_id))return;const hours=masterHours(r);if(!Number.isFinite(Number(hours))||Number(hours)<=0)return;const from=Number($('monthSelect').value)||1;
+ if(!(await uiConfirm('Terapkan standar '+nf(hours)+' jam dari "'+r.name+'" pada "'+a.description+'" mulai '+months[from-1]+' sampai Desember '+activeYear+'?','Terapkan Standar Waktu')))return;
+ for(let m=from;m<=12;m++)state.monthlyStdEdits[amKey(a.id,m)]=Number(hours);
+ logChange('Terapkan master standar',a.team+' › '+a.description+': '+nf(hours)+' jam mulai '+months[from-1]+' ('+r.group+')');persist();closeModal();setPage('input');loadAllocation();toast('Standar diterapkan untuk periode yang dipilih.')}
+function qtyMapForMonth(m,teamId){const map=new Map();function accept(aid,eid,month,q){if(Number(month)!==Number(m))return;const a=byId.get(aid);if(!a||(teamId&&a.team_id!==teamId))return;if(Number(q)<=0)return;const keyid=aid;if(!map.has(keyid))map.set(keyid,{activity:a,people:0,qty:0,personHours:0});const entry=map.get(keyid);entry.people++;entry.qty+=Number(q);entry.personHours+=Number(q)*getStandard(a,Number(m));}
+ const handled=new Set();for(const [k,v] of baseMonthly){handled.add(k);const [a,e,month]=k.split('|');const q=Object.prototype.hasOwnProperty.call(state.allocEdits,k)?state.allocEdits[k]:v;accept(a,e,month,q)}for(const [k,v] of Object.entries(state.allocEdits))if(!handled.has(k)){const [a,e,month]=k.split('|');accept(a,e,month,v)}return map}
+function renderRecon(){const m=Number($('reconMonth').value),tid=currentRole==='ketua'?roleTeamId:$('reconTeam').value,q=$('reconQuery').value.trim().toLocaleLowerCase('id');const map=qtyMapForMonth(m,tid);
+ const rows=[...map.values()].filter(e=>(e.activity.description+' '+groupName(e.activity)+' '+e.activity.team).toLocaleLowerCase('id').includes(q)).sort((a,b)=>b.personHours-a.personHours);
+ const total=rows.reduce((s,x)=>s+x.personHours,0),peopleAlloc=rows.reduce((s,x)=>s+x.people,0);
+ $('reconSummary').innerHTML=[["Uraian Terjadwal",nf(rows.length),'Kegiatan dengan alokasi pegawai'],['Total Beban Pegawai',nf(total)+' jam','Akumulasi jam-orang untuk bulan terpilih'],['Penugasan Tercatat',nf(peopleAlloc),'Jumlah keterlibatan pegawai per uraian']].map(([k,v,d])=>`<div class="mini-kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
+ $('reconCount').textContent=rows.length+' uraian';
+ $('reconItems').innerHTML=rows.slice(0,300).map(x=>{const a=x.activity;const allowed=canEdit(a.team_id);const sched=state.scheduleEdits?.[amKey(a.id,m)]||{};return `<div class="recon-item"><div><strong>${esc(a.description)}</strong><div class="sub">${esc(a.team)} › ${esc(groupName(a))} · ${x.people} pegawai · ${nf(x.qty)} unit × ${nf(getStandard(a,m))} jam${sched.start?' · '+esc(displayDate(sched.start))+(sched.end?'–'+esc(displayDate(sched.end)):''):''}</div></div><div class="recon-actions"><span class="recon-metrics">${nf(x.personHours)} jam-orang</span><button class="btn tiny" data-goto="${a.id}">Buka Alokasi</button><button class="btn tiny soft" data-move="${a.id}" ${allowed?'':'disabled'}>Ubah Jadwal</button></div></div>`}).join('')||'<div class="empty">Belum ada alokasi pegawai pada pilihan ini. Pilih bulan atau tim lain, atau buat alokasi baru di menu Input Alokasi.</div>';
+ $('reconItems').querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>gotoAllocation(b.dataset.goto,m));
+ $('reconItems').querySelectorAll('[data-move]').forEach(b=>b.onclick=()=>openMoveModal(b.dataset.move,m));
+}
+function gotoAllocation(id,m){const a=byId.get(id);if(!a)return;if(currentRole==='ketua'&&a.team_id!==roleTeamId){toast('Kegiatan berada di luar tim yang dikelola.');return;}selectedTeam=a.team_id;selectedGroup=groupName(a);selectedId=a.id;$('teamSelect').value=selectedTeam;renderKroOptions(resolveGroupKro(selectedTeam,selectedGroup));$('monthSelect').value=String(m);$('showInactive').checked=true;setPage('input');renderGroups(selectedGroup);selectedId=id;renderTaskDetails();loadAllocation();window.scrollTo({top:0,behavior:'smooth'})}
+function openMoveModal(id,month){
+ const a=byId.get(id);if(!a||!checkEdit(a.team_id))return;
+ const anchor=originalRangeAnchor(id,month),old=state.scheduleEdits[amKey(id,anchor)]||{},start=old.start||'',end=old.end||'';
+ const workflow=state.workflowPlans?.[amKey(id,anchor)];
+ if(workflow?.status==='established'||workflow?.status==='revision'){toast('Kegiatan sudah ditetapkan. Ubah tanggal melalui Mulai Revisi di Input Alokasi.');gotoAllocation(id,anchor);return;}
+ modalMode='move-dates';$('modalTitle').textContent='Ubah Rentang Pelaksanaan';$('modalSubtitle').textContent=a.team+' › '+groupName(a)+' › '+a.description;
+ $('modalBody').innerHTML=`<div class="move-current"><small>JADWAL SEBELUMNYA</small><strong>${start&&end?esc(displayDate(start)+' – '+displayDate(end)):'Belum memiliki tanggal spesifik · Alokasi '+months[anchor-1]+' '+activeYear}</strong></div><div class="move-date-grid"><div class="field"><label for="moveStartDisplay">Mulai jadwal baru</label><div class="calendar-input-wrap"><input type="hidden" id="moveStart" value="${esc(start)}"><input type="text" class="date-readable" id="moveStartDisplay" placeholder="dd/mm/yy" value="${esc(displayDate(start))}" maxlength="10" inputmode="numeric" autocomplete="off" aria-haspopup="dialog"><span class="calendar-input-icon" aria-hidden="true">▦</span></div></div><div class="field"><label for="moveEndDisplay">Selesai jadwal baru</label><div class="calendar-input-wrap"><input type="hidden" id="moveEnd" value="${esc(end)}"><input type="text" class="date-readable" id="moveEndDisplay" placeholder="dd/mm/yy" value="${esc(displayDate(end))}" maxlength="10" inputmode="numeric" autocomplete="off" aria-haspopup="dialog"><span class="calendar-input-icon" aria-hidden="true">▦</span></div></div></div><div id="moveDatePreview" class="move-range-preview">Pilih tanggal mulai dan selesai. Beban akan otomatis dibagi menurut hari kerja pada tiap bulan.</div><div class="field" style="margin-top:12px"><label>Alasan perubahan jadwal</label><textarea id="moveReason" rows="3" placeholder="Contoh: penyesuaian jadwal setelah rapat rekonsiliasi" required></textarea></div>`;
+ $('modalScreen').dataset.moveActivity=id;$('modalScreen').dataset.moveSource=String(anchor);
+ $('modalFootnote').textContent='Jam kerja total tetap sama. Riwayat perubahan dicatat.';$('modalScreen').classList.remove('hidden');$('saveModal').disabled=false;
+ window.bindReconciliationCalendar?.();
+ function preview(){const d=distributionForDates($('moveStart').value,$('moveEnd').value);
+  $('moveDatePreview').textContent=d?'Distribusi baru: '+d.months.map(x=>months[x.m-1]+' '+nf(x.share*100)+'%').join(' · ')+' · '+d.workDays+' hari kerja efektif. Total tidak bertambah.':'Lengkapi rentang tanggal yang valid dalam tahun 2026.'}
+ $('moveStart').addEventListener('input',preview);$('moveEnd').addEventListener('input',preview);preview();
+}
+async function saveMoveModal(){
+ const id=$('modalScreen').dataset.moveActivity,anchor=Number($('modalScreen').dataset.moveSource),a=byId.get(id),start=$('moveStart').value,end=$('moveEnd').value,reason=$('moveReason').value.trim();
+ if(!a||!checkEdit(a.team_id))return;const d=distributionForDates(start,end);
+ if(!d){toast('Pilih rentang tanggal mulai dan selesai yang valid.');return}if(!reason){toast('Isi alasan perubahan jadwal.');return}
+ const prev=state.scheduleEdits[amKey(id,anchor)]||{},oldRange=prev.isRange&&prev.anchor===anchor;
+ const fullAmounts=oldRange&&prev.originalAmounts?{...prev.originalAmounts}:Object.fromEntries(BASE.employees.map(e=>[e.id,getQty(id,e.id,anchor)]));
+ const people=BASE.employees.filter(e=>Number(fullAmounts[e.id]||0)>0);if(!people.length){toast('Tidak ada alokasi pegawai untuk dipindahkan.');return}
+ const newAnchor=d.months[0].m,oldMonths=oldRange?Array.from({length:12},(_,i)=>i+1).filter(m=>state.scheduleEdits[amKey(id,m)]?.anchor===anchor):[anchor];
+ const desired=d.months.map(x=>x.m),touched=[...new Set([...oldMonths,...desired])].sort((x,y)=>x-y);
+ const conflicts=desired.filter(m=>!oldMonths.includes(m)&&BASE.employees.some(e=>getQty(id,e.id,m)>0));
+ if(conflicts.length&&!await uiConfirm('Bulan '+conflicts.map(x=>months[x-1]).join(', ')+' sudah memiliki alokasi uraian ini. Alokasi di bulan tersebut akan diganti, bukan digabung otomatis. Lanjutkan?'))return;
+ const std=Number(prev.originalStandard)||getStandard(a,anchor);
+ const target=Number(prev.originalTarget)||Number(state.targets[amKey(id,anchor)])||(a.calculation_mode==='bersama'?Math.max(...people.map(e=>Number(fullAmounts[e.id]))):people.reduce((s,e)=>s+Number(fullAmounts[e.id]),0));
+ const portions=new Map(BASE.employees.map(e=>[e.id,0])),weight=new Map(d.months.map(e=>[e.m,e.share])),stamp=new Date().toISOString(),last=desired[desired.length-1];
+ for(const m of touched){const share=weight.get(m)||0;
+  for(const e of BASE.employees){const full=Number(fullAmounts[e.id]||0);let partial=0;if(share){partial=m===last?full-(portions.get(e.id)||0):Math.round(full*share*1e8)/1e8;portions.set(e.id,(portions.get(e.id)||0)+partial)}state.allocEdits[key(id,e.id,m)]=partial}
+  state.monthlyStdEdits[amKey(id,m)]=std;state.targets[amKey(id,m)]=share?target*share:0;
+  if(share)state.scheduleEdits[amKey(id,m)]={start,end,note:reason,updatedAt:stamp,updatedBy:roleActor(),anchor:newAnchor,isRange:true,share,originalTarget:target,originalStandard:std,originalAmounts:fullAmounts,selectedIds:people.map(e=>e.id)};
+  else delete state.scheduleEdits[amKey(id,m)];
+ }
+ const before=prev.start&&prev.end?displayDate(prev.start)+'–'+displayDate(prev.end):months[anchor-1]+' (tanpa tanggal)';
+ logChange('Rekonsiliasi — ubah rentang tanggal',a.team+' › '+a.description+' · '+before+' → '+displayDate(start)+'–'+displayDate(end)+' · '+people.length+' pegawai · '+reason);
+ persist();rebuild();closeModal();renderRecon();if(activePage==='timeline')renderTimeline();toast('Jadwal berhasil diubah. Distribusi bulanan otomatis diperbarui tanpa menggandakan jam.');
+}
+
+let currentTrendMonth=1;
+function renderTrend(){
+ const scope=$('trendScope').value,year=Number($('trendYear').value),entity=$('trendEntity'),wrap=$('trendEntityWrap');
+ const singular=scope==='team'||scope==='employee';wrap.classList.toggle('hidden',!singular);
+ const opts=scope==='employee'?BASE.employees.filter(e=>e.type==='pegawai').map(e=>({value:e.id,label:e.full_name})):scope==='team'?BASE.teams.map(t=>({value:t.id,label:t.name})):[];
+ if(singular&&entity.dataset.scope!==scope){fillSelect(entity,opts);entity.dataset.scope=scope}if(!singular)entity.dataset.scope='';
+ const id=entity.value,perMonth=year===activeYear?months.map((_,i)=>periodAgg(String(i+1),'')):months.map(()=>({totals:new Map()}));
+ let candidates=[];
+ if(scope==='office'){candidates=[{id:'office',label:'Total Kantor',vals:perMonth.map(d=>BASE.employees.filter(e=>e.type==='pegawai').reduce((s,e)=>s+(d.totals.get(e.id)||0),0))}];}
+ else if(scope==='employee'){const e=employeeMap.get(id);if(e)candidates=[{id,label:e.full_name,vals:perMonth.map(d=>d.totals.get(id)||0)}]}
+ else if(scope==='team'){const t=teamMap.get(id);if(t)candidates=[{id,label:t.name,vals:months.map((_,i)=>year===activeYear?[...periodAgg(String(i+1),id).totals.values()].reduce((x,y)=>x+y,0):0)}]}
+ else if(scope==='allEmployees'){candidates=BASE.employees.filter(e=>e.type==='pegawai').map(e=>({id:e.id,label:e.full_name,vals:perMonth.map(d=>d.totals.get(e.id)||0)}));}
+ else if(scope==='allTeams'){candidates=BASE.teams.map(t=>({id:t.id,label:t.name,vals:months.map((_,i)=>year===activeYear?[...periodAgg(String(i+1),t.id).totals.values()].reduce((x,y)=>x+y,0):0)}));}
+ const all=candidates.map(e=>({...e,total:e.vals.reduce((a,b)=>a+b,0)})).sort((a,b)=>b.total-a.total);
+ const drawn=all.slice(0,scope==='allEmployees'||scope==='allTeams'?6:1),color=['#0c65b4','#12a3ae','#6a6edc','#e9982c','#3b9560','#bb629b'];
+ $('trendYearLabel').textContent=String(year);const sum=scope==='office'?all[0]?.total||0:all.reduce((s,x)=>s+x.total,0);
+ $('trendKpis').innerHTML=`<span>${esc(scope==='allTeams'?'Semua Tim':scope==='allEmployees'?'Semua Pegawai':drawn[0]?.label||'Belum dipilih')}</span><span>Total: ${nf(sum)} jam</span><span>${all.length} seri${(scope==='allTeams'||scope==='allEmployees')?' · 6 tertinggi ditonjolkan':''}</span>`;
+ if(year!==activeYear){$('twelveBars').innerHTML='<div class="empty">Belum ada alokasi tahun '+year+'. Tahun baru akan muncul setelah perencanaan dan migrasi data.</div>';$('trendRanking').innerHTML='';$('trendLegend').innerHTML='';return}
+ const max=Math.max(1,...drawn.flatMap(e=>e.vals)),W=1080,H=345,left=60,right=35,top=30,bottom=48,CW=W-left-right,CH=H-top-bottom;
+ const x=i=>left+i*CW/11,y=v=>top+CH*(1-v/max);
+ let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tren beban kerja dalam jam antarb​​ulan">`;
+ for(let j=0;j<=4;j++){const v=max*j/4,yy=y(v);svg+=`<line x1="${left}" y1="${yy}" x2="${W-right}" y2="${yy}" stroke="#e0eaf5"/><text x="${left-7}" y="${yy+4}" text-anchor="end" fill="#7b92a7" font-size="11">${nf(v)}</text>`}
+ for(let i=0;i<12;i++)svg+=`<text x="${x(i)}" y="${H-20}" text-anchor="middle" fill="#607e9e" font-size="11" font-weight="700">${months[i].slice(0,3)}</text>`;
+ drawn.forEach((e,k)=>{const path=e.vals.map((v,i)=>(i?'L':'M')+x(i).toFixed(2)+','+y(v).toFixed(2)).join(' ');svg+=`<path d="${path}" fill="none" stroke="${color[k]}" stroke-width="${drawn.length===1?3.5:2.8}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  e.vals.forEach((v,i)=>{const picked=currentTrendMonth===i+1;svg+=`<circle class="trend-point" data-trend-month="${i+1}" cx="${x(i)}" cy="${y(v)}" r="${picked?6.5:4.3}" fill="${color[k]}" stroke="white" stroke-width="1.5"><title>${esc(e.label)} • ${esc(months[i])}: ${nf(v)} jam</title></circle>`;if(drawn.length===1)svg+=`<text x="${x(i)}" y="${y(v)-13}" text-anchor="middle" font-size="11" fill="#164b7e" font-weight="800">${nf(v)}</text>`})});
+ svg+='</svg>';$('twelveBars').innerHTML=svg;
+ $('twelveBars').querySelectorAll('[data-trend-month]').forEach(el=>el.onclick=()=>{currentTrendMonth=Number(el.dataset.trendMonth);renderTrend()});
+ $('trendLegend').innerHTML=drawn.map((e,i)=>`<span class="tl-legend-item" title="${esc(e.label)}"><i style="background:${color[i]}"></i>${esc(e.label.length>31?e.label.slice(0,29)+'…':e.label)}</span>`).join('');
+ const ranking=all.slice().sort((a,b)=>b.vals[currentTrendMonth-1]-a.vals[currentTrendMonth-1]);
+ $('trendRanking').innerHTML=`<div class="tl-rank-card"><strong>Peringkat ${months[currentTrendMonth-1]} ${year}</strong>${ranking.slice(0,7).map((a,i)=>`<div class="rank-row"><span>${i+1}. ${esc(a.label)}</span><b>${nf(a.vals[currentTrendMonth-1])} jam</b></div>`).join('')}</div>`;
+ $('trendHelp').textContent=(scope==='allTeams'||scope==='allEmployees')?'Garis menonjolkan enam seri dengan beban tahunan terbesar. Klik bulan untuk melihat peringkat di bulan tersebut; daftar peringkat menggunakan semua seri.':'Klik titik bulan untuk memilih bulan dan melihat nilainya.';
+}
+// --- Timeline Kerja V11; only dated entries appear on calendar days ---
+let timelineState={year:activeYear,month:1,date:activeYear+'-01-01'};
+function dateFilters(){return {year:Number($('timelineYear').value),month:timelineState.month,team:$('timelineTeam').value,employee:$('timelineEmployee').value,query:$('timelineSearch').value.trim().toLocaleLowerCase('id')}}
+function validTimelineEvent(s){return /^20\d\d-\d\d-\d\d$/.test(s||'')&&Number.isFinite(Date.parse(s+'T00:00:00Z'))}
+function timelineData(){
+ const f=dateFilters(),unique=new Map(),scheduled=new Set();
+ for(const [k,sched] of Object.entries(state.scheduleEdits||{})){
+  const [id,mm]=k.split('|');const month=Number(mm),a=byId.get(id);
+  if(!a||a.status!=='aktif'||!validTimelineEvent(sched?.start)||!validTimelineEvent(sched?.end)||sched.start>sched.end)continue;
+  if(Number(sched.start.slice(0,4))!==f.year)continue;
+  const anchor=sched.anchor||month,ky=id+'|'+(sched.isRange?anchor:month)+'|'+sched.start+'|'+sched.end;
+  if(unique.has(ky))continue;
+  const linkMonths=sched.isRange?Array.from({length:12},(_,i)=>i+1).filter(m=>state.scheduleEdits[amKey(id,m)]?.anchor===anchor):[month];
+  const persons=new Set();let total=0;
+  for(const m of linkMonths)for(const e of BASE.employees){const qty=getQty(id,e.id,m);if(qty>0){persons.add(e.id);total+=qty*getStandard(a,m)}}
+  unique.set(ky,{id,anchor,teamId:a.team_id,team:a.team,group:groupName(a),name:a.description,start:sched.start,end:sched.end,persons:[...persons],hours:total,note:sched.note||'',months:linkMonths});
+  for(const m of linkMonths)scheduled.add(amKey(id,m));
+ }
+ const scheduledEvents=[...unique.values()].filter(x=>(!f.team||x.teamId===f.team)&&(!f.employee||x.persons.includes(f.employee))&&(!f.query||(x.name+' '+x.team+' '+x.group).toLocaleLowerCase('id').includes(f.query))&&x.start<=isoOf(f.year,f.month,new Date(Date.UTC(f.year,f.month,0)).getUTCDate())&&x.end>=isoOf(f.year,f.month,1)).sort((a,b)=>a.start.localeCompare(b.start)||b.hours-a.hours);
+ let nodates=[];
+ if(f.year===activeYear){
+  const map=qtyMapForMonth(f.month,f.team),items=[...map.values()];
+  nodates=items.filter(x=>!scheduled.has(amKey(x.activity.id,f.month))&&(!f.employee||BASE.employees.some(e=>e.id===f.employee&&getQty(x.activity.id,e.id,f.month)>0))&&(!f.query||(x.activity.description+' '+x.activity.team+' '+groupName(x.activity)).toLocaleLowerCase('id').includes(f.query)))
+    .sort((a,b)=>b.personHours-a.personHours);
+ }
+ return {events:scheduledEvents,unscheduled:nodates};
+}
+function setTimelineMonth(year,month){
+ if(year<activeYear){year=activeYear;month=1}if(year>activeYear){year=activeYear;month=12}if(month<1){year--;month=12}if(month>12){year++;month=1}
+ if(year<activeYear){year=activeYear;month=1}if(year>activeYear){year=activeYear;month=12}
+ timelineState.year=year;timelineState.month=month;$('timelineYear').value=String(year);timelineState.date=isoOf(year,month,Math.min(Number(timelineState.date.slice(8))||1,new Date(Date.UTC(year,month,0)).getUTCDate()));renderTimeline();
+}
+function timelineOpenAllocation(id,month,iso){const a=byId.get(id);if(!a)return;if(!canEdit(a.team_id)){toast('Akses View: masuk Edit untuk mengubah alokasi kegiatan.');return}
+ gotoAllocation(id,month);if(iso&&!$('planStart').value){$('planStart').value=iso;$('planEnd').value=iso;setDateRangeMonthFromStart()}
+}
+function timelineDayData(date,events){return events.filter(x=>x.start<=date&&x.end>=date)}
+function renderTimeline(){if(activePage!=='timeline')return;
+ const f=dateFilters(),year=timelineState.year,month=timelineState.month,first=isoOf(year,month,1),n=new Date(Date.UTC(year,month,0)).getUTCDate();
+ $('timelineMonthTitle').textContent=months[month-1]+' '+year;$('timelineCreate').disabled=currentRole==='pegawai';
+ const data=timelineData(),items=data.events,un=data.unscheduled;
+ let effective=daysForCalendarMonth(year,month),distinct=items.length,persons=new Set(items.flatMap(x=>x.persons)),sum=items.reduce((v,x)=>v+x.hours,0);
+ $('timelineKpis').innerHTML=[['Kegiatan Bertanggal',nf(distinct),'Perencanaan dengan tanggal pasti'],['Pegawai Terlibat',nf(persons.size),'Pada kegiatan terjadwal'],['Hari Kerja Efektif',nf(effective),'Tidak termasuk hari libur'],['Belum Bertanggal',nf(un.length),'Alokasi yang perlu dilengkapi']].map(([k,v,d])=>`<div class="tl-kpi"><span class="k">${esc(k)}</span><strong class="v">${esc(v)}</strong><span class="d">${esc(d)}</span></div>`).join('');
+ const offset=(new Date(Date.UTC(year,month-1,1)).getUTCDay()+6)%7;let html='';for(let i=0;i<offset;i++)html+='<span class="tl-day outside" aria-hidden="true"></span>';
+ for(let day=1;day<=n;day++){
+  const date=isoOf(year,month,day),isOff=!workingDate(date),holiday=holidayOf(date),events=timelineDayData(date,items);
+  // Highlight only working days, except ranges consisting solely of non-working days.
+  const active=events.filter(e=>workingDate(date));
+  const isToday=date===new Date().toLocaleDateString('sv-SE');
+  html+=`<button type="button" data-tl-day="${date}" class="tl-day ${isOff?'off ':''}${holiday?'holiday ':''}${timelineState.date===date?'selected ':''}${isToday?'today':''}" aria-label="${day} ${months[month-1]} ${year}, ${active.length} kegiatan"><span class="tl-day-top"><span class="tl-num">${day}</span>${holiday?'<span class="tl-mark">Libur</span>':''}</span>${holiday?`<span class="tl-day-holiday">${esc(holiday)}</span>`:''}${active.slice(0,2).map((e,i)=>`<span class="tl-event-chip c${BASE.teams.findIndex(t=>t.id===e.teamId)%4}" title="${esc(e.name)} · ${esc(e.team)}">${esc(e.name)}</span>`).join('')}${active.length>2?`<span class="tl-more">+${active.length-2} kegiatan</span>`:''}</button>`;
+ }
+ for(let i=0;i<(7-(offset+n)%7)%7;i++)html+='<span class="tl-day outside" aria-hidden="true"></span>';
+ $('timelineCalendar').innerHTML=html;
+ $('timelineCalendar').querySelectorAll('[data-tl-day]').forEach(b=>b.onclick=()=>{timelineState.date=b.dataset.tlDay;renderTimelineDay(data.events);$('timelineCalendar').querySelectorAll('.tl-day').forEach(x=>x.classList.toggle('selected',x.dataset.tlDay===timelineState.date))});
+ $('timelineNoDateCount').textContent=un.length;
+ $('timelineUnscheduled').innerHTML=un.length?un.slice(0,30).map(x=>{const a=x.activity;return `<div class="tl-side-card"><strong>${esc(a.description)}</strong><span class="meta">${esc(a.team)} › ${esc(groupName(a))}</span><span class="hours">${nf(x.personHours)} jam-orang · ${x.people} pegawai</span>${canEdit(a.team_id)?`<button class="btn tiny" data-tl-plan="${esc(a.id)}">Tetapkan Tanggal</button>`:''}</div>`}).join('')+(un.length>30?`<div class="help">Menampilkan 30 dari ${un.length} uraian. Gunakan filter tim, pegawai, atau pencarian untuk mempersempit.</div>`:''):'<div class="empty">Tidak ada alokasi tanpa tanggal pada filter ini.</div>';
+ $('timelineUnscheduled').querySelectorAll('[data-tl-plan]').forEach(b=>b.onclick=()=>timelineOpenAllocation(b.dataset.tlPlan,month));
+ renderTimelineDay(data.events);
+}
+function renderTimelineDay(events){const date=timelineState.date,isOff=!workingDate(date),holiday=holidayOf(date),active=timelineDayData(date,events).filter(e=>!isOff);
+ $('timelineDayTitle').textContent=new Date(date+'T00:00:00Z').toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
+ $('timelineDaySubtitle').textContent=holiday?'Libur nasional/cuti bersama · '+holiday:(isOff?'Akhir pekan · bukan hari kerja efektif':'Hari kerja efektif');
+ $('timelineDayCount').textContent=active.length+' kegiatan';
+ $('timelineDayEvents').innerHTML=active.length?active.map(e=>{const names=e.persons.map(id=>employeeMap.get(id)?.full_name?.split(',')[0]).filter(Boolean);const days=distributionForDates(e.start,e.end)?.workDays||0;const daily=days?e.hours/days:0;return `<div class="tl-side-card"><strong>${esc(e.name)}</strong><span class="meta">${esc(e.team)} › ${esc(e.group)}</span><span class="meta">${esc(displayDate(e.start))} – ${esc(displayDate(e.end))} · ${names.length} pegawai</span><span class="hours">${nf(daily)} jam-orang/hari (perkiraan rata-rata)</span><span class="meta">${esc(names.slice(0,3).join(', '))}${names.length>3?' dan '+(names.length-3)+' lainnya':''}</span>${e.note?`<span class="meta">Catatan: ${esc(e.note)}</span>`:''}${canEdit(e.teamId)?`<button class="btn tiny soft" data-tl-edit="${esc(e.id)}" data-tl-anchor="${e.anchor}">Buka Alokasi</button>`:''}</div>`}).join(''):'<div class="empty">Belum ada kegiatan bertanggal pada hari ini.</div>';
+ $('timelineDayEvents').querySelectorAll('[data-tl-edit]').forEach(b=>b.onclick=()=>timelineOpenAllocation(b.dataset.tlEdit,Number(b.dataset.tlAnchor)));
+}
+function setupTimeline(){
+ fillSelect($('timelineTeam'),[{value:'',label:'Seluruh Tim'},...BASE.teams.map(x=>({value:x.id,label:x.name}))]);
+ fillSelect($('timelineEmployee'),[{value:'',label:'Seluruh Pegawai'},...BASE.employees.filter(x=>x.type==='pegawai').map(e=>({value:e.id,label:e.full_name}))]);
+ fillSelect($('timelineYear'),[{value:String(activeYear),label:String(activeYear)}],String(activeYear));$('navTimeline').onclick=()=>setPage('timeline');$('timelineYear').onchange=()=>setTimelineMonth(Number($('timelineYear').value),timelineState.month);
+ $('timelinePrev').onclick=()=>setTimelineMonth(timelineState.year,timelineState.month-1);$('timelineNext').onclick=()=>setTimelineMonth(timelineState.year,timelineState.month+1);
+ $('timelineNow').onclick=()=>setTimelineMonth(activeYear,Math.min(12,Math.max(1,new Date().getFullYear()===activeYear?new Date().getMonth()+1:1)));
+ for(const id of ['timelineTeam','timelineEmployee','timelineSearch']){$(id).addEventListener(id==='timelineSearch'?'input':'change',renderTimeline)}
+ $('timelineCreate').onclick=()=>{if(currentRole==='pegawai'){toast('Masuk Edit untuk menambahkan kegiatan');return}if(currentRole==='ketua'){selectedTeam=roleTeamId;$('teamSelect').value=roleTeamId;renderGroups()}setPage('input');$('monthSelect').value=String(timelineState.month);if(selectedId){const dat=timelineState.date;if(Number(dat.slice(0,4))===activeYear){$('planStart').value=dat;$('planEnd').value=dat;syncDateDisplays();setDateRangeMonthFromStart()}}window.scrollTo({top:0,behavior:'smooth'})};
+}
+
+function setupV5(){setupRoles();setupTimeline();fillSelect($('stdGroup'),[{value:'',label:'Semua Kelompok'},...Array.from(new Set(STANDARDS.map(x=>x.group))).map(x=>({value:x,label:x}))]);fillSelect($('reconMonth'),months.map((m,i)=>({value:String(i+1),label:m+' '+activeYear})));$('reconMonth').value='1';fillSelect($('reconTeam'),[{value:'',label:'Semua Tim'},...BASE.teams.map(x=>({value:x.id,label:x.name}))]);
+ $('navRecon').onclick=()=>setPage('recon');$('navStandards').onclick=()=>setPage('standards');$('reconMonth').onchange=renderRecon;$('reconTeam').onchange=()=>{if(currentRole==='ketua')$('reconTeam').value=roleTeamId;renderRecon()};$('reconQuery').oninput=renderRecon;
+  
+ if($('stdAdd'))$('stdAdd').onclick=()=>openStandardModal();$('stdGroup').onchange=renderStandards;$('stdStatus').onchange=renderStandards;$('stdQuery').oninput=renderStandards;
+ $('gotoStandards').onclick=()=>setPage('standards');fillSelect($('trendYear'),[{value:String(activeYear),label:String(activeYear)}],String(activeYear));$('trendYear').onchange=renderTrend;$('trendScope').value='office';$('trendScope').onchange=()=>{$('trendEntity').dataset.scope='';renderTrend()};$('trendEntity').onchange=renderTrend;
+ // Native modal save path extension for master edit and month movement.
+ const oldModalSave=$('saveModal').onclick;
+ $('saveModal').onclick=()=>{if(modalMode==='master-standard')return saveStandardModal();if(modalMode==='move-dates')return saveMoveModal();return oldModalSave()};
+ const oldMonthChange=$('monthSelect').onchange;$('monthSelect').onchange=()=>{oldMonthChange();applyRolePermissions()};
+ const oldTeamChange=$('teamSelect').onchange;$('teamSelect').onchange=()=>{oldTeamChange();applyRolePermissions()};
+ const oldGroupChange=$('groupSelect').onchange;$('groupSelect').onchange=()=>{oldGroupChange();applyRolePermissions()};
+ // Reflect role changes after clicking any activity.
+ $('taskList').addEventListener('click',()=>setTimeout(applyRolePermissions,0));
+ $('monitorDailyHours').addEventListener('change',()=>renderTrend());$('monitorWorkdays').addEventListener('change',()=>renderTrend());
+ // Role assignment is applied once more after reconciliation and monitoring selectors are populated.
+ syncTeamWorkspace();
+ // Existing 2026 month summary is preserved; planned exact dates are not fabricated.
+ applyRolePermissions();
+}
+
+
+function displayDate(iso){if(!/^\d{4}-\d{2}-\d{2}$/.test(iso||''))return '';const [y,m,d]=iso.split('-');return d+'/'+m+'/'+y.slice(2)}
+function parseDisplayDate(v){
+ const s=(v||'').trim();const match=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2}|\d{4})$/);
+ if(!match)return '';
+ const day=Number(match[1]),month=Number(match[2]),year=match[3].length===2?2000+Number(match[3]):Number(match[3]);
+ if(year!==activeYear||month<1||month>12||day<1||day>31)return '';
+ const d=new Date(Date.UTC(year,month-1,day));if(d.getUTCFullYear()!==year||d.getUTCMonth()+1!==month||d.getUTCDate()!==day)return '';
+ return `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+}
+function syncDateDisplays(){for(const id of ['planStart','planEnd']){const display=$(id+'Display');if(display){display.value=displayDate($(id).value);display.classList.remove('invalid')}}}
+
+function setupDateCalendar(){
+ const pop=$('dateCalendar'),days=$('calendarDays');let active=null,viewMonth=1;
+ const pad=n=>String(n).padStart(2,'0');
+ const validIso=s=>new RegExp('^'+activeYear+'-\\d{2}-\\d{2}$').test(s||'');
+ const model=()=>active?.dataset?.modelId?$(active.dataset.modelId):null;
+ function dateSelected(d){const iso=model()?.value||'';return validIso(iso)&&Number(iso.slice(8,10))===d&&Number(iso.slice(5,7))===viewMonth}
+ function draw(){if(!active)return;
+  const m=viewMonth,year=activeYear,n=new Date(year,m,0).getDate(),offset=new Date(year,m-1,1).getDay();
+  $('calendarMonthLabel').textContent=new Date(year,m-1,1).toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+  $('calendarLabel').textContent=active.dataset.fieldLabel||'PILIH TANGGAL';$('calendarHint').textContent='Pilih tanggal · Format dd/mm/yy';
+  const now=new Date(),todayYear=now.getFullYear(),todayMonth=now.getMonth()+1,todayDay=now.getDate();let html='';
+  for(let i=0;i<offset;i++)html+='<span class="empty" aria-hidden="true"></span>';
+  for(let d=1;d<=n;d++){
+   const selected=dateSelected(d),today=year===todayYear&&m===todayMonth&&d===todayDay;
+   html+=`<button type="button" data-date="${d}" class="${selected?'selected ':''}${today?'today':''}" aria-label="${d} ${months[m-1]} ${year}" aria-pressed="${selected?'true':'false'}">${d}</button>`;
+  }
+  days.innerHTML=html;
+  days.querySelectorAll('[data-date]').forEach(btn=>btn.onclick=()=>{if(!active)return;
+   const iso=activeYear+'-'+pad(viewMonth)+'-'+pad(Number(btn.dataset.date)),fld=model();if(!fld)return;
+   fld.value=iso;active.value=displayDate(iso);active.classList.remove('invalid');fld.dispatchEvent(new Event('input',{bubbles:true}));fld.dispatchEvent(new Event('change',{bubbles:true}));
+   hide();active=null;
+  });
+ }
+ function position(){if(!active||pop.classList.contains('hidden'))return;const rect=active.getBoundingClientRect(),w=Math.min(344,innerWidth-24),h=pop.getBoundingClientRect().height||390;
+  const top=rect.bottom+8+h<=innerHeight-8?rect.bottom+8:Math.max(10,rect.top-8-h),left=Math.min(Math.max(12,rect.left),innerWidth-w-12);
+  pop.style.left=left+'px';pop.style.top=top+'px';}
+ function hide(){if(active)active.setAttribute('aria-expanded','false');pop.classList.add('hidden')}
+ function show(input){if(input.disabled)return;if(active&&active!==input)active.setAttribute('aria-expanded','false');active=input;
+  const val=model()?.value||'',selected=Number(val.slice(5,7));viewMonth=selected>=1&&selected<=12?selected:Math.min(12,Math.max(1,Number($('monthSelect').value)||1));
+  input.setAttribute('aria-expanded','true');pop.classList.remove('hidden');draw();position();}
+ function wire(input){if(input.dataset.dateWired)return;input.dataset.dateWired='yes';
+  input.addEventListener('click',()=>show(input));input.addEventListener('keydown',e=>{if(e.key==='Escape')hide();if(e.altKey&&e.key==='ArrowDown'){e.preventDefault();show(input)}});
+  input.addEventListener('change',()=>{const v=input.value.trim(),iso=parseDisplayDate(v),fld=$(input.dataset.modelId);
+    if(!v){fld.value='';input.classList.remove('invalid')}else if(iso){fld.value=iso;input.value=displayDate(iso);input.classList.remove('invalid')}
+    else{input.classList.add('invalid');return;}
+    fld.dispatchEvent(new Event('input',{bubbles:true}));fld.dispatchEvent(new Event('change',{bubbles:true}));
+  });
+  input.addEventListener('input',()=>{const iso=parseDisplayDate(input.value);if(iso){const fld=$(input.dataset.modelId);fld.value=iso;input.classList.remove('invalid');fld.dispatchEvent(new Event('input',{bubbles:true}))}else if(!input.value.trim()){$(input.dataset.modelId).value='';input.classList.remove('invalid')}});
+ }
+ function bindMain(){for(const id of ['planStart','planEnd']){const input=$(id+'Display');input.dataset.modelId=id;input.dataset.fieldLabel=id==='planStart'?'MULAI DIRENCANAKAN':'SELESAI DIRENCANAKAN';wire(input)}}
+ bindMain();
+ // Also handle newly-created reconciliation date fields after their modal is opened.
+ window.bindReconciliationCalendar=()=>{for(const id of ['moveStart','moveEnd']){const input=$(id+'Display');if(input){input.dataset.modelId=id;input.dataset.fieldLabel=id==='moveStart'?'MULAI JADWAL BARU':'SELESAI JADWAL BARU';wire(input)}}};
+ $('calendarPrev').onclick=()=>{viewMonth=Math.max(1,viewMonth-1);draw();position()};$('calendarNext').onclick=()=>{viewMonth=Math.min(12,viewMonth+1);draw();position()};
+ $('calendarClose').onclick=hide;
+ $('calendarClear').onclick=()=>{if(!active)return;const fld=model();if(fld){fld.value='';active.value='';active.classList.remove('invalid');fld.dispatchEvent(new Event('input',{bubbles:true}));fld.dispatchEvent(new Event('change',{bubbles:true}))}hide()};
+ document.addEventListener('pointerdown',e=>{if(!pop.classList.contains('hidden')&&!pop.contains(e.target)&&e.target!==active)hide()});
+ window.addEventListener('keydown',e=>{if(e.key==='Escape')hide()});
+ window.addEventListener('scroll',()=>{if(!pop.classList.contains('hidden'))position()},true);window.addEventListener('resize',position);
+ $('planStart').addEventListener('change',setDateRangeMonthFromStart);$('planEnd').addEventListener('change',setDateRangeMonthFromStart);
+ $('planStart').addEventListener('input',setDateRangeMonthFromStart);$('planEnd').addEventListener('input',setDateRangeMonthFromStart);
+ syncDateDisplays();
+}
+
+// V13 workflow. Drafts live only in state.workflowPlans until they are published.
+// The original Excel data is immutable, and the 2026 reference is not represented as an approved plan.
+function flowKey(){return selectedId?amKey(selectedId,Number($('monthSelect').value)||1):''}
+function flowRecord(){const k=flowKey();return k?state.workflowPlans?.[k]||null:null}
+function captureWorkflowDraft(){return {
+ activityId:selectedId,anchor:Number($('monthSelect').value)||1,
+ mode:$('modeSelect').value,target:$('targetInput').value,standard:$('standardInput').value,
+ start:$('planStart').value,end:$('planEnd').value,note:$('planNote').value.trim(),
+ members:[...chosen],amounts:Object.fromEntries([...chosen].map(id=>[id,Number(amounts[id]||0)]))
+}}
+function restoreWorkflowDraft(){const w=flowRecord();
+ // Drafts remain private to the local editor; View always displays published/source values.
+ if(!w?.draft||!canEdit(byId.get(selectedId)?.team_id)){syncWorkflowControls();return}
+ const d=w.draft;if(d.activityId!==selectedId)return;
+ $('modeSelect').value=d.mode||'belum_ditentukan';$('targetInput').value=d.target??'';$('standardInput').value=d.standard??'';
+ $('planStart').value=d.start||'';$('planEnd').value=d.end||'';$('planNote').value=d.note||'';
+ chosen=new Set(d.members||[]);amounts=Object.fromEntries(BASE.employees.map(e=>[e.id,Number(d.amounts?.[e.id]||0)]));
+ syncDateDisplays();updateMode();renderStaff();syncWorkflowControls();
+}
+function syncWorkflowControls(){const box=$('workflowCard');if(!box)return;
+ const a=byId.get(selectedId),w=flowRecord(),permitted=!!a&&canEdit(a.team_id),status=w?.status||'source',valid=selectedId?allocationStatus().errs.length===0:false;
+ box.dataset.status=status==='established'?'established':status==='revision'?'revision':status==='draft'?'draft':'source';
+ $('workflowStatus').textContent=status==='established'?'Ditetapkan · Versi '+w.version:status==='revision'?'Revisi · Menunggu Penetapan Versi '+((w.version||1)+1):status==='draft'?'Draf · Belum Ditetapkan':(isBaseYear?'Referensi 2026 · Belum Ditetapkan':'Rencana '+activeYear+' · Belum Ditetapkan');
+ $('workflowExplain').textContent=status==='established'?'Alokasi yang berlaku sudah masuk monitoring; perubahan harus melalui revisi.':status==='revision'?'Monitoring tetap menggunakan versi terakhir sampai revisi ditetapkan.':status==='draft'?'Draf belum memengaruhi monitoring dan timeline.':'Alokasi sumber belum ditetapkan; simpan draf sebelum menerbitkannya.';
+ $('workflowHistory').innerHTML=(!w?.history?.length?'':`<span>${w.history.length} versi tercatat</span><span>Terakhir ${esc(new Date(w.lastPublishedAt||Date.now()).toLocaleString('id-ID'))}</span><span>${esc(w.lastPublishedBy||'')}</span>`);
+ $('saveMonthly').disabled=!permitted||status==='established';
+ $('publishMonthly').disabled=!permitted||!valid||!['draft','revision'].includes(status);
+ $('publishMonthly').textContent=status==='revision'?'✓ Tetapkan Revisi':'✓ Tetapkan';
+ $('startRevision').classList.toggle('hidden',status!=='established'||!permitted);
+ $('discardRevision').classList.toggle('hidden',status!=='revision'||!permitted);
+ $('startRevision').disabled=!permitted;
+ $('discardRevision').disabled=!permitted;
+ $('workflowHelp').textContent=status==='revision'?'Alasan revisi wajib dicatat sebelum penetapan.':'';
+}
+function saveWorkflowDraft(){const a=byId.get(selectedId);if(!a||!checkEdit(a.team_id))return;
+ const k=flowKey(),old=flowRecord()||{};
+ if(old.status==='established'){toast('Klik Mulai Revisi sebelum mengubah alokasi yang sudah ditetapkan.');return}
+ const w={...old,status:old.status==='revision'?'revision':'draft',draft:captureWorkflowDraft(),draftAt:new Date().toISOString(),draftBy:roleActor()};
+ state.workflowPlans[k]=w;
+ logChange(w.status==='revision'?'Simpan draf revisi':'Simpan draf alokasi',a.team+' › '+a.description+' · '+months[Number($('monthSelect').value)-1]);persist();syncWorkflowControls();toast('Draf tersimpan. Monitoring masih memakai data yang sudah ditetapkan.');
+}
+function beginWorkflowRevision(){const a=byId.get(selectedId),w=flowRecord();if(!a||!checkEdit(a.team_id)||w?.status!=='established')return;
+ // Reload published figures first so edits made before pressing this button don't leak into the revision.
+ loadAllocation();$('planNote').value='';
+ state.workflowPlans[flowKey()]={...w,status:'revision',draft:null};persist();syncWorkflowControls();toast('Mode revisi aktif. Ubah alokasi dan isi alasan pada catatan perubahan.');
+}
+async function discardWorkflowRevision(){const a=byId.get(selectedId),w=flowRecord();if(!a||!checkEdit(a.team_id)||w?.status!=='revision')return;
+ if(!await uiConfirm('Batalkan draf revisi dan kembalikan tampilan ke alokasi yang sudah ditetapkan?'))return;
+ state.workflowPlans[flowKey()]={...w,status:'established',draft:null};persist();loadAllocation();syncWorkflowControls();toast('Revisi dibatalkan, versi yang ditetapkan tidak berubah.');
+}
+async function publishWorkflow(){const a=byId.get(selectedId),w=flowRecord();if(!a||!checkEdit(a.team_id))return;if(!allowYearTask(a.team_id))return;
+ if(!w||!['draft','revision'].includes(w.status)){toast('Simpan Draf terlebih dahulu.');return}
+ const s=allocationStatus();if(s.errs.length){toast(s.errs.join(' • '));return}
+ const content=captureWorkflowDraft();
+ if(w.status==='revision'&&!content.note.trim()){toast('Alasan revisi wajib diisi pada Catatan Perubahan.');return}
+ const oldKey=flowKey(),previous=JSON.parse(JSON.stringify(w)),version=(w.version||0)+1;
+ // The save operation can ask for confirmation if allocations in another month would be overwritten.
+ const result=await saveAllocation();if(result!==true)return;
+ const row={version,at:new Date().toISOString(),by:roleActor(),type:previous.status==='revision'?'revisi':'penetapan',reason:content.note||'Penetapan awal',snapshot:content};
+ state.workflowPlans[oldKey]={...previous,status:'established',version,history:[...(previous.history||[]),row].slice(-30),draft:null,lastPublishedAt:row.at,lastPublishedBy:row.by};
+ logChange(previous.status==='revision'?'Tetapkan revisi':'Tetapkan alokasi',a.team+' › '+a.description+' · v'+version+(content.note?' · '+content.note:''));persist();
+ // Clear local staged preview and reload published values.
+ renderTaskDetails();syncWorkflowControls();refreshStageNav();renderYearUI();if(activePage==='monitor')renderMonitoring();if(activePage==='timeline')renderTimeline();toast('Alokasi '+(previous.status==='revision'?'revisi':'awal')+' versi '+version+' telah ditetapkan di browser ini.');
+}
+function setupWorkflow(){ $('publishMonthly').onclick=publishWorkflow;$('startRevision').onclick=beginWorkflowRevision;$('discardRevision').onclick=discardWorkflowRevision;syncWorkflowControls(); }
+
+// V14 Year management: each year is an isolated local workspace. Future years remain unpublished
+// until a Kepala BPS demo account approves the annual plan; no actual authentication backend exists.
+function saveYearCatalog(){try{localStorage.setItem(YEAR_CATALOG_KEY,JSON.stringify(yearCatalog))}catch(e){toast('Gagal menyimpan status tahun.')}}
+function canPrepareAnnual(){return currentRole==='admin'||currentRole==='kepala'}
+function renderYearUI(){
+ const optYears=Array.from({length:maxYear-firstYear+1},(_,i)=>firstYear+i);
+ const sel=$('yearSelect');if(sel.options.length!==optYears.length)fillSelect(sel,optYears.map(y=>({value:String(y),label:String(y)})),String(activeYear));sel.value=String(activeYear);
+ $('yearBadge').textContent='DATA '+activeYear;
+ const info=yearInfo(),status=info.status,upcoming=yearIsFuture(),view=currentRole==='pegawai',gated=yearNeedsGate()&&(view||status==='closed');
+ document.body.classList.toggle('year-gated',gated);document.body.classList.toggle('year-new',!isBaseYear);
+ const card=$('yearStateStrip');card.classList.toggle('draft',status==='draft');card.classList.toggle('approved',status==='approved');
+ $('yearPrepare').classList.toggle('hidden',!(status==='closed'&&!isBaseYear&&canPrepareAnnual()));
+ $('yearHow').classList.toggle('hidden',!yearWelcomeNeeded());
+ $('yearApprove').classList.toggle('hidden',!(status==='draft'&&!isBaseYear&&publishedAllocationCount()>0&&['kepala','admin'].includes(currentRole)));
+ $('yearApprove').disabled=!activities.some(a=>a.status==='aktif');
+ const pretty=info.approvedAt?new Date(info.approvedAt).toLocaleString('id-ID'):'';
+ $('yearStateTitle').textContent=isBaseYear?'2026 · Referensi Matriks Asli':status==='approved'?activeYear+' · Matriks Ditetapkan':status==='draft'?activeYear+' · Draf Penyusunan':activeYear+' · Belum Disiapkan';
+ $('yearStateDesc').textContent=isBaseYear?'Data 2026 menjadi acuan penyusunan tahun selanjutnya; temuan alokasi lama tetap perlu diperiksa.':status==='approved'?(pretty?'Ditetapkan '+pretty:'Rencana telah diterbitkan untuk seluruh pegawai.'):status==='draft'?(view?'Menunggu penetapan matriks.':!staffReady()?'Tahap 1: tetapkan daftar pegawai di Kelola Tim.':!anyEstablishedTeam()?'Tahap 2: tetapkan susunan tim di Kelola Tim.':!anyEstablishedKro()?'Tahap 3: tetapkan KRO pada menu Pembagian KRO.':!publishedAllocationCount()?'Tahap 4: input kegiatan dan tetapkan minimal satu alokasi.':'Alokasi sudah ditetapkan. Monitoring dan Rekonsiliasi dapat dibuka.'):(upcoming?'Draf dapat disusun setelah tahun dibuka oleh Admin/Kepala.':'Rencana tahun ini belum tersedia.');
+ $('yearGateTitle').textContent=status==='draft'?'Rencana '+activeYear+' belum ditetapkan':'Tahun '+activeYear+' belum memiliki rencana';
+ $('yearGateText').textContent=status==='draft'?'Ketua tim sedang menyiapkan draf. Data akan terlihat oleh seluruh pegawai setelah Kepala BPS menetapkan rencana tahun '+activeYear+'.':'Tahun ini belum dibuka untuk perencanaan. Admin atau Kepala BPS dapat menyiapkan draf; data hanya ditampilkan setelah ditetapkan.';
+ // The year is future and unapproved: no content should appear for anonymous View.
+ $('yearGate').classList.toggle('hidden',!gated);
+ $('statTasks').textContent=gated?'0':nf(activities.filter(a=>a.status==='aktif').length);
+ $('statAlloc').textContent=gated?'0':nf(countMonthlyAssignments());
+}
+async function prepareAnnual(skipConfirm=false){if(!canPrepareAnnual()||isBaseYear||yearInfo().status!=='closed')return;if(!predecessorHasData()){toast('Matriks '+(activeYear-1)+' masih kosong. Lengkapi data tahun sebelumnya dahulu.');return}
+ if(!skipConfirm&&!await uiConfirm('Buka draf '+activeYear+'? Data '+(activeYear-1)+' hanya menjadi referensi. Setelah membuka draf, tetapkan daftar pegawai, susunan tim, lalu KRO sebelum menginput alokasi.'))return;
+ yearCatalog[String(activeYear)]={status:'draft',preparedAt:new Date().toISOString(),preparedBy:roleActor()};saveYearCatalog();renderYearUI();setPage('teams');renderYearSetup();toast('Draf '+activeYear+' dibuka. Mulai dengan menetapkan daftar pegawai.');
+}
+async function approveAnnual(){if(!['kepala','admin'].includes(currentRole)||isBaseYear||yearInfo().status!=='draft')return;if(!publishedAllocationCount())return toast('Tetapkan alokasi kegiatan pada Input Alokasi terlebih dahulu.');if(activeYear>2027)return toast('POK resmi '+activeYear+' belum tersedia; perbarui katalog sebelum menetapkan matriks.');if(!predecessorHasData()||!staffReady())return toast('Data tahun sebelumnya dan daftar pegawai belum lengkap.');const inUse=[...new Set(activities.filter(a=>a.status==='aktif').map(a=>a.team_id))];if(inUse.some(tid=>!yearKroReady(tid)))return toast('Masih ada tim dengan kegiatan aktif yang belum menetapkan anggota dan KRO.');if(activities.some(a=>a.status==='aktif'&&resolveGroupKro(a.team_id,groupName(a))===NO_KRO))return toast('Ada kegiatan aktif yang belum dipetakan pada KRO.');const coverage=kroCoverageSnapshot();if(coverage.krosMissing.length||coverage.assignedTeamCount===0)return showKroCoverageDialog({mode:'final'});
+ const activeCount=activities.filter(a=>a.status==='aktif').length;
+ if(!activeCount){toast('Tambahkan setidaknya satu uraian kegiatan sebelum menetapkan tahun.');return}
+ const established=Object.values(state.workflowPlans||{}).filter(w=>w.status==='established').length;
+ const delegation=currentRole==='admin'?await uiPrompt('Tuliskan dasar delegasi penetapan dari Kepala BPS (disampaikan secara offline):',''):'';if(currentRole==='admin'&&!delegation?.trim())return toast('Dasar delegasi wajib diisi.');
+ if(!await uiConfirm('Tetapkan rencana tahun '+activeYear+' agar bisa dilihat seluruh pegawai?\n\n'+activeCount+' uraian tersedia, '+established+' penetapan alokasi. Draf alokasi yang belum ditetapkan tetap tidak masuk monitoring.'))return;
+ yearCatalog[String(activeYear)]={...yearInfo(),status:'approved',approvedAt:new Date().toISOString(),approvedBy:roleActor(),delegation:delegation||'',taskCount:activeCount};saveYearCatalog();logChange('Tetapkan rencana tahunan',activeYear+' · '+activeCount+' uraian · '+established+' alokasi ditetapkan');persist();renderYearUI();toast('Rencana '+activeYear+' ditetapkan '+(currentRole==='admin'?'Admin atas delegasi':'Kepala BPS')+' (simulasi lokal).');
+}
+
+function refreshYearLabels(){
+ const y=String(activeYear);
+ document.querySelectorAll('.monitor-global p,.monitor-hero .hero-eyebrow,.recon-hero .hero-eyebrow,#reconcilePanel .section-top h3,#trendYearLabel,.tl-disclaimer,.plan-box .help').forEach(el=>{
+  if(!el.dataset.yearOriginal)el.dataset.yearOriginal=el.textContent;
+  el.textContent=el.dataset.yearOriginal.replaceAll('2026',y);
+ });
+ const src=document.querySelector('.source-reference summary');if(src){if(!isBaseYear)src.textContent='Rincian rencana '+activeYear+' (tanpa referensi tahunan lama)'}
+}
+function setupYearSelector(){
+ fillSelect($('yearSelect'),Array.from({length:maxYear-firstYear+1},(_,i)=>({value:String(firstYear+i),label:String(firstYear+i)})),String(activeYear));
+ $('yearSelect').onchange=()=>{const y=Number($('yearSelect').value);if(y===activeYear)return;try{localStorage.setItem(YEAR_SELECTION_KEY,String(y))}catch(e){}location.reload()};
+ $('yearPrepare').onclick=prepareAnnual;$('yearApprove').onclick=approveAnnual;
+ refreshYearLabels();renderYearUI();setupYearWelcome();maybeShowYearWelcome();
+}
+
+
+// V15: year onboarding. The dialog is guidance, not an authentication or publication shortcut.
+let yearWelcomeReady=false;
+let yearWelcomeShown=new Set();
+function yearWelcomeKey(){return String(activeYear)+'|'+String(currentRole)+'|'+String(yearInfo().status)+'|'+String(activities.filter(a=>a.status==='aktif').length===0)}
+function yearWelcomeNeeded(){if(isBaseYear)return false;const inf=yearInfo(),n=activities.filter(a=>a.status==='aktif').length;return inf.status==='closed'||(inf.status==='draft'&&(currentRole==='pegawai'||n===0))}
+function maybeShowYearWelcome(){if(!yearWelcomeReady||!yearWelcomeNeeded())return;const key=yearWelcomeKey();if(yearWelcomeShown.has(key))return;try{if(sessionStorage.getItem('bps-blora-v15-intro-'+key)==='seen')return}catch(e){}openYearWelcome(false)}
+function closeYearWelcome(){if(!$('yearWelcomeScreen'))return;$('yearWelcomeScreen').classList.add('hidden');const k=yearWelcomeKey();yearWelcomeShown.add(k);try{sessionStorage.setItem('bps-blora-v15-intro-'+k,'seen')}catch(e){}}
+function openYearWelcome(force){if(!yearWelcomeReady)return;const info=yearInfo(),n=activities.filter(a=>a.status==='aktif').length,view=currentRole==='pegawai',closed=info.status==='closed',canBegin=canPrepareAnnual();
+ if(!force&&!yearWelcomeNeeded())return;
+ const y=activeYear;
+ $('yearWelcomeEyebrow').textContent='RENCANA KERJA '+y+' · '+(closed?'BELUM DISIAPKAN':'DALAM DRAF');
+ $('yearWelcomeTitle').textContent=closed?'Tahun '+y+' Belum Memiliki Rencana':view?'Rencana '+y+' Belum Ditetapkan':'Mulai Mengisi Rencana '+y;
+ $('yearWelcomeDesc').textContent=view?(closed?'Kegiatan untuk tahun ini belum tersedia. Pengisian hanya bisa dilakukan oleh pengguna Edit setelah draf dibuka.':'Rencana tahun ini sedang disusun. Pegawai dapat melihatnya setelah Kepala BPS menetapkan rencana.'):(closed?(canBegin?'Belum ada kegiatan yang direncanakan. Siapkan draf, pilih tim kerja, lalu mulai mengisi kegiatan dan alokasinya.':'Ruang rencana tahun ini belum dibuka oleh Admin atau Kepala BPS. Setelah dibuka, kamu bisa mengisi kegiatan timmu.'):('Lanjutkan tahap pegawai, tim, dan KRO terlebih dahulu. Setelah itu masukkan kegiatan dan tetapkan alokasinya.'));
+ const canInput=!view&&(!closed||canBegin);
+ $('yearWelcomeSteps').classList.toggle('hidden',!canInput);
+ $('yearWelcomeTeamRow').classList.toggle('hidden',!canInput||!staffReady()||!anyEstablishedTeam());
+ $('yearWelcomeInfo').textContent=view?'Mode View hanya menampilkan rencana yang sudah ditetapkan Kepala BPS. Data tahun 2026 tetap dapat dipilih kapan saja.':(!canBegin&&closed?'Hubungi Admin atau Kepala BPS untuk membuka rencana '+y+' sebelum menginput kegiatan.':'Kegiatan, tanggal, dan jam tahun '+y+' tidak otomatis menyalin tahun sebelumnya. Data tiap tahun tersimpan terpisah.');
+ const teams=BASE.teams.filter(t=>currentRole!=='ketua'||t.id===roleTeamId);
+ if(canInput){fillSelect($('yearWelcomeTeam'),teams.map(t=>({value:t.id,label:t.name})),currentRole==='ketua'?roleTeamId:selectedTeam);$('yearWelcomeTeam').disabled=currentRole==='ketua';}
+ $('yearWelcomeMain').textContent=view?'Masuk Mode Edit':closed?(canBegin?'Siapkan Draf & Atur Tim':'Mengerti'):'Buka Kelola Tim';
+ $('yearWelcomeLater').textContent=view?'Tutup':'Nanti Saja';
+ $('yearWelcomeScreen').classList.remove('hidden');
+}
+function setupYearWelcome(){yearWelcomeReady=true;
+ $('yearWelcomeClose').onclick=closeYearWelcome;$('yearWelcomeLater').onclick=closeYearWelcome;
+ $('yearWelcomeScreen').onclick=e=>{if(e.target===$('yearWelcomeScreen'))closeYearWelcome()};
+ $('yearHow').onclick=()=>openYearWelcome(true);$('yearGateHelp').onclick=()=>openYearWelcome(true);
+ $('yearWelcomeMain').onclick=async()=>{const st=yearInfo().status,view=currentRole==='pegawai',permitted=canPrepareAnnual(),chosenTeam=$('yearWelcomeTeam').value;
+  if(view){closeYearWelcome();$('btnLoginEdit').click();return;}
+  if(st==='closed'&&!permitted){closeYearWelcome();return;}
+  if(chosenTeam&&(currentRole!=='ketua'||chosenTeam===roleTeamId)){$('teamSelect').value=chosenTeam;selectedTeam=chosenTeam;selectedGroup='';selectedId=null;renderGroups();}
+  if(st==='closed'){closeYearWelcome();await prepareAnnual(true);if(yearInfo().status!=='draft')return;}
+  else closeYearWelcome();
+  setPage('teams');renderYearSetup();if(!canEdit(selectedTeam)){toast('Akun ini belum dapat mengedit tim yang dipilih.');return;}
+  toast('Tetapkan daftar pegawai, susunan tim, dan KRO sebelum Input Alokasi.');
+ };
+ window.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('yearWelcomeScreen').classList.contains('hidden')){e.preventDefault();closeYearWelcome()}});
+}
+
+
+// V21: KRO coverage is derived, never stored as a conflicting independent counter.
+function kroAuditSnapshot(){
+ const teamLinks=new Map();for(const k of POK_KROS)teamLinks.set(k.code,[]);
+ for(const t of demoTeams)if(yearKroReady(t.id))for(const code of new Set(t.kroCodes||[]))if(teamLinks.has(code))teamLinks.get(code).push(t);
+ const unassigned=POK_KROS.filter(k=>!teamLinks.get(k.code)?.length);
+ const teamsWithoutKro=demoTeams.filter(t=>!yearKroReady(t.id)||!teamKroCodes(t.id).length);
+ const visibleTeamsWithoutKro=currentRole==='ketua'?teamsWithoutKro.filter(t=>t.id===roleTeamId):teamsWithoutKro;
+ const emptyPairs=[];
+ const unmapped=[];
+ for(const team of demoTeams){
+  const groups=groupList(team.id,false);
+  const counts=new Map();for(const code of teamKroCodes(team.id))counts.set(code,0);
+  for(const [group,arr] of groups){
+   const code=resolveGroupKro(team.id,group);
+   if(code===NO_KRO||!counts.has(code))unmapped.push({tid:team.id,team:team.name,group,descriptions:arr.length});
+   else counts.set(code,counts.get(code)+1);
+  }
+  for(const [code,count] of counts)if(count===0)emptyPairs.push({tid:team.id,team:team.name,code,k:POK_KROS.find(x=>x.code===code)});
+ }
+ const visiblePairs=currentRole==='ketua'?emptyPairs.filter(p=>p.tid===roleTeamId):emptyPairs;
+ const visibleUnmapped=currentRole==='ketua'?unmapped.filter(p=>p.tid===roleTeamId):unmapped;
+ return {unassigned,teamsWithoutKro,visibleTeamsWithoutKro,emptyPairs,unmapped,visiblePairs,visibleUnmapped,teamLinks};
+}
+function renderKroAudit(){
+ if(!$('kroAuditPanel')||activePage!=='kro')return;
+ const result=kroAuditSnapshot(),canAll=currentRole==='admin'||currentRole==='kepala';
+ $('kroAuditYear').textContent=activeYear;
+ $('kroAuditNoKroTeams').textContent=nf(result.visibleTeamsWithoutKro.length);
+ $('kroAuditNoTeam').textContent=nf(result.unassigned.length);
+ $('kroAuditNoTask').textContent=nf(currentRole==='ketua'?result.visiblePairs.length:result.emptyPairs.length);
+ $('kroAuditNoKroTeamsBadge').textContent=nf(result.visibleTeamsWithoutKro.length);
+ $('kroAuditNoTeamBadge').textContent=nf(result.unassigned.length);
+ $('kroAuditNoTaskBadge').textContent=nf(currentRole==='ketua'?result.visiblePairs.length:result.emptyPairs.length);
+ const complete=result.teamsWithoutKro.length===0 && result.unassigned.length===0 && result.emptyPairs.length===0 && result.unmapped.length===0;
+ const note=activeYear===2026?'':' Referensi KRO berasal dari POK 2027; penugasan tim tahun ini masih perlu ditetapkan.';
+ $('kroAuditStatus').className='kro-audit-status'+(complete?' ok':'');
+ $('kroAuditStatus').textContent=complete?'Kelengkapan rencana telah terpenuhi.':result.teamsWithoutKro.length?'Tindak lanjut: tetapkan KRO untuk tim yang masih kosong.':result.unassigned.length?'Tindak lanjut: pilih tim penanggung jawab untuk KRO yang masih kosong.':result.emptyPairs.length?'Tindak lanjut: tambahkan minimal satu kegiatan aktif pada setiap pasangan Tim–KRO yang belum lengkap.':'Tindak lanjut: lengkapi pemetaan kegiatan aktif melalui Input Alokasi.';
+ const empty='<div class="kro-audit-empty">✓ Tidak ada temuan pada kategori ini.</div>';
+ $('kroAuditNoKroTeamsRows').innerHTML=result.visibleTeamsWithoutKro.map(t=>`<div class="kro-audit-row"><div><strong>${esc(t.name)}</strong><div class="audit-name">Belum ada KRO yang ditetapkan untuk tim ini.</div></div><button type="button" class="btn tiny soft" data-kro-audit-team="${esc(t.id)}">Atur KRO</button></div>`).join('')||empty;
+ $('kroAuditNoKroTeamsRows').querySelectorAll('[data-kro-audit-team]').forEach(b=>b.onclick=()=>{
+   const tid=b.dataset.kroAuditTeam;if(!roleCanManageTeam(tid))return toast('Tim ini berada di luar hak akses.');
+   selectedTeam=tid;const main=$('kroBoardMain');if(main)main.dataset.team='';kroBoardEditTeam='';renderKroBoard();
+   openKroAssignmentPopup();
+ });
+ $('kroAuditNoTeamRows').innerHTML=result.unassigned.map(k=>`<div class="kro-audit-row"><div><strong>${esc(k.code)}</strong><div class="audit-name">${esc(k.name)}</div></div><button type="button" class="btn tiny soft" data-kro-audit-assign="${esc(k.code)}">${canAll?'Pilih KRO':'Tambah ke Tim Saya'}</button></div>`).join('')||empty;
+ $('kroAuditNoTaskRows').innerHTML=result.visiblePairs.map(p=>`<div class="kro-audit-row"><div><strong>${esc(p.team)}</strong><div class="audit-name">${esc(p.code)} — ${esc(p.k?.name||'KRO')}</div></div><button type="button" class="btn tiny soft" data-kro-audit-create="${esc(p.tid)}" data-kro-audit-code="${esc(p.code)}">+ Kegiatan</button></div>`).join('')||empty;
+ $('kroAuditNoTeamRows').querySelectorAll('[data-kro-audit-assign]').forEach(b=>b.onclick=()=>{
+  const code=b.dataset.kroAuditAssign,tid=currentRole==='ketua'?roleTeamId:($('kroBoardTeam')?.value||selectedTeam);
+  if(!roleCanManageTeam(tid))return toast('Hanya dapat mengelola tim yang diizinkan.');
+  const team=demoTeams.find(t=>t.id===tid);if(!team)return toast('Pilih tim terlebih dahulu.');
+  selectedTeam=tid;
+  const main=$('kroBoardMain');if(main)main.dataset.team=tid;
+  kroBoardDraft=new Set(team.kroCodes||[]);kroBoardDraft.add(code);
+  if(yearKroReady(tid))kroBoardEditTeam=tid;
+  renderKroBoard();openKroAssignmentPopup();
+ });
+ $('kroAuditNoTaskRows').querySelectorAll('[data-kro-audit-create]').forEach(b=>b.onclick=()=>{
+  const tid=b.dataset.kroAuditCreate,code=b.dataset.kroAuditCode;
+  if(!roleCanManageTeam(tid))return toast('Kegiatan ini berada di luar tim yang dikelola.');
+  if(!yearKroReady(tid))return toast('Tetapkan KRO tim terlebih dahulu.');
+  selectedTeam=tid;selectedGroup='';selectedId=null;$('teamSelect').value=tid;
+  $('taskQuery').value='';$('showInactive').checked=false;
+  renderKroOptions(code);renderGroups();setPage('input');openModal('new-group');
+ });
+
+}
+
+
+// V1.8: Additional screens from the prior multi-year prototype; V25 monitoring functions remain unchanged.
+function renderCombinedDashboard(){const el=$('pageDashboard');if(!el)return;
+ const monthly=periodAgg('monthly',''),active=BASE.employees.filter(e=>e.type==='pegawai'&&e.active!==false);
+ const total=active.reduce((n,e)=>n+(monthly.totals.get(e.id)||0),0);
+ const counts=new Map();for(const a of activities.filter(a=>a.status==='aktif'))counts.set(a.team_id,(counts.get(a.team_id)||0)+1);
+ const workload=BASE.teams.map(t=>({t,h:[...periodAgg('monthly',t.id).totals.values()].reduce((a,b)=>a+b,0),n:counts.get(t.id)||0})).sort((a,b)=>b.h-a.h);
+ const max=Math.max(1,...workload.map(x=>x.h)),format=nf;
+ const links=[['Kelola Tim','teams','Pegawai dan susunan tim'],['Pembagian KRO','kro','KRO menurut tim'],['Input Alokasi','input','Kegiatan dan beban pegawai'],['Monitoring Pegawai','monitor','Grafik dan rincian interaktif']];
+ el.innerHTML=`<section class="monitor-hero"><div><h2>Dashboard ${activeYear}</h2><p>Rekap perencanaan dan beban kerja pegawai berdasarkan matriks terpilih.</p></div></section>
+ <div class="combined-metrics"><article><small>Tim</small><strong>${nf(BASE.teams.length)}</strong></article><article><small>Pegawai aktif</small><strong>${nf(active.length)}</strong></article><article><small>Uraian aktif</small><strong>${nf(activities.filter(a=>a.status==='aktif').length)}</strong></article><article><small>Total jam alokasi</small><strong>${nf(total)}</strong><small>Jam-orang</small></article></div>
+ <div class="combined-two"><section class="panel"><div class="section-top"><div><h3>Perbandingan Beban Tim</h3><p>Klik tim untuk membuka grafik dan rincian di Monitoring.</p></div></div><div class="combined-team-chart">${workload.slice(0,12).map(x=>`<button class="combined-team-row" type="button" data-dashboard-team="${esc(x.t.id)}"><span>${esc(x.t.name)}</span><div class="combined-progress"><i style="width:${Math.max(0,x.h/max*100).toFixed(1)}%"></i></div><b>${nf(x.h)} jam</b></button>`).join('')}</div></section>
+ <section class="panel"><div class="section-top"><div><h3>Menu Utama</h3></div></div><div class="combined-link-grid">${links.map(([title,page,note])=>`<button type="button" data-dashboard-go="${page}" class="combined-link"><strong>${esc(title)}</strong><span>${esc(note)}</span></button>`).join('')}</div><p class="combined-context">${isBaseYear?'Data 2026 berasal dari matriks lama dan masih dapat memerlukan rekonsiliasi.':'Data '+activeYear+' hanya menjadi matriks resmi setelah ditetapkan.'}</p></section></div>`;
+ el.querySelectorAll('[data-dashboard-team]').forEach(b=>b.onclick=()=>{setPage('monitor');$('monitorTeam').value=b.dataset.dashboardTeam;renderMonitoring()});
+ el.querySelectorAll('[data-dashboard-go]').forEach(b=>b.onclick=()=>setPage(b.dataset.dashboardGo));
+}
+let kroBoardDraft=new Set();
+let kroBoardEditTeam='';
+let kroMasterQuery='';
+function isKroMasterAdmin(){return activeYear>=2027&&(currentRole==='admin'||currentRole==='kepala')&&yearInfo().status!=='closed'}
+function cleanKroCode(code){return String(code||'').trim().toUpperCase().replace(/\s+/g,'')}
+function kroCodeHasUsage(code){
+ const linked=demoTeams.filter(t=>(t.kroCodes||[]).includes(code));
+ const overrides=Object.values(state.groupKroOverrides||{}).some(v=>v===code);
+ return {linked,overrides};
+}
+function initKroDialog(){
+ if($('kroEditorModal'))return $('kroEditorModal');
+ const d=document.createElement('dialog');d.id='kroEditorModal';d.className='kro-edit-dialog';
+ d.innerHTML=`<form id="kroEditorForm" novalidate><div class="kro-dialog-heading"><h3 id="kroEditorTitle">Tambah KRO</h3><button type="button" id="kroEditorClose" class="kro-dialog-x" aria-label="Tutup">×</button></div><p id="kroEditorHelp" class="kro-dialog-help"></p><label for="kroEditCode">Kode KRO<input id="kroEditCode" autocomplete="off" required placeholder="Contoh: 2897.BMA.006" maxlength="20"></label><label for="kroEditName">Nama KRO<input id="kroEditName" required maxlength="260" placeholder="Tuliskan nama sesuai POK"></label><p id="kroEditorError" class="kro-dialog-error" role="alert"></p><div class="kro-dialog-footer"><button type="button" class="btn soft" id="kroEditorCancel">Batal</button><button type="submit" class="btn primary" id="kroEditorSubmit">Simpan KRO</button></div></form>`;
+ document.body.appendChild(d);
+ const dismiss=()=>d.close();$('kroEditorClose').onclick=dismiss;$('kroEditorCancel').onclick=dismiss;
+ d.addEventListener('click',e=>{if(e.target===d)dismiss()});
+ d.querySelector('form').onsubmit=e=>{
+  e.preventDefault();if(!isKroMasterAdmin())return;
+  const oldCode=d.dataset.editCode||'';
+  const code=cleanKroCode($('kroEditCode').value),name=$('kroEditName').value.trim();
+  const err=$('kroEditorError');err.textContent='';
+  if(!/^\d{4}\.[A-Z0-9]{3}\.\d{3}$/.test(code))return err.textContent='Kode KRO perlu mengikuti format 1234.ABC.001.';
+  if(!name)return err.textContent='Nama KRO wajib diisi.';
+  if(POK_KROS.some(k=>k.code===code&&k.code!==oldCode))return err.textContent='Kode KRO tersebut sudah ada.';
+  const existing=POK_KROS.find(k=>k.code===oldCode);
+  if(oldCode&&(!existing))return err.textContent='Data KRO tidak ditemukan. Muat ulang dan coba kembali.';
+  if(oldCode&&oldCode!==code){const used=kroCodeHasUsage(oldCode);if(used.linked.length||used.overrides)return err.textContent='Kode tidak dapat diganti karena sudah digunakan. Hapus penugasan KRO dan pemetaan kegiatannya terlebih dahulu.';}
+  if(existing){existing.code=code;existing.name=name;existing.last_edited_at=new Date().toISOString();existing.master_edited=true}
+  else POK_KROS.push({code,name,mappings:[],source_row:null,details:[],mapping_status:'Ditambahkan manual',master_created:true});
+  POK_KROS.sort((a,b)=>a.code.localeCompare(b.code,'id'));
+  if(!saveKroMaster())return err.textContent='Gagal menyimpan ke penyimpanan lokal browser.';
+  logChange(oldCode?'Edit daftar induk KRO':'Tambah KRO '+activeYear,(oldCode||code)+' → '+code+' · '+name);
+  persist();d.close();
+  const panel=$('kroBoardMain');if(panel)panel.dataset.team='';
+  renderTeamAdminPage();renderKroBoard();renderKroAudit();
+  toast(oldCode?'KRO diperbarui.':'KRO berhasil ditambahkan ke daftar induk '+activeYear+'.');
+ };
+ return d;
+}
+function openKroEditor(code=''){
+ if(!isKroMasterAdmin())return toast('Hanya Admin/Kepala yang dapat mengelola daftar induk KRO pada tahun aktif.');
+ const item=POK_KROS.find(k=>k.code===code),d=initKroDialog();
+ d.dataset.editCode=code;
+ $('kroEditorTitle').textContent=item?'Edit KRO':'Tambah KRO';
+ $('kroEditorHelp').textContent=item?'Perubahan nama KRO tidak menghapus penugasan tim. Perubahan kode yang telah digunakan tidak diperbolehkan.':'Tambahkan KRO yang benar-benar tercantum dalam POK tahun '+activeYear+'.';
+ $('kroEditCode').value=item?.code||'';$('kroEditName').value=item?.name||'';$('kroEditorError').textContent='';
+ d.showModal();$('kroEditCode').focus();
+}
+async function removeKroCatalog(code){
+ if(!isKroMasterAdmin())return;
+ const item=POK_KROS.find(k=>k.code===code);if(!item)return;
+ const used=kroCodeHasUsage(code);
+ if(used.linked.length)return toast('Tidak dapat menghapus '+code+': masih digunakan oleh '+used.linked.map(t=>t.name).join(', ')+'. Batalkan penugasan pada tim terkait terlebih dahulu.');
+ if(used.overrides)return toast('Tidak dapat menghapus '+code+': masih dipakai dalam pemetaan kegiatan. Perbaiki pemetaan kegiatan lebih dahulu.');
+ const yes=await uiConfirm('Hapus KRO '+code+' — '+item.name+' dari daftar induk '+activeYear+'? Hanya KRO yang belum digunakan yang dapat dihapus.','Hapus KRO',true);
+ if(!yes)return;
+ const idx=POK_KROS.findIndex(k=>k.code===code);if(idx<0)return;
+ POK_KROS.splice(idx,1);if(!saveKroMaster()){POK_KROS.splice(idx,0,item);return}
+ logChange('Hapus KRO '+activeYear,code+' — '+item.name);persist();
+ const panel=$('kroBoardMain');if(panel)panel.dataset.team='';renderTeamAdminPage();renderKroBoard();renderKroAudit();
+ toast('KRO '+code+' dihapus dari daftar induk.');
+}
+// v2.6: satu sumber pemeriksaan KRO yang telah ditetapkan, bukan rekomendasi/draf.
+function kroCoverageSnapshot(previewTeamId='',previewCodes=null){
+ const validCodes=new Set(POK_KROS.map(k=>k.code));
+ const assigned=new Map(),covered=new Set();
+ for(const team of demoTeams){
+  const proposed=previewCodes!==null&&team.id===previewTeamId;
+  const codes=(proposed?[...previewCodes]:(yearKroReady(team.id)?teamKroCodes(team.id):[])).filter(code=>validCodes.has(code));
+  assigned.set(team.id,codes);for(const code of codes)covered.add(code);
+ }
+ const teamsMissing=demoTeams.filter(team=>!(assigned.get(team.id)||[]).length);
+ const krosMissing=POK_KROS.filter(k=>!covered.has(k.code));
+ return {teamsMissing,krosMissing,assignedTeamCount:demoTeams.length-teamsMissing.length,assignedKroCount:POK_KROS.length-krosMiss
