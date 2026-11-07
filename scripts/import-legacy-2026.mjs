@@ -11,9 +11,6 @@
  */
 import fs from "node:fs";
 import {createRequire} from "node:module";
-const require=createRequire(new URL("../functions/package.json",import.meta.url));
-const {initializeApp,applicationDefault,getApps}=require("firebase-admin/app");
-const {getFirestore,FieldValue}=require("firebase-admin/firestore");
 const args=process.argv.slice(2);
 const file=args.find(x=>x.endsWith(".html"));
 const projectIndex=args.indexOf("--project");
@@ -52,7 +49,11 @@ for(const k of kro.kros)for(const mapping of k.mappings||[]){
  if(!mappedKros.has(mapping.team_id))mappedKros.set(mapping.team_id,[]);
  mappedKros.get(mapping.team_id).push(k.code);
 }
+const distinctGroups=[...new Map(seed.activities.filter(a=>a.group&&String(a.group).trim()).map(a=>[
+ a.team_id+"|"+String(a.group).trim(),{teamId:a.team_id,name:String(a.group).trim(),active:true}
+])).values()];
 const data={
+ groups:distinctGroups.map((g,i)=>["G2026-"+String(i+1).padStart(5,"0"),g]),
  teams:seed.teams.map(t=>{
   const roster=kro.official_roster?.[t.id];
   return [t.id,{name:t.name,leaderId:roster?.leaderId||"",
@@ -89,10 +90,21 @@ const data={
 };
 console.log("DATA SOURCES (private, will NOT enter GitHub):");
 for(const [kind,rows]of Object.entries(data))console.log(" ",kind+":",rows.length);
+for(const [kind,rows] of Object.entries(data)) {
+ const ids=rows.map(([id])=>id);
+ if(new Set(ids).size!==ids.length)throw Error("ID duplikat pada kategori: "+kind);
+ if(ids.some(id=>typeof id!=="string"||id.length<2||id.length>120||id.includes("/")))
+   throw Error("ID tidak valid pada kategori: "+kind);
+}
+console.log("VALIDASI SUMBER 2026: 1.412 uraian, 40 pegawai, 25 tim. Tidak ada nama pegawai/password tercetak.");
 console.log("Catatan: jam alokasi hasil konversi volume × standar jam, perlu verifikasi rapat/satuan.");
 console.log("KRO dengan beberapa kemungkinan tim belum dipaksakan sebagai penetapan.");
 if(!writes){console.log("DRY RUN selesai, tidak ada data yang ditulis.");process.exit(0);}
 
+// firebase-admin hanya dimuat pada mode penulisan, agar dry run aman/tanpa dependensi cloud.
+const require=createRequire(new URL("../functions/package.json",import.meta.url));
+const {initializeApp,applicationDefault,getApps}=require("firebase-admin/app");
+const {getFirestore,FieldValue}=require("firebase-admin/firestore");
 if(!getApps().length)initializeApp({credential:applicationDefault(),projectId:project});
 const db=getFirestore();
 const year=db.collection("matrixYears").doc("2026");
