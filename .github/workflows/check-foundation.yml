@@ -31,6 +31,10 @@ jobs:
           assert len(ref['teams']) == 25 and len(ref['employees']) == 40
           assert len(ref['kros']) == 33 and len(ref['sampleActivities']) == 22
           assert 'passwordHash' not in str(ref)
+          env = pathlib.Path('.env.example').read_text()
+          assert 'VITE_ROLE_AUTH_READY=false' in env
+          assert 'VITE_MATRIX_BACKEND_READY=false' in env
+          assert 'MATRIX_BACKEND_ENABLED=true' not in env
           print('Safety baseline OK; no Firebase deployment')
           PY
       - name: Validate JavaScript source syntax
@@ -47,6 +51,7 @@ jobs:
           node --check functions/matrixSchema.js
           node --check functions/bootstrapAdmin.cjs
           node --check scripts/import-legacy-2026.mjs
+          node --check scripts/import-kro-2027.mjs
           node --check functions/security.js
       - name: Test username/role validation
         run: node --test functions/security.test.js functions/matrixSchema.test.js
