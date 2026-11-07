@@ -23,9 +23,12 @@ if(write&&process.env.MATRIX_IMPORT_APPROVAL!=="YES_TI_APPROVED_PRIVATE_PROD")
  throw Error("Persetujuan TI untuk project/lokasi/biaya belum dikonfirmasi.");
 const html=fs.readFileSync(file,"utf8");
 function readSeed(id){
- const re=new RegExp('<script\\b[^>]*\\bid=["\\\']'+id+'["\\\'][^>]*>([\\s\\S]*?)<\\/script>',"i");
- const match=html.match(re);if(!match)throw Error("Seed "+id+" tidak ditemukan.");
- return JSON.parse(match[1]);
+ const index=html.indexOf('id="'+id+'"');
+ if(index<0)throw Error("Seed "+id+" tidak ditemukan.");
+ const contentStart=html.indexOf(">",index)+1;
+ const contentEnd=html.indexOf("</script>",contentStart);
+ if(contentStart<1||contentEnd<contentStart)throw Error("Seed "+id+" tidak lengkap.");
+ return JSON.parse(html.slice(contentStart,contentEnd));
 }
 const source=readSeed("kro2027Seed");
 if(source.year!==2027||!Array.isArray(source.kros)||source.kros.length<25)throw Error("Sumber KRO 2027 tidak sesuai.");
