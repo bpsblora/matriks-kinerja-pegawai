@@ -29,3 +29,18 @@ t("year boundaries and allocation IDs",()=>{
  a.throws(()=>v.year(2020));
  a.equal(v.allocationId("K2026-0010","E001",3),"K2026-0010__E001__3");
 });
+
+t("2027 KRO recommendations never automatically become team assignments",()=>{
+ const k=v.validateRecord("kros","2896.BMA.004",{
+   code:"2896.BMA.004",name:"KRO uji",teamIds:[],suggestedTeamIds:["T001","T002","T001"],active:true
+ });
+ a.deepEqual(k.teamIds,[]);
+ a.deepEqual(k.suggestedTeamIds,["T001","T002"]);
+ a.throws(()=>v.validateRecord("kros","2896.BMA.004",{suggestedTeamIds:["../users"]}));
+});
+t("viewer cannot write any type; head alone can finalize through role API",()=>{
+ for(const k of v.TYPES)a.equal(v.canManage("viewer",[],k,"T001"),false);
+ a.equal(v.canManage("kepala",[],"activities","T001"),false);
+ a.equal(v.canManage("ketua_tim",["T001"],"activities","T001"),true);
+ a.equal(v.canManage("ketua_tim",["T001"],"activities","T002"),false);
+});
