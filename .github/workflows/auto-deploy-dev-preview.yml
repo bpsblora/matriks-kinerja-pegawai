@@ -81,7 +81,7 @@ jobs:
 
       - name: Deploy matriks-dev PREVIEW only
         if: steps.deploy-config.outputs.ready == 'true'
-        run: firebase hosting:channel:deploy matriks-dev --project mkp-bps-blora --expires 7d --non-interactive
+        run: firebase hosting:channel:deploy matriks-dev --project mkp-bps-blora --expires 30d --non-interactive
 
 # No live deployment, Firestore writes, database import, or Functions deploy.
 # No service-account JSON keys stored in the repo or GitHub secrets.
