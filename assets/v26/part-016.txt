@@ -468,7 +468,13 @@ function renderTrendSelectors(scope,all,selected,colorById){
  });
 }
 function renderTrend(){
- const scope=$('trendScope').value,year=Number($('trendYear').value);
+ const scope=$('trendScope').value,year=activeYear;
+ $('trendTitle').textContent='Tren Beban Kerja Antarbulan '+year;
+ document.querySelectorAll('[data-trend-scope]').forEach(button=>{
+  const active=button.dataset.trendScope===scope;
+  button.classList.toggle('active',active);
+  button.setAttribute('aria-pressed',String(active));
+ });
  const compareEmployees=scope==='allEmployees';
  $('trendTeamFilterWrap').classList.toggle('hidden',!compareEmployees);
  if(compareEmployees)renderTrendTeamFilter();
@@ -618,7 +624,11 @@ function setupV5(){setupRoles();setupTimeline();fillSelect($('stdGroup'),[{value
  $('navRecon').onclick=()=>setPage('recon');$('navStandards').onclick=()=>setPage('standards');$('reconMonth').onchange=renderRecon;$('reconTeam').onchange=()=>{if(currentRole==='ketua')$('reconTeam').value=roleTeamId;renderRecon()};$('reconQuery').oninput=renderRecon;
   
  if($('stdAdd'))$('stdAdd').onclick=()=>openStandardModal();$('stdGroup').onchange=renderStandards;$('stdStatus').onchange=renderStandards;$('stdQuery').oninput=renderStandards;
- $('gotoStandards').onclick=()=>setPage('standards');fillSelect($('trendYear'),[{value:String(activeYear),label:String(activeYear)}],String(activeYear));$('trendYear').onchange=renderTrend;$('trendScope').value='office';$('trendScope').onchange=renderTrend;
+ $('gotoStandards').onclick=()=>setPage('standards');fillSelect($('trendYear'),[{value:String(activeYear),label:String(activeYear)}],String(activeYear));$('trendScope').value='office';$('trendScope').onchange=renderTrend;
+ document.querySelectorAll('[data-trend-scope]').forEach(button=>button.onclick=()=>{
+  $('trendScope').value=button.dataset.trendScope;
+  renderTrend();
+ });
  // Native modal save path extension for master edit and month movement.
  const oldModalSave=$('saveModal').onclick;
  $('saveModal').onclick=()=>{if(modalMode==='master-standard')return saveStandardModal();if(modalMode==='move-dates')return saveMoveModal();return oldModalSave()};
