@@ -385,4 +385,73 @@ assert.equal(custom,"Berkas Khusus","Satuan khusus tidak boleh dibatasi secara k
 assert(inline.includes("inp.setAttribute('list','activityUnitHints')"),"Input satuan belum memiliki pilihan saran");
 
 
+
+// Yearly KRO mapping must be explicit and independent of a permanent code.
+const kroResolveStart=inline.indexOf("function groupKroKey(team,group){");
+const kroResolveEnd=inline.indexOf("function renderKroOptions(prefer){",kroResolveStart);
+assert(kroResolveStart>=0&&kroResolveEnd>kroResolveStart,"Pemetaan kegiatan ke KRO tidak ditemukan");
+const kroResolveCode=inline.slice(kroResolveStart,kroResolveEnd);
+const kroContext={
+ demoTeams:[{id:"T1",kroCodes:["9999.ABC.001"]}],
+ POK_KROS:[{code:"9999.ABC.001",name:"Contoh KRO"}],
+ NO_KRO:"__UNMAPPED__",
+ state:{groupKroOverrides:{}},
+ activeYear:2027,isBaseYear:false,
+ GROUP_KRO_HINTS:{},
+};
+const evaluateKro=()=>vm.runInNewContext(kroResolveCode+";resolveGroupKro('T1','Kegiatan A')",kroContext);
+assert.equal(evaluateKro(),"__UNMAPPED__","Tahun baru tidak boleh mengikat kegiatan otomatis ke satu KRO");
+kroContext.state.groupKroOverrides={'["T1","Kegiatan A"]':"9999.ABC.001"};
+assert.equal(evaluateKro(),"9999.ABC.001","Pemetaan KRO eksplisit tahun berjalan tidak terbaca");
+kroContext.state.groupKroOverrides={};
+kroContext.activeYear=2028;
+assert.equal(evaluateKro(),"__UNMAPPED__","Pemetaan KRO tahun lama tidak boleh terbawa otomatis");
+kroContext.isBaseYear=true;
+assert.equal(evaluateKro(),"9999.ABC.001","Perilaku referensi 2026 harus dipertahankan");
+kroContext.isBaseYear=false;
+kroContext.state.groupKroOverrides={'["T1","Kegiatan A"]':"9999.XYZ.009"};
+assert.equal(evaluateKro(),"__UNMAPPED__","Kode yang tidak berlaku untuk tim harus ditandai belum dipetakan");
+
+const recommendStart=inline.indexOf("const KRO_SIMILAR_STOP=");
+const recommendEnd=inline.indexOf("function suggestedKroForTeam(k,tid){",recommendStart);
+assert(recommendStart>=0&&recommendEnd>recommendStart,"Rekomendasi KRO berdasar nama tidak ditemukan");
+const recCtx={
+ activeYear:2027,
+ groupList:()=>[["Perencanaan Konsumsi Pangan",[]]],
+ KRO_2026_REFERENCE:[],
+ REKOMENDASI_KRO_LINTAS_TIM:{},
+};
+const rec=vm.runInNewContext(inline.slice(recommendStart,recommendEnd)+";kroRecommendation({code:'2027.AAA.001',name:'Perencanaan Konsumsi Pangan'},'T1')",recCtx);
+assert.equal(rec.label,"Nama Kegiatan Sesuai","Saran KRO perlu mengikuti kesamaan Nama Kegiatan");
+assert(rec.reason.includes("POK 2027"),"Rekomendasi harus menegaskan penetapan berdasarkan POK tahun berjalan");
+
+const mapStart=inline.indexOf("function ensureKroActivityMapDialog(){");
+const mapEnd=inline.indexOf("function renderKroBoard(){",mapStart);
+const mapCode=inline.slice(mapStart,mapEnd);
+assert(mapStart>=0&&mapEnd>mapStart,"Pop-up Pemetaan KRO dan Kegiatan belum ada");
+assert(inline.includes('id="kroHubActivity"'),"Kartu Pemetaan KRO–Kegiatan belum ada");
+assert(inline.includes("$('kroHubActivity').onclick=()=>showKroActivityMap()"),"Pembuka popup belum aktif");
+assert(mapCode.includes('data-kro-activity-index'),"Pemilihan KRO per kegiatan belum tersedia");
+assert(mapCode.includes("state.groupKroOverrides[x.key]=x.code"),"Pemetaan tahunan belum tersimpan");
+assert(mapCode.includes("groupKroKey(tid,row[0])"),"Pemetaan KRO belum memakai pasangan Tim dan Kegiatan");
+assert(mapCode.includes("if(!dialog.open)dialog.showModal()"),"Pemetaan harus tampil di pop-up");
+assert(cssPolish.includes(".kro-activity-map-scroll{"),"Kegiatan panjang harus bergulir di pop-up");
+assert(cssPolish.includes("#pageKRO .kro-hub-grid{display:grid;grid-template-columns:repeat(3"),"Tiga menu KRO harus berjajar rapi");
+
+const aggStart=inline.indexOf("function periodAgg(period,teamFilter){");
+const aggEnd=inline.indexOf("function workDays(period){",aggStart);
+assert(aggStart>=0&&aggEnd>aggStart,"Fungsi beban tim tidak ditemukan");
+const aggCtx={
+ BASE:{employees:[{id:"E1"},{id:"E2"}],annual_allocations_source:[]},
+ byId:new Map([["A1",{id:"A1",team_id:"T1"}]]),
+ baseActivity:new Map(),
+ baseMonthly:new Map([["A1|E1|1",3],["A1|E2|1",5]]),
+ state:{allocEdits:{}},
+ getStandard:()=>1,
+};
+const teamLoad=vm.runInNewContext(inline.slice(aggStart,aggEnd)+";periodAgg('1','T1')",aggCtx);
+assert.equal(teamLoad.totals.get("E1"),3,"Alokasi anggota tim harus dihitung");
+assert.equal(teamLoad.totals.get("E2"),5,"Pelaksana di luar keanggotaan tim tetap dihitung");
+assert.equal([...teamLoad.totals.values()].reduce((sum,v)=>sum+v,0),8,"Beban Tim harus total Jam-Orang semua pelaksana kegiatan milik tim");
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
