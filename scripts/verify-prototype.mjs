@@ -253,4 +253,20 @@ for(const selector of [
  ".person-work-group.person-work-teal{"
 ]) assert(cssPolish.includes(selector),"Desain kartu berwarna atau gulir belum lengkap: "+selector);
 
+
+// Employee detail card now contains only the direct modal button; only the
+// modal itself scrolls. Its summary metrics remain above the button.
+const renderPersonStart=inline.indexOf("function renderPerson(data,period,team,annual,monthly){");
+const renderPersonEnd=inline.indexOf("function renderHistory(){",renderPersonStart);
+const employeeRenderer=inline.slice(renderPersonStart,renderPersonEnd);
+assert(renderPersonStart>=0&&renderPersonEnd>renderPersonStart,"Detail Pegawai tidak ditemukan");
+assert(employeeRenderer.includes('id="openPersonWorkDialog"'),"Tombol detail pegawai harus langsung tersedia");
+assert(!employeeRenderer.includes('person-work-compact-highlights'),"Ringkasan tiga pekerjaan seharusnya tidak tampil lagi");
+assert(!employeeRenderer.includes('person-work-mini'),"Daftar pekerjaan kecil seharusnya dihapus dari panel");
+assert(cssPolish.includes('overflow:visible!important;'),"Panel tombol detail harus tanpa gulir internal");
+const detailCss=cssPolish.slice(cssPolish.lastIndexOf("#pageDashboard .person-panel #personDetails{"));
+assert(detailCss.includes("flex:0 0 auto!important;"),"Tombol detail tidak boleh mengisi area gulir");
+assert(detailCss.includes("overflow:visible!important;"),"Tombol detail tidak boleh memiliki scrollbar");
+assert(modalCode.includes('person-work-dialog-scroll'),"Daftar panjang tetap digulir di pop-up");
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
