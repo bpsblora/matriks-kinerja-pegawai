@@ -1,22 +1,36 @@
 <!doctype html>
-<html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex,nofollow"><title>Matriks Kinerja Pegawai BPS Blora · V25 v2.6</title>
+<html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Matriks Kinerja Pegawai — BPS Kabupaten Blora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Inter,"Segoe UI",Arial,sans-serif;color:#163f65;background:#edf4fb}
-.mp-head{background:white;border-bottom:1px solid #d5e5f4;min-height:70px;padding:12px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.mp-brand{display:flex;align-items:center;gap:11px}.mp-mark{display:grid;place-items:center;width:40px;height:40px;background:linear-gradient(145deg,#147fc4,#1d4a98);color:white;border-radius:12px;font-size:17px;font-weight:900}
-.mp-brand strong,.mp-brand span{display:block}.mp-brand strong{font-size:15px}.mp-brand span{font-size:11px;color:#62829d;margin-top:3px}
-.mp-session{display:flex;align-items:center;gap:12px;font-size:12px;color:#567a96}.mp-logout{background:#eef6ff;border:1px solid #c5dcf0;border-radius:9px;padding:9px 12px;color:#18558c;font-weight:800;cursor:pointer}
-.mp-login{min-height:calc(100dvh - 70px);display:grid;place-items:center;padding:25px}.mp-login-card{max-width:480px;width:100%;background:#fff;border:1px solid #ddeaf4;box-shadow:0 16px 50px #1547771d;border-radius:21px;padding:35px}
-.mp-eyebrow{font-size:10px;font-weight:900;color:#1775b2;letter-spacing:1px}
-.mp-login-card h1{font-size:25px;line-height:1.26;letter-spacing:-.4px;margin:15px 0}
-.mp-login-card p{font-size:13px;line-height:1.7;color:#55738f}
-.mp-primary{width:100%;background:linear-gradient(115deg,#137ac5,#155499);color:#fff;border:0;border-radius:11px;padding:14px 18px;font-weight:800;margin:11px 0 0;cursor:pointer}
-.mp-primary:disabled{opacity:.55}.mp-login-card .mp-note{font-size:11px;margin-top:20px}.mp-login-card .mp-status{font-size:12px;color:#a64032}
-#app{height:100dvh;height:100svh}.mp-frame-wrap{height:100%;width:100%}#mpFrame{height:100%;width:100%;display:block;border:0}
+:root{font-family:Nunito,system-ui,sans-serif;color:#133b62;background:#eef6ff}
+*{box-sizing:border-box}html,body,#app{margin:0;width:100%;min-height:100%;height:100%;overflow:hidden}
+button{font:inherit;cursor:pointer}button:disabled{opacity:.55;cursor:wait}
 [hidden]{display:none!important}
-@media(max-width:700px){.mp-head{padding:10px 12px}.mp-brand strong{font-size:12px}.mp-brand span{font-size:9px}.mp-session span{display:none}.mp-login-card{padding:27px}}
+.mp-entry{position:relative;display:grid;place-items:center;height:100dvh;padding:22px;overflow:hidden;background:radial-gradient(circle at 50% 25%,#e8f8ff 0%,#f1f7ff 39%,#e6f1fd 100%)}
+.mp-entry:before,.mp-entry:after{content:"";position:absolute;border:1px solid #c6e4fb;border-radius:50%;width:440px;height:440px;pointer-events:none}
+.mp-entry:before{top:-260px;right:-190px}.mp-entry:after{bottom:-330px;left:-230px;width:590px;height:590px}
+.mp-splash{display:grid;place-items:center;position:absolute;inset:0;z-index:2;transition:opacity .45s,visibility .45s}
+.mp-splash.is-done{opacity:0;visibility:hidden;pointer-events:none}
+.mp-splash-logo{width:122px;height:122px;object-fit:contain;background:#fff;border-radius:29px;padding:13px;box-shadow:0 22px 45px #1359952b;animation:mp-fall-spin 1.7s cubic-bezier(.2,.9,.15,1.08) both}
+.mp-splash-ground{width:106px;height:13px;border-radius:50%;background:#1b6bac30;filter:blur(9px);margin-top:22px;animation:mp-shadow 1.7s ease-out both}
+.mp-welcome{position:relative;z-index:1;width:min(100%,455px);padding:32px 33px 27px;border:1px solid #d4e7f7;border-radius:26px;background:#fff;box-shadow:0 24px 75px #175d941c;text-align:center;opacity:0;transform:translateY(22px) scale(.97);transition:opacity .5s,transform .5s}
+.mp-welcome.is-visible{opacity:1;transform:translateY(0) scale(1)}
+.mp-logo{display:block;width:75px;height:75px;object-fit:contain;margin:0 auto 15px;padding:7px;background:#f1f8ff;border:1px solid #d9eafb;border-radius:19px}
+.mp-eyebrow{margin:0 0 9px;font-size:11px;letter-spacing:.11em;font-weight:900;color:#0e70b8}
+.mp-welcome h1{font-family:Poppins,Nunito,sans-serif;font-size:22px;line-height:1.45;letter-spacing:-.6px;margin:0 0 11px;color:#103d69}
+.mp-description{font-size:13px;line-height:1.65;color:#64819a;margin:0 0 24px}
+.mp-google{display:flex;justify-content:center;align-items:center;gap:10px;background:linear-gradient(110deg,#0969bb,#1484cd);color:#fff;width:100%;border:0;padding:14px 17px;border-radius:13px;font-weight:900;box-shadow:0 7px 19px #156fc32c;transition:transform .2s,box-shadow .2s}
+.mp-google:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 11px 26px #156fc33b}
+.mp-google:focus-visible{outline:3px solid #8ac8ff;outline-offset:3px}
+.mp-google img{width:21px;height:21px;background:white;padding:3px;border-radius:50%}
+.mp-error{min-height:18px;margin:13px 0 0;font-size:12px;font-weight:700;color:#bc414b}
+.mp-note{margin:9px 0 0;font-size:11px;color:#8296a9}
+.mp-frame-wrap{height:100dvh;width:100%}#mpFrame{width:100%;height:100%;border:0;display:block}
+@keyframes mp-fall-spin{0%{transform:translateY(-110vh) rotate(-600deg) scale(.45);opacity:.3}65%{transform:translateY(16px) rotate(22deg) scale(1.09);opacity:1}82%{transform:translateY(-12px) rotate(-9deg)}100%{transform:translateY(0) rotate(0) scale(1)}}
+@keyframes mp-shadow{0%{transform:scale(.2);opacity:.08}75%{transform:scale(1.2);opacity:.7}100%{transform:scale(1);opacity:.5}}
+@media(max-width:480px){.mp-welcome{padding:27px 20px}.mp-welcome h1{font-size:19px}.mp-splash-logo{width:104px;height:104px}}
+@media(prefers-reduced-motion:reduce){.mp-splash-logo,.mp-splash-ground{animation:none}.mp-welcome,.mp-splash{transition:none}}
 </style></head>
-<body><main id="app"><p style="padding:20px">Memuat Matriks Pegawai…</p></main>
-<script type="module" src="/src/publicPreview.js"></script></body></html>
+<body><main id="app"></main><script type="module" src="/src/publicPreview.js"></script></body></html>
