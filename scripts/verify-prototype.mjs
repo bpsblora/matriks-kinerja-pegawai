@@ -108,16 +108,24 @@ let events=evaluate().events;
 assert(events.some(e=>e.scope==="pegawai"&&e.level==="over"),"Pegawai di atas kapasitas harus terdeteksi");
 assert(!events.some(e=>e.scope==="kantor"&&e.level==="over"),"Kapasitas kantor menghitung pegawai ganda");
 assert(!events.some(e=>e.scope==="alokasi"),"Katalog tanpa alokasi tidak boleh ditandai belum lengkap");
+
+// Each actionable warning title states a concrete name and amount, not just
+// a generic capacity status. The subtitle retains the ratio and context.
+assert(events.some(e=>e.scope==="pegawai"&&e.level==="over"&&e.title==="Pegawai A — Kelebihan 1 Jam"),"Judul pegawai harus menunjukkan nama dan Jam kelebihan");
+context.assignedStaff=teamId=>teamId==="T1"?[e1]:[e2];
+events=evaluate().events;
+assert(events.some(e=>e.scope==="tim"&&e.level==="over"&&e.title==="Tim Tim A — Kelebihan 1 Jam"),"Judul tim harus menunjukkan nama tim dan Jam kelebihan");
+
 context.state.allocEdits={"A1|E1|1":4};
 events=evaluate().events;
-assert(events.some(e=>e.title==="Tanggal Pelaksanaan Belum Lengkap"),"Tanggal kegiatan kosong harus diperingatkan");
+assert(events.some(e=>e.title.includes("Uraian Belum Memiliki Tanggal Pelaksanaan")),"Tanggal kegiatan kosong harus diperingatkan");
 context.state.scheduleEdits={"A1|1":{start:"2027-01-04",end:"2027-01-06"}};
 events=evaluate().events;
-assert(!events.some(e=>e.title==="Tanggal Pelaksanaan Belum Lengkap"),"Tanggal valid tidak boleh diperingatkan");
+assert(!events.some(e=>e.title.includes("Uraian Belum Memiliki Tanggal Pelaksanaan")),"Tanggal valid tidak boleh diperingatkan");
 context.state.allocEdits={};
 context.state.targets={"A1|1":2};
 events=evaluate().events;
-assert(events.some(e=>e.title==="Alokasi Pegawai Belum Lengkap"),"Target tanpa penugasan harus diperingatkan");
+assert(events.some(e=>e.title.includes("Uraian Belum Dialokasikan ke Pegawai")),"Target tanpa penugasan harus diperingatkan");
 assert(html.includes("Tanggal Mulai dan Selesai wajib diisi"),"Tahun baru harus mewajibkan tanggal pelaksanaan");
 assert(html.includes("moveAnnualAuditToRecon()"),"Pemeriksaan tahun 2026 harus tersedia di Rekonsiliasi");
 assert(html.includes('id="capacityWarningBoard"'),"Pusat peringatan Dashboard tidak ditemukan");
