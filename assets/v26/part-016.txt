@@ -991,10 +991,23 @@ function capacityWarningEvents(period){
  // Monthly distribution: compare only teams with actual recorded work.
  // A zero-work team is not deemed idle without a known planned assignment.
  if(period!=='monthly'){
-  const teams=BASE.teams.map(t=>({
-   team:t,
-   hours:[...periodAgg(period,t.id).totals.values()].reduce((sum,h)=>sum+h,0)
-  }));
+  const teams=BASE.teams.map(t=>{
+   const aggregate=periodAgg(period,t.id),groups=new Map(),uniqueTasks=new Set();
+   for(const [key,hours] of aggregate.details||new Map()){
+    const id=key.split('|')[0],activity=byId.get(id);
+    if(!activity)continue;
+    uniqueTasks.add(id);
+    const name=String(activity.group||'Kegiatan Lainnya');
+    groups.set(name,(groups.get(name)||0)+(Number(hours)||0));
+   }
+   const mainActivities=[...groups.entries()].sort((a,b)=>b[1]-a[1]).slice(0,2)
+    .map(([name,hours])=>name+' ('+nf(hours)+' Jam)');
+   return {
+    team:t,
+    hours:[...aggregate.totals.values()].reduce((sum,h)=>sum+h,0),
+    activityCount:groups.size,taskCount:uniqueTasks.size,mainActivities
+   };
+  });
   const working=teams.filter(row=>row.hours>0);
   if(working.length>=3){
    const mean=working.reduce((sum,row)=>sum+row.hours,0)/working.length;
@@ -1002,10 +1015,10 @@ function capacityWarningEvents(period){
     const gap=row.hours-mean,ratio=mean?row.hours/mean:1;
     if(gap>=8&&ratio>=1.75){
      mk('pending','tim',teamLabel(row.team.name)+' — '+nf(gap)+' Jam di Atas Rata-rata Tim',
-      nf(row.hours)+' Jam Beban Kegiatan dibanding rata-rata '+nf(mean)+' Jam dari '+working.length+' Tim dengan alokasi pada '+periodName+'. Periksa jumlah dan jenis kegiatan yang menyebabkan selisih.',{teamId:row.team.id,loadRatio:ratio,anomaly:'high'});
+      nf(row.hours)+' Jam Beban Kegiatan dibanding rata-rata '+nf(mean)+' Jam dari '+working.length+' Tim yang memiliki alokasi pada '+periodName+'. Tercatat '+nf(row.activityCount)+' Kegiatan dan '+nf(row.taskCount)+' Uraian.'+(row.mainActivities.length?' Penyumbang terbesar: '+row.mainActivities.join(', ')+'.':' Periksa rincian kegiatan.') ,{teamId:row.team.id,loadRatio:ratio,anomaly:'high'});
     }else if(-gap>=8&&ratio<=.35){
      mk('pending','tim',teamLabel(row.team.name)+' — '+nf(-gap)+' Jam di Bawah Rata-rata Tim',
-      nf(row.hours)+' Jam Beban Kegiatan dibanding rata-rata '+nf(mean)+' Jam dari '+working.length+' Tim dengan alokasi pada '+periodName+'. Periksa apakah memang sedikit kegiatan atau ada alokasi yang belum dicatat.',{teamId:row.team.id,loadRatio:ratio,anomaly:'low'});
+      nf(row.hours)+' Jam Beban Kegiatan dibanding rata-rata '+nf(mean)+' Jam dari '+working.length+' Tim yang memiliki alokasi pada '+periodName+'. Baru tercatat '+nf(row.activityCount)+' Kegiatan dan '+nf(row.taskCount)+' Uraian; periksa apakah kegiatan memang sedikit atau belum teralokasikan.',{teamId:row.team.id,loadRatio:ratio,anomaly:'low'});
     }
    }
   }
