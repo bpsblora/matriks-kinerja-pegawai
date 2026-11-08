@@ -226,8 +226,6 @@ h1,h2,h3,h4,.detail-title,.mon-kpi .kpi-value,.summary .summary-row strong,.data
 .heading>div:first-child{flex:1;min-width:245px}
 .heading .nav{margin-left:auto;align-self:center;display:flex;flex-wrap:nowrap;gap:2px;overflow-x:auto;max-width:min(100%,920px);min-width:0;scrollbar-width:thin;white-space:nowrap}
 .heading .navbutton{flex:0 0 auto;white-space:nowrap;line-height:1.25}
-#navInput,#navTimeline{background:transparent}
-#navInput.active,#navTimeline.active{background:#fff;color:#095ca9}
 .calendar-input-wrap .date-readable{font-variant-numeric:tabular-nums;letter-spacing:.35px;cursor:text!important}
 .calendar-input-wrap input[type=hidden]{display:none}
 .date-readable.invalid{border-color:#e65a6d!important;background:#fff7f7!important}
