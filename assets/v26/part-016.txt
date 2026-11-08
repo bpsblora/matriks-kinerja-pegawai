@@ -1145,7 +1145,7 @@ function renderWarningDialog(){
   &&(alertSelectedPeriod==='all'||item.period===alertSelectedPeriod));
  const names={all:'Seluruh Peringatan',over:'Beban Berlebih',near:'Mendekati Batas',under:'Beban Sangat Rendah',pending:'Alokasi dan Tim Perlu Diperiksa'};
  const note=list.length?nf(list.length)+' Temuan Sesuai Filter':'Tidak Ada Temuan pada Filter Ini';
- const status=level=>level==='over'?'Prioritas Tinggi':level==='pending'?'Perlu Diperiksa':level==='near'?'Mendekati Batas':'Beban Rendah';
+ const status=item=>item.anomaly==='high'?'Di Atas Rata-rata':item.anomaly==='low'?'Di Bawah Rata-rata':item.level==='over'?'Prioritas Tinggi':item.level==='pending'?'Perlu Diperiksa':item.level==='near'?'Mendekati Batas':'Beban Rendah';
  dialog.innerHTML=`<div class="mkp-warning-dialog-shell">
   <div class="mkp-warning-dialog-head">
    <div class="mkp-warning-dialog-title">
@@ -1166,10 +1166,10 @@ function renderWarningDialog(){
    <div class="mkp-warning-dialog-summary"><strong>${note}</strong><span>${category==='all'?'Diurutkan berdasarkan prioritas':'Kategori '+names[category]}</span></div>
   </div>
   <div class="mkp-warning-dialog-scroll" id="warningDialogResults" tabindex="0" role="region" aria-label="Daftar temuan yang dapat digulir">
-   ${list.length?list.map((item,index)=>`<button type="button" class="mkp-warning-item ${item.level}" data-warning-detail="${index}">
+   ${list.length?list.map((item,index)=>`<button type="button" class="mkp-warning-item ${item.level} ${item.anomaly?'imbalance-'+item.anomaly:''}" data-warning-detail="${index}">
     <span class="mkp-warning-icon" aria-hidden="true">${item.level==='over'?'!':item.level==='near'?'◷':item.level==='under'?'↓':'▤'}</span>
     <span class="mkp-warning-copy"><strong>${esc(item.title)}</strong><small>${esc(item.description)}</small></span>
-    <span class="mkp-warning-meta"><em>${esc(item.periodName)}</em><b>${status(item.level)} ›</b></span>
+    <span class="mkp-warning-meta"><em>${esc(item.periodName)}</em><b>${status(item)} ›</b></span>
    </button>`).join(''):`<div class="mkp-warning-empty"><strong>Tidak Ada Peringatan</strong><p>Tidak ditemukan temuan pada kategori dan periode yang dipilih.</p></div>`}
   </div>
   <p class="mkp-warning-dialog-note">Jumlah merupakan temuan per periode, bukan pegawai unik. Batas kapasitas total efektif hanya berlaku untuk pegawai. Ketimpangan tim dibandingkan terhadap rata-rata tim yang memiliki alokasi pada bulan terkait. Beban sangat rendah dihitung dari alokasi tercatat; periksa kelengkapan data sebelum menyimpulkan kondisi kerja. Kelebihan Jam tidak otomatis menetapkan lembur.</p>
