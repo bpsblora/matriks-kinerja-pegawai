@@ -217,7 +217,7 @@ async function saveAllocation(){
    // Store sparse overrides: preserve only deviations from the 2026 baseline.
    // A zero override remains explicit only where a nonzero baseline must be cleared.
    const allocKey=key(a.id,e.id,month),baseline=baseMonthly.get(allocKey)||0;
-   if(Math.abs(partial-baseline)<=1e-10)delete state.allocEdits[allocKey];
+   if(partial===baseline)delete state.allocEdits[allocKey];
    else state.allocEdits[allocKey]=partial;
   }
   state.monthlyStdEdits[amKey(a.id,month)]=s.std;
@@ -497,7 +497,7 @@ if(modalMode==='edit-detail'){
  if(allocatedMonths.length){
   if(team!==previous.team_id){toast('Tim pemilik uraian yang sudah memiliki alokasi tidak dapat dipindah langsung. Buat uraian baru atau lakukan migrasi terkontrol.');return}
   if(unit.trim().toLocaleLowerCase('id')!==String(previous.unit||'').trim().toLocaleLowerCase('id')){toast('Satuan uraian yang sudah dialokasikan dikunci agar volume historis tidak berubah makna. Buat uraian baru untuk satuan berbeda.');return}
-  if(st!==''&&Number(st)!==Number(previous.standard_hours))for(const m of allocatedMonths){const k=amKey(previous.id,m);if(!Object.prototype.hasOwnProperty.call(state.monthlyStdEdits,k))state.monthlyStdEdits[k]=getStandard(previous,m)}
+  if((st===''?null:Number(st))!==(previous.standard_hours==null?null:Number(previous.standard_hours)))for(const m of allocatedMonths){const k=amKey(previous.id,m);if(!Object.prototype.hasOwnProperty.call(state.monthlyStdEdits,k))state.monthlyStdEdits[k]=getStandard(previous,m)}
  }
 }
 if(modalMode==='new-group'||(modalMode!=='edit-detail'&&!groupIndex.get(team)?.has(group))){const chosen=team===selectedTeam?($('kroSelect').value||NO_KRO):NO_KRO;state.groupKroOverrides[groupKroKey(team,group)]=chosen;}
