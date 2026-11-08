@@ -1058,26 +1058,26 @@ function renderCapacityWarnings(){
  const haveData=snapshots.some(o=>o.hasData);
  const visible=alertExpanded?ordered:ordered.slice(0,6);
  const word=event=>event.level==='over'?'Berlebih':event.level==='near'?'Mendekati Batas':'Perlu Diperiksa';
- host.innerHTML=\`<div class="mkp-warning-head"><div><h3>Peringatan dan Tindak Lanjut</h3>
- <p>Pemeriksaan otomatis beban kerja dan kelengkapan alokasi berdasarkan data tahun \${activeYear}.</p></div>
+ host.innerHTML=`<div class="mkp-warning-head"><div><h3>Peringatan dan Tindak Lanjut</h3>
+ <p>Pemeriksaan otomatis beban kerja dan kelengkapan alokasi berdasarkan data tahun ${activeYear}.</p></div>
  <label class="mkp-warning-select">Periode Pemeriksaan<select id="alertPeriodSelect" aria-label="Periode Pemeriksaan">
- <option value="all" \${alertSelectedPeriod==='all'?'selected':''}>Seluruh Periode</option>
- <option value="monthly" \${alertSelectedPeriod==='monthly'?'selected':''}>Tahunan (Januari–Desember)</option>
- \${months.map((m,i)=>\`<option value="\${i+1}" \${alertSelectedPeriod===String(i+1)?'selected':''}>\${m} \${activeYear}</option>\`).join('')}</select></label></div>
+ <option value="all" ${alertSelectedPeriod==='all'?'selected':''}>Seluruh Periode</option>
+ <option value="monthly" ${alertSelectedPeriod==='monthly'?'selected':''}>Tahunan (Januari–Desember)</option>
+ ${months.map((m,i)=>`<option value="${i+1}" ${alertSelectedPeriod===String(i+1)?'selected':''}>${m} ${activeYear}</option>`).join('')}</select></label></div>
  <div class="mkp-warning-kpis">
- <div class="mkp-warning-kpi over"><span>Beban Berlebih</span><strong>\${nf(totals.over)}</strong><small>Indikasi melebihi kapasitas</small></div>
- <div class="mkp-warning-kpi near"><span>Mendekati Batas</span><strong>\${nf(totals.near)}</strong><small>85%–100% dari kapasitas</small></div>
- <div class="mkp-warning-kpi pending"><span>Alokasi Perlu Diperiksa</span><strong>\${nf(totals.pending)}</strong><small>Kelengkapan dan konsistensi data</small></div>
+ <div class="mkp-warning-kpi over"><span>Beban Berlebih</span><strong>${nf(totals.over)}</strong><small>Indikasi melebihi kapasitas</small></div>
+ <div class="mkp-warning-kpi near"><span>Mendekati Batas</span><strong>${nf(totals.near)}</strong><small>85%–100% dari kapasitas</small></div>
+ <div class="mkp-warning-kpi pending"><span>Alokasi Perlu Diperiksa</span><strong>${nf(totals.pending)}</strong><small>Kelengkapan dan konsistensi data</small></div>
  </div>
  <div class="mkp-warning-list" aria-live="polite">
- \${ordered.length?visible.map((e,i)=>\`<button type="button" class="mkp-warning-item \${e.level}" data-warning-index="\${i}">
- <span class="mkp-warning-icon" aria-hidden="true">\${e.level==='over'?'!':e.level==='near'?'◷':'▤'}</span>
- <span class="mkp-warning-copy"><strong>\${esc(e.title)}</strong><small>\${esc(e.description)}</small></span>
- <span class="mkp-warning-meta"><em>\${esc(e.periodName)}</em><b>\${word(e)} ›</b></span></button>\`).join(''): \`<div class="mkp-warning-empty"><strong>\${haveData?'Tidak Ada Peringatan':'Belum Ada Alokasi untuk Dievaluasi'}</strong>
- <p>\${haveData?'Tidak ditemukan indikasi yang melewati ambang pada periode terpilih.':'Masukkan dan tetapkan alokasi agar pemeriksaan beban kerja dapat dilakukan.'}</p></div>\`}
+ ${ordered.length?visible.map((e,i)=>`<button type="button" class="mkp-warning-item ${e.level}" data-warning-index="${i}">
+ <span class="mkp-warning-icon" aria-hidden="true">${e.level==='over'?'!':e.level==='near'?'◷':'▤'}</span>
+ <span class="mkp-warning-copy"><strong>${esc(e.title)}</strong><small>${esc(e.description)}</small></span>
+ <span class="mkp-warning-meta"><em>${esc(e.periodName)}</em><b>${word(e)} ›</b></span></button>`).join(''): `<div class="mkp-warning-empty"><strong>${haveData?'Tidak Ada Peringatan':'Belum Ada Alokasi untuk Dievaluasi'}</strong>
+ <p>${haveData?'Tidak ditemukan indikasi yang melewati ambang pada periode terpilih.':'Masukkan dan tetapkan alokasi agar pemeriksaan beban kerja dapat dilakukan.'}</p></div>`}
  </div>
- \${ordered.length>6?\`<button type="button" class="mkp-warning-expand" id="alertShowAll">\${alertExpanded?'Ringkas Daftar':'Lihat Semua '+nf(ordered.length)+' Peringatan'}</button>\`:''}
- <p class="mkp-warning-foot">Jumlah menunjukkan temuan per periode, bukan jumlah pegawai unik. Kapasitas kantor menggunakan pegawai unik; anggota lintas tim tidak digandakan pada total kantor. Beban berlebih merupakan indikasi untuk penjadwalan ulang, redistribusi pekerjaan, atau evaluasi potensi lembur, bukan penetapan lembur otomatis.</p>\`;
+ ${ordered.length>6?`<button type="button" class="mkp-warning-expand" id="alertShowAll">${alertExpanded?'Ringkas Daftar':'Lihat Semua '+nf(ordered.length)+' Peringatan'}</button>`:''}
+ <p class="mkp-warning-foot">Jumlah menunjukkan temuan per periode, bukan jumlah pegawai unik. Kapasitas kantor menggunakan pegawai unik; anggota lintas tim tidak digandakan pada total kantor. Beban berlebih merupakan indikasi untuk penjadwalan ulang, redistribusi pekerjaan, atau evaluasi potensi lembur, bukan penetapan lembur otomatis.</p>`;
  host.querySelector('#alertPeriodSelect').onchange=e=>{alertSelectedPeriod=e.target.value;alertExpanded=false;renderCapacityWarnings()};
  host.querySelector('#alertShowAll')?.addEventListener('click',()=>{alertExpanded=!alertExpanded;renderCapacityWarnings()});
  host.querySelectorAll('[data-warning-index]').forEach(btn=>btn.onclick=()=>{
