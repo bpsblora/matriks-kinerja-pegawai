@@ -1,8 +1,4 @@
-ing.length,teamCount:demoTeams.length,kroCount:POK_KROS.length};
-}
-function showKroCoverageDialog({tid='',selectedCodes=null,onSave=null,mode='team'}={}){
- const blocked=mode==='final'||(!!tid&&(!yearTeamReady(tid)||!selectedCodes||![...selectedCodes].filter(code=>POK_KROS.some(k=>k.code===code)).length));
- const hasValidTeam=!tid||yearTeamReady(tid),hasCodes=!!(selectedCodes&&[...selectedCodes].some(code=>POK_KROS.some(k=>k.code===code)));
+nst hasValidTeam=!tid||yearTeamReady(tid),hasCodes=!!(selectedCodes&&[...selectedCodes].some(code=>POK_KROS.some(k=>k.code===code)));
  const team=demoTeams.find(t=>t.id===tid),teamName=team?.name||'tim ini';
  const preview=kroCoverageSnapshot(tid,mode==='final'?null:selectedCodes);
  const needsAttention=preview.teamsMissing.length>0||preview.krosMissing.length>0;
