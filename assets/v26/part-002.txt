@@ -129,8 +129,49 @@ x;border:1px solid #d7e6f4;border-radius:13px;background:#f8fbff;padding:13px 15
 #pageKRO .kro-audit-sections-three{display:grid;grid-template-columns:1fr;gap:10px}
 #pageKRO .kro-audit-issues{background:#fff;border:1px solid #d7e5f2;border-radius:12px}
 @media(max-width:760px){#pageKRO .kro-hub-grid{grid-template-columns:1fr}#pageKRO .kro-hub-card{padding:17px}#pageKRO .kro-audit-kpis-three{grid-template-columns:1fr}#pageKRO .kro-hub-dialog{width:calc(100vw - 14px);height:92vh;max-height:92vh}#pageKRO .kro-hub-dialog-body{padding:12px}#pageKRO .kro-hub-dialog-head{padding:16px}#pageKRO .kro-hub-dialog-head h2{font-size:18px}}
+
+/* Visual system: BPS blue, clear menu/submenu hierarchy, restrained microinteractions */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Poppins:wght@500;600;700;800&display=swap');
+:root{--navy:#073b78;--ink:#183b60;--muted:#627f99;--border:#d5e4f2;--canvas:#edf5fd;--blue:#0967b4;--blue2:#e9f4ff;--shadow:0 6px 22px rgba(13,79,139,.065)}
+body,button,select,input,textarea{font-family:'Nunito','Plus Jakarta Sans',system-ui,'Segoe UI',sans-serif}
+h1,h2,h3,h4,.brand h1,.section-top h3,.dashboard-tab strong{font-family:'Poppins','Nunito',system-ui,sans-serif;letter-spacing:-.025em}
+body{background:linear-gradient(180deg,#f4f9ff 0%,#eaf3fc 100%);color:var(--ink)}
+header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)}
+.mark{background:linear-gradient(140deg,#087cc8,#114f99);box-shadow:0 6px 14px rgba(8,95,177,.2)}
+.brand .sub{font-size:11px;letter-spacing:.035em;color:#6484a0}
+.page{padding-top:18px}
+.heading{display:block;margin-bottom:17px}
+.heading>div:first-child{display:none}
+.nav{display:flex;width:100%;max-width:100%;flex-wrap:wrap;gap:7px;padding:8px;background:#e3effa;border:1px solid #d2e4f4;border-radius:17px;box-shadow:inset 0 1px 3px #a8c9e416}
+.navbutton{flex:0 0 auto;min-height:39px;padding:10px 15px;border:1px solid transparent;border-radius:11px;background:transparent;color:#315e87;font-weight:900;font-size:12px;transition:background .2s,color .2s,box-shadow .2s,transform .2s}
+.navbutton:hover:not(:disabled){background:#f7fbff;color:#0b5da3;transform:translateY(-1px)}
+.navbutton.active{background:linear-gradient(120deg,#0a67b9,#137dc7);color:#fff;border-color:#0e6cba;box-shadow:0 5px 13px #126ab52f}
+.navbutton.active:hover:not(:disabled){background:linear-gradient(120deg,#075ba9,#0d74bf);color:#fff}
+.navbutton:focus-visible,.dashboard-tab:focus-visible,.btn:focus-visible{outline:3px solid #67b3ed;outline-offset:2px}
+.dashboard-tabs{margin-top:2px}
+.dashboard-tab{border:1px solid #cce0f3;background:#fff;box-shadow:0 3px 12px #114e8520}
+.dashboard-tab.is-active{background:linear-gradient(120deg,#0869b8,#0c87d3);border-color:#0866b6;box-shadow:0 8px 23px #116fb033}
+.dashboard-tab:not(.is-active):hover{background:#f2f9ff}
+.panel,.card,.stat{border-color:#d6e6f5;box-shadow:0 4px 15px rgba(14,74,128,.045)}
+.panel{border-radius:16px}
+.section-top{gap:10px}
+.section-top h3{color:#164b80}
+.section-top p,.help,.scope-note,.team-admin-note{font-size:12px;color:#64809a;line-height:1.5}
+.section-top p:empty,.help:empty,#workspaceSubtitle:empty{display:none}
+.btn{transition:transform .2s,box-shadow .2s,background .2s,border-color .2s}
+.btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 5px 12px rgba(18,94,163,.11)}
+.btn.primary{background:linear-gradient(120deg,#0967b6,#0e7ccc);border-color:#0e71bc;box-shadow:0 3px 8px #0f70bc1c}
+.field label{color:#305e89;font-weight:800}
+.field select,.field input,.field textarea{border-color:#ccdeef;border-radius:10px;background:#fff}
+.field :is(select,input,textarea):focus{outline:2px solid #8bc5f2;outline-offset:1px}
+.data-line{background:#fff;border:1px solid #dbe9f5;border-radius:13px;padding:10px 13px;margin-bottom:12px}
+.year-state-strip{border-radius:14px}
+.year-state-strip.hidden{display:none!important}
+.navbutton.stage-locked{opacity:.45}
+@media(prefers-reduced-motion:reduce){.btn,.navbutton,.dashboard-tab{transition:none!important;animation:none!important;transform:none!important}}
+@media(max-width:800px){.nav{padding:7px;gap:4px}.navbutton{padding:9px 11px;font-size:11px}.page{padding-top:12px}}
 </style>
-<style>#prototypePreviewNotice{position:relative;z-index:12;padding:9px 16px;text-align:center;font:700 11px Arial,sans-serif;color:#1d466d;background:#ecf5ff;border-bottom:1px solid #c6deff}</style></head><body><div id="prototypePreviewNotice">PROTOTIPE V25 v2.6 · 1.412 uraian tahun 2026 · Identitas anonim · Perubahan tersimpan di browser ini</div>
+</head><body>
 <header><div class="shell topbar"><div class="brand"><div class="mark">MP</div><div><h1>Matriks Pegawai</h1><div class="sub">BPS KABUPATEN BLORA - UJICOBA</div></div></div><div class="rightbar"><div class="role-switch role-switch-v7"><button class="btn tiny blue-soft" id="modeView">Lihat (View)</button><button class="btn primary tiny" id="btnLoginEdit">Masuk Edit</button><button class="btn tiny hidden" id="btnLogout">Keluar</button></div><span class="role-pill read" id="rolePill">View</span><span class="user-summary" id="sessionUser">Akses umum</span><button class="btn tiny hidden" id="btnRoster">Kelola Tim</button><button class="btn" id="btnExport">↓ Ekspor perubahan</button><button class="btn" id="btnImport">↑ Impor backup</button><button class="btn warn" id="btnReset">Reset uji coba</button><input type="file" id="importFile" accept=".json,application/json" style="display:none"></div></div></header>
 <main class="shell page"><div class="heading"><div><h2>Matriks Alokasi Kerja</h2><p id="workspaceSubtitle">Alokasi kerja pegawai.</p></div><nav class="nav"><button class="navbutton" id="navDashboard">Dashboard</button><button class="navbutton hidden" id="navTeams">Kelola Tim</button><button class="navbutton" id="navKRO">Pembagian KRO</button><button class="navbutton active" id="navInput">Input Alokasi</button><button class="navbutton" id="navTimeline">Timeline Kerja</button><button class="navbutton hidden" id="navMonitor" aria-hidden="true" tabindex="-1">Monitoring Pegawai</button><button class="navbutton" id="navRecon">Rekonsiliasi</button><button class="navbutton" id="navStandards">Standar Waktu</button><button class="navbutton" id="navHistory">Riwayat</button><button class="navbutton" id="navFinal">Finalisasi Matriks</button></nav></div>
 <section class="access-banner" id="accessBanner"><div class="ab-symbol">◈</div><div><strong id="accessTitle">Status akses</strong><p id="accessDesc">Perubahan uji coba tidak mengubah file Excel 2026.</p></div><span class="access-mini">DATA 2026</span></section>
