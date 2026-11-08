@@ -968,34 +968,43 @@ function capacityWarningEvents(period){
  const excess=(hours,cap)=>nf(Math.max(0,hours-cap))+' Jam';
  const remaining=(hours,cap)=>nf(Math.max(0,cap-hours))+' Jam';
  const teamLabel=name=>/^tim\b/i.test(String(name))?String(name):'Tim '+String(name);
- for(const e of staff){
-  const hours=getHours(e),pct=perPerson?hours/perPerson:0;
-  if(pct>1.00001)mk('over','pegawai',e.full_name+' — Kelebihan '+excess(hours,perPerson),
-   e.full_name+' · '+nf(hours)+' Jam dari '+nf(perPerson)+' Jam Kapasitas ('+ratioText(hours,perPerson)+'). Periksa distribusi pekerjaan dan potensi kebutuhan lembur.',{employeeId:e.id,loadRatio:pct});
-  else if(pct>=.85)mk('near','pegawai',e.full_name+' — Tersisa '+remaining(hours,perPerson)+' Kapasitas',
-   e.full_name+' · '+nf(hours)+' Jam dari '+nf(perPerson)+' Jam Kapasitas ('+ratioText(hours,perPerson)+').',{employeeId:e.id,loadRatio:pct});
- }
- for(const t of BASE.teams){
-  const teamHours=[...periodAgg(period,t.id).totals.values()].reduce((x,y)=>x+y,0);
-  if(teamHours<=0)continue;
-  const members=assignedStaff(t.id).filter(e=>e.type==='pegawai');
-  if(!members.length){
-   if(!isBaseYear)mk('pending','alokasi',teamLabel(t.name)+' — '+nf(teamHours)+' Jam Tanpa Anggota Aktif',
-    t.name+' memiliki '+nf(teamHours)+' Jam Alokasi, tetapi belum ada anggota aktif yang ditetapkan.',{teamId:t.id,action:'teams'});
-   continue;
-  }
-  const teamCap=members.length*perPerson,ratio=teamCap?teamHours/teamCap:0;
-  if(ratio>1.00001)mk('over','tim',teamLabel(t.name)+' — Kelebihan '+excess(teamHours,teamCap),
-   t.name+' · '+nf(teamHours)+' Jam dari kapasitas indikatif '+nf(teamCap)+' Jam ('+ratioText(teamHours,teamCap)+').',{teamId:t.id,loadRatio:ratio});
-  else if(ratio>=.85)mk('near','tim',teamLabel(t.name)+' — Tersisa '+remaining(teamHours,teamCap)+' Kapasitas',
-   t.name+' · '+nf(teamHours)+' Jam dari kapasitas indikatif '+nf(teamCap)+' Jam ('+ratioText(teamHours,teamCap)+').',{teamId:t.id,loadRatio:ratio});
- }
  const officeHours=staff.reduce((sum,e)=>sum+getHours(e),0);
- const officeCap=staff.length*perPerson,officeRatio=officeCap?officeHours/officeCap:0;
- if(officeRatio>1.00001)mk('over','kantor','Kantor — Kelebihan '+excess(officeHours,officeCap),
-  nf(officeHours)+' Jam dari '+nf(officeCap)+' Jam Kapasitas ('+ratioText(officeHours,officeCap)+'). Pegawai dihitung satu kali walaupun tergabung dalam beberapa tim.',{loadRatio:officeRatio});
- else if(officeRatio>=.85)mk('near','kantor','Kantor — Tersisa '+remaining(officeHours,officeCap)+' Kapasitas',
-  nf(officeHours)+' Jam dari '+nf(officeCap)+' Jam Kapasitas ('+ratioText(officeHours,officeCap)+').',{loadRatio:officeRatio});
+ // A person has one effective work capacity across all assignments.
+ // A team owns a workload; it does not have a fixed capacity denominator.
+ // Under-allocation is provisional: 0 hours means absent records, not proven idle time.
+ if(perPerson>0&&officeHours>0){
+  for(const e of staff){
+   const hours=getHours(e),pct=hours/perPerson;
+   if(pct>1.00001)mk('over','pegawai',e.full_name+' — Melebihi Kapasitas Total Efektif '+excess(hours,perPerson),
+    nf(hours)+' Jam Alokasi dari '+nf(perPerson)+' Jam Kapasitas Total Efektif ('+ratioText(hours,perPerson)+'). Evaluasi distribusi pekerjaan, jadwal, dan potensi kebutuhan lembur.',{employeeId:e.id,loadRatio:pct});
+   else if(pct>=.85)mk('near','pegawai',e.full_name+' — Tersisa '+remaining(hours,perPerson)+' Kapasitas Efektif',
+    nf(hours)+' Jam Alokasi dari '+nf(perPerson)+' Jam Kapasitas Total Efektif ('+ratioText(hours,perPerson)+').',{employeeId:e.id,loadRatio:pct});
+   else if(hours>0&&pct<=.25)mk('under','pegawai',e.full_name+' — '+nf(hours)+' Jam Alokasi ('+nf(pct*100)+'% dari Total Efektif)',
+    'Alokasi tercatat sangat rendah dibanding '+nf(perPerson)+' Jam Kapasitas Total Efektif. Periksa kelengkapan pencatatan sebelum menyimpulkan pegawai kurang pekerjaan.',{employeeId:e.id,loadRatio:pct});
+  }
+ }
+ // Monthly distribution: compare only teams with actual recorded work.
+ // A zero-work team is not deemed idle without a known planned assignment.
+ if(period!=='monthly'){
+  const teams=BASE.teams.map(t=>({
+   team:t,
+   hours:[...periodAgg(period,t.id).totals.values()].reduce((sum,h)=>sum+h,0)
+  }));
+  const working=teams.filter(row=>row.hours>0);
+  if(working.length>=3){
+   const mean=working.reduce((sum,row)=>sum+row.hours,0)/working.length;
+   for(const row of working){
+    const gap=row.hours-mean,ratio=mean?row.hours/mean:1;
+    if(gap>=8&&ratio>=1.75){
+     mk('pending','tim',teamLabel(row.team.name)+' — '+nf(gap)+' Jam di Atas Rata-rata Tim',
+      nf(row.hours)+' Jam Beban Kegiatan dibanding rata-rata '+nf(mean)+' Jam dari '+working.length+' Tim dengan alokasi pada '+periodName+'. Periksa jumlah dan jenis kegiatan yang menyebabkan selisih.',{teamId:row.team.id,loadRatio:ratio,anomaly:'high'});
+    }else if(-gap>=8&&ratio<=.35){
+     mk('pending','tim',teamLabel(row.team.name)+' — '+nf(-gap)+' Jam di Bawah Rata-rata Tim',
+      nf(row.hours)+' Jam Beban Kegiatan dibanding rata-rata '+nf(mean)+' Jam dari '+working.length+' Tim dengan alokasi pada '+periodName+'. Periksa apakah memang sedikit kegiatan atau ada alokasi yang belum dicatat.',{teamId:row.team.id,loadRatio:ratio,anomaly:'low'});
+    }
+   }
+  }
+ }
  if(isBaseYear){
   if(period==='monthly'){
    const annual=periodAgg('annual','').totals;
@@ -1008,10 +1017,10 @@ function capacityWarningEvents(period){
   // Only assess work with a recorded monthly allocation, a positive target,
   // or a workflow plan. Catalogue activities alone are not missing allocations.
   const monthMatches=m=>period==='monthly'||Number(m)===Number(period);
-  const records=new Map(),assigned=new Map();
+  const assigned=new Map();
   const saved=new Map(baseMonthly);
   for(const [key,val] of Object.entries(state.allocEdits||{}))saved.set(key,Number(val)||0);
-  const missingDate=new Map(),missingMember=new Map();
+  const missingDate=new Map();
   for(const [allocKey,qty] of saved){
    if(!(Number(qty)>0))continue;
    const [aid,eid,rawMonth]=allocKey.split('|'),m=Number(rawMonth);
@@ -1019,7 +1028,6 @@ function capacityWarningEvents(period){
    const a=byId.get(aid);if(!a||a.status!=='aktif')continue;
    const lookup=aid+'|'+m;
    assigned.set(lookup,(assigned.get(lookup)||0)+1);
-   records.set(lookup,{a,m});
    const schedule=state.scheduleEdits?.[amKey(aid,m)];
    const dateOK=schedule&&/^\d{4}-\d{2}-\d{2}$/.test(schedule.start||'')
     &&/^\d{4}-\d{2}-\d{2}$/.test(schedule.end||'')
@@ -1027,7 +1035,6 @@ function capacityWarningEvents(period){
     &&schedule.start.slice(0,4)===String(activeYear)
     &&schedule.end.slice(0,4)===String(activeYear);
    if(!dateOK&&!missingDate.has(aid))missingDate.set(aid,{a,m});
-   if(!assignedStaffIds(a.team_id).has(eid)&&!missingMember.has(aid))missingMember.set(aid,{a,m});
   }
   const expected=new Map();
   for(const [key,target] of Object.entries(state.targets||{})){
@@ -1045,11 +1052,6 @@ function capacityWarningEvents(period){
    const first=missingDate.values().next().value;
    mk('pending','alokasi',nf(missingDate.size)+' Uraian Belum Memiliki Tanggal Pelaksanaan',
     missingDate.size+' Uraian memiliki alokasi pegawai, tetapi tanggal mulai atau selesai belum lengkap.',{activityId:first.a.id,month:first.m,action:'input'});
-  }
-  if(missingMember.size){
-   const first=missingMember.values().next().value;
-   mk('pending','alokasi',nf(missingMember.size)+' Uraian dengan Penugasan di Luar Tim',
-    missingMember.size+' Uraian memiliki alokasi untuk pegawai di luar daftar anggota aktif tim.',{activityId:first.a.id,month:first.m,action:'input'});
   }
   if(unassigned.length){
    const first=unassigned[0];
