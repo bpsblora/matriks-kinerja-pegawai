@@ -114,7 +114,7 @@ assert(!events.some(e=>e.scope==="alokasi"),"Katalog tanpa alokasi tidak boleh d
 assert(events.some(e=>e.scope==="pegawai"&&e.level==="over"&&e.title==="Pegawai A — Kelebihan 1 Jam"),"Judul pegawai harus menunjukkan nama dan Jam kelebihan");
 context.assignedStaff=teamId=>teamId==="T1"?[e1]:[e2];
 events=evaluate().events;
-assert(events.some(e=>e.scope==="tim"&&e.level==="over"&&e.title==="Tim Tim A — Kelebihan 1 Jam"),"Judul tim harus menunjukkan nama tim dan Jam kelebihan");
+assert(events.some(e=>e.scope==="tim"&&e.level==="over"&&e.title==="Tim A — Kelebihan 1 Jam"),"Judul tim harus menunjukkan nama tim dan Jam kelebihan");
 
 context.state.allocEdits={"A1|E1|1":4};
 events=evaluate().events;
@@ -162,5 +162,19 @@ const priorityFixture={
 };
 const sorted=vm.runInNewContext(inline.slice(collStart,collEnd)+";warningCollection().all.map(x=>x.title).slice(0,4).join('|')",priorityFixture);
 assert.equal(sorted,"Berlebih Tinggi|Berlebih Ringan|Data Perlu Diperiksa|Cukup Dipantau","Prioritas pop-up tidak sesuai tingkat urgensi");
+
+
+// Monthly trend follows active year; office/team/employee comparison is a
+// horizontal selection control, not a redundant year dropdown.
+assert(html.includes('id="trendTitle">Tren Beban Kerja Antarbulan 2026'),"Judul tren tahunan tidak tersedia");
+assert(html.includes('id="trendYear" hidden'),"Dropdown tahun tren belum disembunyikan");
+assert(html.includes('id="trendScope" hidden'),"Dropdown perbandingan lama belum diganti tombol");
+for(const scope of ["office","allTeams","allEmployees"]){
+ assert(html.includes('data-trend-scope="'+scope+'"'),"Tombol grafik "+scope+" belum tersedia");
+}
+assert(inline.includes("button.dataset.trendScope===scope"),"Status aktif tombol filter belum sinkron dengan grafik");
+assert(inline.includes("button.onclick=()=>{\n  $('trendScope').value=button.dataset.trendScope;"),"Tombol filter belum terhubung ke grafik");
+assert(inline.includes("const scope=$('trendScope').value,year=activeYear;"),"Tren belum mengikuti tahun aktif");
+assert(cssPolish.includes(".trend-scope-buttons"),"Tombol pilihan grafik belum mendapat desain horizontal");
 
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
