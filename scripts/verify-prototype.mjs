@@ -65,4 +65,18 @@ for (const label of rejectedCaptions) {
   assert(!html.includes(label), "Label satuan lama masih ditemukan: "+label);
 }
 
+// Reconciliation labels must identify the annual baseline and monthly coverage.
+for (const text of [
+  "Kelengkapan Alokasi Tahunan 2026",
+  "Alokasi Tahunan Awal",
+  "Alokasi yang Sudah Dirinci per Bulan",
+  "Jam Belum Terurai ke Bulan",
+  "Rincian Bulanan Belum Lengkap",
+  "selisih tidak boleh dibagikan otomatis"
+]) {
+  assert(html.includes(text), "Rekonsiliasi 2026 kehilangan penjelasan: "+text);
+}
+assert(!html.includes("Referensi Tahunan Lama"), "Nama acuan tahunan lama belum diperjelas");
+assert(!html.includes("Selisih terhadap Referensi"), "Nama selisih bulanan lama belum diperjelas");
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
