@@ -338,6 +338,94 @@ function renderMonitoring(){
  $('barRows').querySelectorAll('[data-employee]').forEach(btn=>btn.onclick=()=>{selectedEmployee=btn.dataset.employee;renderMonitoring()});
  renderPerson(data,period,team,periodAgg('annual',team),periodAgg('monthly',team));
 }
+
+/* Daftar beban kerja: kunci kelompok adalah Tim+Kegiatan. Semua baris
+   alokasi diikutkan dan diurutkan, tanpa batas 90 uraian seperti sebelumnya. */
+function groupPersonWorkload(rows){
+ const groups=new Map();
+ for(const row of rows){
+  const ac=row.ac,h=Number(row.h)||0;
+  if(!ac||!h)continue;
+  const team=String(ac.team||teamMap.get(ac.team_id)?.name||'Tim Belum Ditetapkan');
+  const activity=groupName(ac);
+  const identifier=String(ac.team_id||team)+'|'+activity;
+  let group=groups.get(identifier);
+  if(!group){
+   group={key:identifier,team,activity,hours:0,items:[]};
+   groups.set(identifier,group);
+  }
+  group.hours+=h;
+  group.items.push({id:ac.id||'',title:String(ac.description||'Uraian Tanpa Nama'),hours:h});
+ }
+ return [...groups.values()].map(g=>({
+  ...g,
+  items:g.items.sort((a,b)=>b.hours-a.hours||a.title.localeCompare(b.title,'id'))
+ })).sort((a,b)=>b.hours-a.hours||a.team.localeCompare(b.team,'id')||a.activity.localeCompare(b.activity,'id'));
+}
+let personWorkModalReturn=null;
+function ensurePersonWorkDialog(){
+ let dialog=$('personWorkDialog');
+ if(dialog)return dialog;
+ dialog=document.createElement('dialog');
+ dialog.id='personWorkDialog';
+ dialog.className='person-work-dialog';
+ dialog.setAttribute('aria-labelledby','personWorkDialogTitle');
+ document.body.appendChild(dialog);
+ dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close()});
+ dialog.addEventListener('close',()=>{
+  const trigger=personWorkModalReturn;
+  personWorkModalReturn=null;
+  if(trigger?.isConnected)trigger.focus({preventScroll:true});
+ });
+ return dialog;
+}
+function openPersonWorkDialog({employee,period,total,groups,detailCount},trigger){
+ const dialog=ensurePersonWorkDialog();
+ if(dialog.open)dialog.close();
+ personWorkModalReturn=trigger;
+ const periodLabel=period==='monthly'?'Januari–Desember '+activeYear:
+  period==='annual'?'Referensi Tahunan '+activeYear:
+  (months[Number(period)-1]||'Periode Terpilih')+' '+activeYear;
+ const colors=['blue','green','amber','purple','rose','teal'];
+ dialog.innerHTML=`<div class="person-work-dialog-shell">
+  <div class="person-work-dialog-head">
+   <div class="person-work-dialog-heading">
+    <span class="person-work-eyebrow">RINCIAN BEBAN KERJA</span>
+    <h2 id="personWorkDialogTitle">Daftar Beban Pekerjaan Pegawai</h2>
+    <p><strong>${esc(employee.full_name)}</strong> · ${esc(periodLabel)}</p>
+   </div>
+   <button type="button" class="person-work-close" id="personWorkClose" aria-label="Tutup Daftar Pekerjaan">×</button>
+  </div>
+  <div class="person-work-dialog-stats">
+   <div><small>Total Beban Pekerjaan</small><strong>${nf(total)} Jam</strong></div>
+   <div><small>Kelompok Tim–Kegiatan</small><strong>${nf(groups.length)}</strong></div>
+   <div><small>Uraian Pekerjaan</small><strong>${nf(detailCount)}</strong></div>
+  </div>
+  <div class="person-work-dialog-scroll" tabindex="0" role="region" aria-label="Daftar beban kerja berdasarkan Tim dan Kegiatan">
+   ${groups.length?groups.map((group,i)=>`<section class="person-work-group person-work-${colors[i%colors.length]}">
+    <header class="person-work-group-head">
+     <div class="person-work-group-titles">
+      <span class="person-work-team">Tim: ${esc(group.team)}</span>
+      <h3>${esc(group.activity)}</h3>
+      <small>${nf(group.items.length)} Uraian Pekerjaan</small>
+     </div>
+     <div class="person-work-hours">${nf(group.hours)} Jam</div>
+    </header>
+    <div class="person-work-items">
+     ${group.items.map(item=>`<div class="person-work-item">
+      <span>${esc(item.title)}</span><strong>${nf(item.hours)} Jam</strong>
+     </div>`).join('')}
+    </div>
+   </section>`).join(''):
+   '<div class="person-work-no-data">Belum ada rincian pekerjaan pada periode dan tim yang dipilih.</div>'}
+  </div>
+  <div class="person-work-dialog-footer">Diurutkan dari kelompok dengan beban kerja terbesar. Jam tiap uraian merupakan alokasi pegawai pada periode terpilih, bukan waktu kalender kegiatan bersama.</div>
+ </div>`;
+ dialog.querySelector('#personWorkClose').onclick=()=>dialog.close();
+ dialog.showModal();
+ dialog.querySelector('#personWorkClose').focus({preventScroll:true});
+}
+
 function renderPerson(data,period,team,annual,monthly){
  const e=employeeMap.get(selectedEmployee);
  if(!e){$('personTitle').textContent='Rincian Pegawai';$('personSummary').innerHTML='<div class="empty">Tidak ada pegawai dalam filter.</div>';$('personDetails').innerHTML='';return}
