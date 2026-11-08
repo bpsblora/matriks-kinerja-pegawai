@@ -630,3 +630,27 @@
  .person-work-trigger{transition:none}
  .person-work-trigger:hover:not(:disabled){transform:none}
 }
+
+
+/* Empat jenis peringatan: kapasitas hanya untuk pegawai.
+   Ketimpangan tim dinilai dari beban bulanan, bukan batas kapasitas tim. */
+#pageDashboard .mkp-warning-kpis{
+ grid-template-columns:repeat(4,minmax(0,1fr));
+ align-items:stretch
+}
+.mkp-warning-kpi.under{background:#eef9f6;border-color:#bfe5d9}
+.mkp-warning-kpi.under strong{
+ color:#12755e;background:#dcf4eb;border-color:#b2dfd1
+}
+.mkp-warning-item.under .mkp-warning-icon{background:#d9f3e9;color:#127b60}
+.mkp-warning-item.under .mkp-warning-meta b{background:#e2f5ec;color:#146e53}
+.mkp-warning-item.imbalance-high .mkp-warning-icon{background:#ffe7e3;color:#a34935}
+.mkp-warning-item.imbalance-high .mkp-warning-meta b{background:#fff1e8;color:#a35424}
+.mkp-warning-item.imbalance-low .mkp-warning-icon{background:#e9efff;color:#485cb3}
+.mkp-warning-item.imbalance-low .mkp-warning-meta b{background:#edf1ff;color:#465db0}
+@media(max-width:1270px){
+ #pageDashboard .mkp-warning-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:650px){
+ #pageDashboard .mkp-warning-kpis{grid-template-columns:1fr}
+}
