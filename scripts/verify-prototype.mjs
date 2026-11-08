@@ -215,4 +215,42 @@ assert(cssPolish.includes("overflow-y:auto;"),"Daftar panjang perlu gulir vertik
 assert(cssPolish.includes("max-height:none!important;"),"Batas lama tinggi daftar di desktop perlu ditimpa");
 assert(cssPolish.includes("overflow:visible;"),"Formulir kartu bertumpuk tidak boleh terpotong");
 
+
+// A work detail should group by team AND activity and sum hours exactly.
+const workStart=inline.indexOf("function groupPersonWorkload(rows){");
+const workEnd=inline.indexOf("let personWorkModalReturn=",workStart);
+assert(workStart>=0&&workEnd>workStart,"Pengelompokan Tim–Kegiatan belum tersedia");
+const workFixture=[
+ {ac:{id:"A1",team_id:"T1",team:"Tim Harga",group:"SHKK",description:"Rekrutmen"},h:12},
+ {ac:{id:"A2",team_id:"T1",team:"Tim Harga",group:"SHKK",description:"Pemeriksaan"},h:24},
+ {ac:{id:"A3",team_id:"T2",team:"Tim Lain",group:"SHKK",description:"Pendataan"},h:16},
+ {ac:{id:"A4",team_id:"T1",team:"Tim Harga",group:"SHP",description:"Rekrutmen"},h:42}
+];
+const groups=vm.runInNewContext(inline.slice(workStart,workEnd)+";groupPersonWorkload(rows)",{
+ rows:workFixture,teamMap:new Map(),groupName:a=>a.group
+});
+assert.equal(groups.length,3,"Kegiatan sama pada tim berbeda tidak boleh digabung");
+assert.equal(groups[0].activity,"SHP","Urutan kartu harus dari total Jam terbesar");
+assert.equal(groups[0].hours,42,"Total Jam kelompok harus dihitung tepat");
+assert.equal(groups[1].hours,36,"Jam dalam satu Tim–Kegiatan harus dijumlahkan");
+assert.equal(groups[1].items[0].title,"Pemeriksaan","Uraian per kartu harus diurutkan dari Jam terbesar");
+assert.equal(groups.reduce((n,g)=>n+g.hours,0),94,"Total seluruh kartu harus cocok dengan total alokasi");
+const modalCode=inline.slice(workEnd,inline.indexOf("function renderPerson(data,period",workEnd));
+assert(modalCode.includes("Daftar Beban Pekerjaan Pegawai"),"Judul pop-up pekerjaan belum tersedia");
+assert(modalCode.includes("dialog.showModal()"),"Daftar pekerjaan belum menjadi pop-up");
+assert(modalCode.includes("person-work-dialog-scroll"),"Pop-up pekerjaan belum memiliki area gulir");
+assert(modalCode.includes("colors[i%colors.length]"),"Kartu Tim–Kegiatan belum dibedakan warna");
+assert(modalCode.includes("group.items.map(item=>"),"Uraian pekerjaan belum ada di setiap kartu");
+assert(inline.includes("groupPersonWorkload(rows)"),"Detail Pegawai belum memakai data kelompok");
+assert(inline.includes("id=\"openPersonWorkDialog\""),"Tombol pembuka pop-up belum tersedia");
+assert(!inline.includes("rows.slice(0,90)"),"Pembatasan 90 pekerjaan lama belum dihapus");
+for(const selector of [
+ ".person-work-dialog-scroll{",
+ ".person-work-group.person-work-green{",
+ ".person-work-group.person-work-amber{",
+ ".person-work-group.person-work-purple{",
+ ".person-work-group.person-work-rose{",
+ ".person-work-group.person-work-teal{"
+]) assert(cssPolish.includes(selector),"Desain kartu berwarna atau gulir belum lengkap: "+selector);
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
