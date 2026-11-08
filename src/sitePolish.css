@@ -346,3 +346,100 @@
 @media(prefers-reduced-motion:reduce){
  #pageDashboard .tl-trend-filters .trend-scope-button{transition:none!important}
 }
+
+
+/* Equal-height companion cards (November 2026).
+   Keep each card's heading/control visible and scroll lengthy content inside
+   the card rather than making one grid column longer than the other. */
+#pageDashboard .monitor-main-grid{
+ align-items:stretch!important;
+ grid-auto-rows:minmax(0,auto);
+}
+#pageDashboard .monitor-main-grid > :is(.chart-panel,.person-panel){
+ box-sizing:border-box;
+ min-width:0;
+ min-height:0!important;
+ height:clamp(520px,72dvh,740px);
+ max-height:740px;
+ display:flex;
+ flex-direction:column;
+ align-self:stretch!important;
+ overflow:hidden;
+}
+#pageDashboard .monitor-main-grid > .person-panel{
+ position:static!important;
+ top:auto!important;
+}
+#pageDashboard .monitor-main-grid > .chart-panel > :is(.section-top,.chart-legend,.barhead),
+#pageDashboard .monitor-main-grid > .person-panel > :is(.section-top,#personSummary){
+ flex:0 0 auto;
+ min-width:0;
+}
+#pageDashboard .monitor-main-grid #barRows,
+#pageDashboard .monitor-main-grid #personDetails{
+ flex:1 1 0;
+ min-height:0;
+ height:auto;
+ max-height:none!important;
+ overflow-y:auto;
+ overflow-x:hidden;
+ overscroll-behavior:contain;
+ scrollbar-width:thin;
+ scrollbar-color:#9fc5e7 #f0f6fc;
+}
+#pageDashboard .monitor-main-grid #barRows{margin-bottom:0}
+#pageDashboard .monitor-main-grid #personDetails{margin-top:6px;padding-right:3px}
+#pageDashboard .monitor-main-grid :is(#barRows,#personDetails)::-webkit-scrollbar,
+#pageTeams .team-admin-grid > .team-admin-card::-webkit-scrollbar{width:8px}
+#pageDashboard .monitor-main-grid :is(#barRows,#personDetails)::-webkit-scrollbar-thumb,
+#pageTeams .team-admin-grid > .team-admin-card::-webkit-scrollbar-thumb{
+ background:#a9cbe7;border-radius:10px;border:2px solid #f4f9fe
+}
+#pageDashboard .monitor-main-grid :is(#barRows,#personDetails)::-webkit-scrollbar-track,
+#pageTeams .team-admin-grid > .team-admin-card::-webkit-scrollbar-track{
+ background:#f4f9fe;border-radius:10px
+}
+/* The paired team management cards also share a row height.
+   Cap exceptionally long lists; do not impose that cap on full-page
+   forms elsewhere in the application. */
+#pageTeams .team-admin-grid{align-items:stretch!important}
+#pageTeams .team-admin-grid > .team-admin-card{
+ box-sizing:border-box;
+ min-width:0;
+ min-height:0!important;
+ max-height:min(76dvh,740px);
+ overflow-y:auto;
+ overflow-x:hidden;
+ overscroll-behavior:contain;
+ scrollbar-width:thin;
+ scrollbar-color:#9fc5e7 #f0f6fc;
+ align-self:stretch!important;
+}
+#pageTeams .team-admin-grid > .team-admin-list{
+ position:static!important;
+ top:auto!important;
+}
+/* Narrow screens stack cards: keep long lists scrollable without forcing
+   two unrelated stacked cards to share excessive blank height. */
+@media(max-width:1240px){
+ #pageDashboard .monitor-main-grid > :is(.chart-panel,.person-panel){
+  height:auto;
+  max-height:none;
+  min-height:0!important;
+ }
+ #pageDashboard .monitor-main-grid #barRows{flex:0 1 auto;max-height:min(60dvh,560px)!important}
+ #pageDashboard .monitor-main-grid #personDetails{flex:0 1 auto;max-height:min(52dvh,490px)!important}
+}
+@media(max-width:980px){
+ #pageTeams .team-admin-grid{align-items:start!important}
+ #pageTeams .team-admin-grid > .team-admin-card{
+  max-height:none;
+  align-self:start!important;
+  overflow:visible;
+ }
+ #pageTeams .team-admin-grid .team-admin-members{max-height:min(45dvh,390px);overflow-y:auto}
+}
+@media(max-width:620px){
+ #pageDashboard .monitor-main-grid #barRows{max-height:min(56dvh,450px)!important}
+ #pageDashboard .monitor-main-grid #personDetails{max-height:min(45dvh,360px)!important}
+}
