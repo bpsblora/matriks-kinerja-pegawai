@@ -434,27 +434,12 @@ function renderTrend(){
  else if(scope==='team'){const t=teamMap.get(id);if(t)candidates=[{id,label:t.name,vals:months.map((_,i)=>year===activeYear?[...periodAgg(String(i+1),id).totals.values()].reduce((x,y)=>x+y,0):0)}]}
  else if(scope==='allEmployees'){candidates=BASE.employees.filter(e=>e.type==='pegawai').map(e=>({id:e.id,label:e.full_name,vals:perMonth.map(d=>d.totals.get(e.id)||0)}));}
  else if(scope==='allTeams'){candidates=BASE.teams.map(t=>({id:t.id,label:t.name,vals:months.map((_,i)=>year===activeYear?[...periodAgg(String(i+1),t.id).totals.values()].reduce((x,y)=>x+y,0):0)}));}
- const officePanelId='officeTeamBreakdown';
- let officePanel=$(officePanelId);
- if(!officePanel){
-  officePanel=document.createElement('section');
-  officePanel.id=officePanelId;
-  officePanel.className='office-team-breakdown panel';
-  const trendCard=$('twelveBars')?.closest('.monthly-trend');
-  if(trendCard)trendCard.insertAdjacentElement('afterend',officePanel);
- }
- officePanel.classList.toggle('hidden',scope!=='office'||year!==activeYear);
- if(scope==='office'&&year===activeYear){
-  const teamRows=BASE.teams.map(t=>({team:t,hours:months.reduce((sum,_,i)=>sum+[...periodAgg(String(i+1),t.id).totals.values()].reduce((a,b)=>a+b,0),0)})).sort((a,b)=>b.hours-a.hours);
-  const maxTeam=Math.max(1,...teamRows.map(x=>x.hours));
-  officePanel.innerHTML=`<div class="section-top"><h3>Beban Kerja per Tim</h3></div>
-   <div class="combined-team-chart">${teamRows.map(x=>`<button type="button" class="combined-team-row" data-office-team="${esc(x.team.id)}"><span>${esc(x.team.name)}</span><div class="combined-progress"><i style="width:${(Math.max(0,x.hours)/maxTeam*100).toFixed(1)}%"></i></div><b>${nf(x.hours)} jam</b></button>`).join('')}</div>`;
-  officePanel.querySelectorAll('[data-office-team]').forEach(btn=>btn.onclick=()=>{
-   $('monitorTeam').value=btn.dataset.officeTeam;
-   renderMonitoring();
-   $('monitorTeam').closest('.comparison-filters')?.scrollIntoView({behavior:'smooth',block:'start'});
-  });
- }
+ // Annual team totals belong in the ranking card when comparing the whole office.
+ const oldAnnualPanel=$('officeTeamBreakdown');
+ if(oldAnnualPanel)oldAnnualPanel.remove();
+ const annualTeamRows=scope==='office'&&year===activeYear
+  ? BASE.teams.map(t=>({team:t,hours:months.reduce((sum,_,i)=>sum+[...periodAgg(String(i+1),t.id).totals.values()].reduce((a,b)=>a+b,0),0)})).sort((a,b)=>b.hours-a.hours)
+  :[];
  const all=candidates.map(e=>({...e,total:e.vals.reduce((a,b)=>a+b,0)})).sort((a,b)=>b.total-a.total);
  const drawn=all.slice(0,scope==='allEmployees'||scope==='allTeams'?6:1),color=['#0c65b4','#12a3ae','#6a6edc','#e9982c','#3b9560','#bb629b'];
  $('trendYearLabel').textContent=String(year);const sum=scope==='office'?all[0]?.total||0:all.reduce((s,x)=>s+x.total,0);
@@ -471,8 +456,21 @@ function renderTrend(){
  $('twelveBars').querySelectorAll('[data-trend-month]').forEach(el=>el.onclick=()=>{currentTrendMonth=Number(el.dataset.trendMonth);renderTrend()});
  $('trendLegend').innerHTML=drawn.map((e,i)=>`<span class="tl-legend-item" title="${esc(e.label)}"><i style="background:${color[i]}"></i>${esc(e.label.length>31?e.label.slice(0,29)+'…':e.label)}</span>`).join('');
  const ranking=all.slice().sort((a,b)=>b.vals[currentTrendMonth-1]-a.vals[currentTrendMonth-1]);
- $('trendRanking').innerHTML=`<div class="tl-rank-card"><strong>Peringkat ${months[currentTrendMonth-1]} ${year}</strong>${ranking.slice(0,7).map((a,i)=>`<div class="rank-row"><span>${i+1}. ${esc(a.label)}</span><b>${nf(a.vals[currentTrendMonth-1])} jam</b></div>`).join('')}</div>`;
- $('trendHelp').textContent=(scope==='allTeams'||scope==='allEmployees')?'Garis menonjolkan enam seri dengan beban tahunan terbesar. Klik bulan untuk melihat peringkat di bulan tersebut; daftar peringkat menggunakan semua seri.':'Klik titik bulan untuk memilih bulan dan melihat nilainya.';
+ if(scope==='office'){
+  const peak=Math.max(1,...annualTeamRows.map(r=>r.hours));
+  $('trendRanking').innerHTML=`<div class="tl-rank-card office-annual-card">
+   <div class="office-annual-head"><strong>Beban Kerja per Tim Tahun ${year}</strong><span>Akumulasi Januari–Desember</span></div>
+   <div class="office-annual-list">${annualTeamRows.map((r,i)=>`<button type="button" class="office-annual-row" data-office-team="${esc(r.team.id)}"><span class="office-team-name" title="${esc(r.team.name)}">${i+1}. ${esc(r.team.name)}</span><span class="office-progress"><i style="width:${(Math.max(0,r.hours)/peak*100).toFixed(1)}%"></i></span><b>${nf(r.hours)} jam</b></button>`).join('')}</div></div>`;
+  $('trendRanking').querySelectorAll('[data-office-team]').forEach(btn=>btn.onclick=()=>{
+   $('monitorTeam').value=btn.dataset.officeTeam;
+   renderMonitoring();
+   $('monitorTeam').closest('.comparison-filters')?.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+  $('trendHelp').textContent='';
+ }else{
+  $('trendRanking').innerHTML=`<div class="tl-rank-card"><strong>Peringkat ${months[currentTrendMonth-1]} ${year}</strong>${ranking.slice(0,7).map((a,i)=>`<div class="rank-row"><span>${i+1}. ${esc(a.label)}</span><b>${nf(a.vals[currentTrendMonth-1])} jam</b></div>`).join('')}</div>`;
+  $('trendHelp').textContent=(scope==='allTeams'||scope==='allEmployees')?'Garis menonjolkan enam seri dengan beban tahunan terbesar. Klik bulan untuk melihat peringkat di bulan tersebut; daftar peringkat menggunakan semua seri.':'Klik titik bulan untuk memilih bulan dan melihat nilainya.';
+ }
 }
 // --- Timeline Kerja V11; only dated entries appear on calendar days ---
 let timelineState={year:activeYear,month:1,date:activeYear+'-01-01'};
