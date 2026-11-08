@@ -293,7 +293,7 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
       <strong>Interpretasi Jam Efektif</strong>
       <p>Jam kerja kotor: Senin–Kamis 07.30–16.00 (8,5 jam/hari) dan Jumat 07.30–16.30 (9 jam). Total 43 jam/minggu.</p>
       <p id="effectiveHoursWeeklyNote">Menghitung perbandingan jam efektif…</p>
-      <small>Selisih dari jam kotor bukan berarti waktu tidak bekerja.</small>
+      <small>Jam kotor mencakup ISHOMA. Jam efektif adalah perkiraan waktu produktif bersih; selisihnya juga dapat mencakup kegiatan lain di luar alokasi produktif, bukan seluruhnya ISHOMA.</small>
     </div>
     <div class="effective-workday-info" aria-live="polite"><div id="autoWorkdaysLabel" class="effective-workday-note">Menghitung hari kerja…</div><p id="autoWorkdaysExplanation" class="effective-workday-explanation">Jumlah hari efektif dihitung otomatis.</p></div>
     <input type="number" id="monitorWorkdays" min="1" max="31" value="21" hidden>
