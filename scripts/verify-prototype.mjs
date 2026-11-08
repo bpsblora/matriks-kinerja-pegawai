@@ -216,6 +216,37 @@ assert(inline.includes("const scope=$('trendScope').value,year=activeYear;"),"Tr
 assert(cssPolish.includes(".trend-scope-buttons"),"Tombol pilihan grafik belum mendapat desain horizontal");
 
 
+
+// The top filter selects the ACTIVITY OWNER and the activity, not the
+// employee's organizational team. Checkboxes follow the resulting workload.
+assert(html.includes('id="trendOwnerTeam"'),"Filter Tim Pemilik Kegiatan tidak ditemukan");
+assert(html.includes('id="trendActivityFilter"'),"Filter Kegiatan tidak ditemukan");
+assert(!html.includes('id="trendTeamOptions"'),"Dropdown checkbox tim keanggotaan lama masih tampil");
+const trendStart=inline.indexOf("function trendWorkloadMonth(");
+const trendEnd=inline.indexOf("function renderTrendActivityFilters(",trendStart);
+assert(trendStart>=0&&trendEnd>trendStart,"Agregasi kegiatan berdasarkan tim pemilik belum tersedia");
+const trendData=vm.runInNewContext(inline.slice(trendStart,trendEnd)+";trendWorkloadMonth(1,'T1','SHKK')",{
+ periodAgg:()=>({details:new Map([
+  ["A1|E1",8],["A1|E2",12],["A2|E2",7],["A3|E1",6]
+ ])}),
+ byId:new Map([
+  ["A1",{team_id:"T1",group:"SHKK"}],
+  ["A2",{team_id:"T2",group:"SHKK"}],
+  ["A3",{team_id:"T1",group:"SHP"}]
+ ]),
+ baseActivity:new Map(),groupName:a=>a.group
+});
+assert.equal(trendData.totals.get("E1"),8,"Beban pegawai pemilik kegiatan salah");
+assert.equal(trendData.totals.get("E2"),12,"Pegawai luar tim yang mengerjakan kegiatan harus ikut dihitung");
+assert.equal(trendData.teamTotals.get("T1"),20,"Beban tim harus memasukkan seluruh pelaksana kegiatan");
+assert.equal(trendData.teamTotals.has("T2"),false,"Beban kegiatan tim lain harus dikecualikan");
+assert(inline.includes("renderTrendActivityFilters(scope)"),"Filter berjenjang belum terhubung pada grafik");
+assert(inline.includes("all.filter(e=>e.total>0).slice(0,6)"),"Pilihan seri awal tidak otomatis mengikuti beban terbesar");
+assert(inline.includes("trendSeriesSelection.allEmployees=null;renderTrend()"),"Perubahan filter tidak memicu urutan pegawai baru");
+assert(inline.includes("trendSeriesSelection.allTeams=null;trendSeriesSelection.allEmployees=null"),"Perubahan filter tidak memicu urutan tim dan pegawai");
+assert(!inline.includes("trendSelectedTeams"),"Logika daftar keanggotaan tim lama harus dilepas");
+assert(cssPolish.includes("#pageDashboard .tl-trend-filters #trendActivityFilterWrap"),"Tata letak Kegiatan belum disesuaikan");
+
 // Historical 2026 must expose the same staff -> team establishment workflow
 // as subsequent years without overwriting its source allocations.
 const setupStart=inline.indexOf("function renderYearSetup(){");
