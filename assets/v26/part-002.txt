@@ -11,6 +11,18 @@ x;border:1px solid #d7e6f4;border-radius:13px;background:#f8fbff;padding:13px 15
 #pageKRO .kro-map-details>summary .kro-map-expand-label{background:#ecf4fd;padding:7px 12px;border-radius:10px;font-size:12px;font-weight:800;white-space:nowrap}
 #pageKRO .kro-map-details[open]>.team-map-section{border:0;border-top:1px solid #d6e6f5;box-shadow:none;margin:0;border-radius:0}
 @media(max-width:720px){.team-summary-ready{grid-template-columns:1fr}#pageTeams #establishedTeamSummary.team-summary-card{padding:15px}#pageKRO .kro-map-details>summary{padding:14px}}
+
+/* Dashboard terpadu: navigasi kartu tunggal, tanpa menu Monitoring ganda */
+#navMonitor{display:none!important}
+.dashboard-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:0 0 17px}
+.dashboard-tab{display:flex;align-items:flex-start;flex-direction:column;gap:5px;min-height:105px;padding:17px 19px;border:1px solid #c8dbef;border-radius:17px;background:#fff;color:#174b7d;cursor:pointer;text-align:left;box-shadow:0 3px 13px #123f6510;transition:transform .18s,border-color .18s,background .18s,box-shadow .18s}
+.dashboard-tab:hover{transform:translateY(-2px);border-color:#2b86d5}
+.dashboard-tab.is-active{background:linear-gradient(120deg,#0c5eb3,#1381c9);border-color:#0c68b9;color:#fff;box-shadow:0 8px 22px #1669b62c}
+.dashboard-tab strong{font-size:16px}.dashboard-tab small{font-size:12px;color:#59768f}.dashboard-tab.is-active small{color:#e1f2ff}
+.dashboard-tab-icon{font-size:20px;line-height:1}
+.dashboard-summary-content[hidden]{display:none!important}
+#pageDashboard .combined-team-chart{max-height:640px;overflow-y:auto}
+@media(max-width:600px){.dashboard-tabs{gap:8px}.dashboard-tab{min-height:96px;padding:14px 12px}.dashboard-tab strong{font-size:14px}}
 </style>
 <style id="kroV23Styling">
 .kro-board-recommendation{padding:12px 14px;border:1px solid #d6e5f5;border-radius:12px;background:#f7faff;margin:10px 0 14px;display:flex;gap:7px;flex-direction:column}
