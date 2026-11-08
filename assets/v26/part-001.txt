@@ -1,4 +1,7 @@
 <!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Matriks Kinerja Pegawai BPS Blora | Prototipe V25 v2.6</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--navy:#142e4a;--ink:#18314d;--muted:#63758a;--border:#dce7f1;--canvas:#f1f5fa;--white:#fff;--blue:#2567d4;--blue2:#eaf2ff;--teal:#087d77;--mint:#e5f6f1;--red:#bd3f47;--amber:#ae761a;--shadow:0 10px 30px rgba(26,53,88,.055)}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--canvas)}button,select,input,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.48;cursor:not-allowed}a{color:var(--blue)}
