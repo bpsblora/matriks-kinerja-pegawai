@@ -143,13 +143,13 @@ const collEnd=inline.indexOf("function ensureWarningDialog(){",collStart);
 assert(collStart>=0&&collEnd>collStart,"Pengurutan prioritas peringatan tidak ditemukan");
 const priorityFixture={
   months:["Januari"],
-  capacityWarningEvents:()=>({
-    events:[
+  capacityWarningEvents:period=>({
+    events:period==="monthly"?[
       {level:"near",title:"Cukup Dipantau",loadRatio:.91,period:"monthly",description:""},
       {level:"over",title:"Berlebih Ringan",loadRatio:1.03,period:"monthly",description:""},
       {level:"pending",title:"Data Perlu Diperiksa",period:"monthly",description:""},
       {level:"over",title:"Berlebih Tinggi",loadRatio:1.55,period:"monthly",description:""}
-    ],hasData:true
+    ]:[],hasData:true
   })
 };
 const sorted=vm.runInNewContext(inline.slice(collStart,collEnd)+";warningCollection().all.map(x=>x.title).slice(0,4).join('|')",priorityFixture);
