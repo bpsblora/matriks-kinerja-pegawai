@@ -276,7 +276,10 @@ function renderMonitoring(){
  const avgAll=org.length?totalAll/(org.length*generalDays):0;
  const exceedAll=org.filter(e=>(whole.totals.get(e.id)||0)>generalCap+0.00001).length;
  const nearAll=org.filter(e=>{const v=whole.totals.get(e.id)||0;return v<=generalCap&&v>=generalCap*.85}).length;
- $('autoWorkdaysLabel').textContent=nf(generalDays)+' hari efektif selama '+activeYear;
+ const effectiveDailyHours=Math.max(.5,Number(state.dailyHours)||7.5);
+ $('effectiveTotalHours').textContent=nf(generalDays*effectiveDailyHours);
+ $('effectiveTotalBasis').textContent=nf(generalDays)+' hari × '+nf(effectiveDailyHours)+' jam/hari';
+ $('autoWorkdaysLabel').textContent=nf(generalDays)+' hari kerja efektif pada '+activeYear+' (otomatis).';
  const cards=[
   {t:'Pegawai Terpantau',v:nf(org.length),note:'Seluruh pegawai organik '+activeYear,sty:'slate',ico:'♙'},
   {t:'Total Jam Alokasi',v:nf(totalAll)+' jam',note:'Jumlah jam-orang Januari–Desember',sty:'',ico:'◷'},
