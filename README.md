@@ -70,3 +70,12 @@ Setiap perubahan di cabang `setup/firebase-foundation` akan melewati build dan m
 `branch -> pull request -> pemeriksaan -> persetujuan -> merge -> deployment DEV -> uji -> promosi PROD terkontrol`.
 
 Dokumen ini tidak merupakan persetujuan untuk memasukkan data pegawai asli ke layanan cloud.
+
+## GitHub Pages untuk pengujian publik (data anonim)
+
+- Alamat: https://bpsblora.github.io/matriks-kinerja-pegawai/
+- Sumber: cabang `setup/firebase-foundation`, workflow `.github/workflows/deploy-github-pages.yml`.
+- GitHub Settings > Pages > Source harus `GitHub Actions`.
+- Preview membuka V25 Terpadu v2.6 secara langsung tanpa login; data hanya simulasi anonim dan penyimpanan masih lokal di browser.
+- Bukan layanan operasional; Firestore dan akun/peran asli tetap nonaktif.
+- Setiap push pada cabang ini memicu pemeriksaan prototipe dan deployment ulang GitHub Pages.
