@@ -690,7 +690,7 @@ function renderYearUI(){
  $('yearBadge').textContent='DATA '+activeYear;
  const info=yearInfo(),status=info.status,upcoming=yearIsFuture(),view=currentRole==='pegawai',gated=yearNeedsGate()&&(view||status==='closed');
  document.body.classList.toggle('year-gated',gated);document.body.classList.toggle('year-new',!isBaseYear);
- const card=$('yearStateStrip');card.classList.toggle('draft',status==='draft');card.classList.toggle('approved',status==='approved');
+ const card=$('yearStateStrip');card.classList.toggle('hidden',isBaseYear);card.classList.toggle('draft',status==='draft');card.classList.toggle('approved',status==='approved');
  $('yearPrepare').classList.toggle('hidden',!(status==='closed'&&!isBaseYear&&canPrepareAnnual()));
  $('yearHow').classList.toggle('hidden',!yearWelcomeNeeded());
  $('yearApprove').classList.toggle('hidden',!(status==='draft'&&!isBaseYear&&publishedAllocationCount()>0&&['kepala','admin'].includes(currentRole)));
