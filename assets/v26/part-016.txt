@@ -1215,7 +1215,7 @@ function renderCapacityWarnings(){
  const cards=[
   {level:'over',label:'Beban Berlebih',note:'Pegawai di atas 100% Total Efektif',count:totals.over},
   {level:'near',label:'Mendekati Batas',note:'Pegawai 85%–100% Total Efektif',count:totals.near},
-  {level:'under',label:'Beban Sangat Rendah',note:'Pegawai dengan alokasi 1%–25%',count:totals.under},
+  {level:'under',label:'Beban Sangat Rendah',note:'Pegawai dengan alokasi di atas 0% hingga 25%',count:totals.under},
   {level:'pending',label:'Alokasi dan Tim Perlu Diperiksa',note:'Kelengkapan data dan ketimpangan beban',count:totals.pending}
  ];
  host.innerHTML=`<div class="mkp-warning-head">
