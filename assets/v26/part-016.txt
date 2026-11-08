@@ -969,6 +969,7 @@ function capacityWarningEvents(period){
  const remaining=(hours,cap)=>nf(Math.max(0,cap-hours))+' Jam';
  const teamLabel=name=>/^tim\b/i.test(String(name))?String(name):'Tim '+String(name);
  const officeHours=staff.reduce((sum,e)=>sum+getHours(e),0);
+ const noAllocation=staff.filter(e=>getHours(e)<=0);
  // A person has one effective work capacity across all assignments.
  // A team owns a workload; it does not have a fixed capacity denominator.
  // Under-allocation is provisional: 0 hours means absent records, not proven idle time.
@@ -981,6 +982,10 @@ function capacityWarningEvents(period){
     nf(hours)+' Jam Alokasi dari '+nf(perPerson)+' Jam Kapasitas Total Efektif ('+ratioText(hours,perPerson)+').',{employeeId:e.id,loadRatio:pct});
    else if(hours>0&&pct<=.25)mk('under','pegawai',e.full_name+' — '+nf(hours)+' Jam Alokasi ('+nf(pct*100)+'% dari Total Efektif)',
     'Alokasi tercatat sangat rendah dibanding '+nf(perPerson)+' Jam Kapasitas Total Efektif. Periksa kelengkapan pencatatan sebelum menyimpulkan pegawai kurang pekerjaan.',{employeeId:e.id,loadRatio:pct});
+  }
+  if(noAllocation.length){
+   mk('pending','alokasi',nf(noAllocation.length)+' Pegawai Belum Memiliki Alokasi Tercatat',
+    'Pada '+periodName+', terdapat '+nf(noAllocation.length)+' Pegawai dengan 0 Jam alokasi. Periksa kelengkapan pencatatan; ini bukan bukti pegawai tidak bekerja.',{action:'check-staff'});
   }
  }
  // Monthly distribution: compare only teams with actual recorded work.
@@ -1066,7 +1071,7 @@ function warningCollection(){
  const periods=['monthly',...months.map((_,i)=>String(i+1))];
  const snapshots=periods.map(period=>capacityWarningEvents(period));
  const all=snapshots.flatMap(s=>s.events);
- const priority={over:0,pending:1,near:2};
+ const priority={over:0,pending:1,near:2,under:3};
  const order=(a,b)=>{
   const importance=priority[a.level]-priority[b.level];
   if(importance)return importance;
@@ -1078,7 +1083,7 @@ function warningCollection(){
   return number(a.period)-number(b.period)||a.title.localeCompare(b.title,'id')||a.description.localeCompare(b.description,'id');
  };
  all.sort(order);
- const totals={over:0,near:0,pending:0};
+ const totals={over:0,near:0,pending:0,under:0};
  all.forEach(e=>totals[e.level]++);
  return {all,totals,hasData:snapshots.some(s=>s.hasData)};
 }
@@ -1107,6 +1112,16 @@ function warningTarget(event){
   return;
  }
  if(event.action==='teams'){setPage('teams');return}
+ if(event.action==='check-staff'){
+  if(!setPage('dashboard'))return;
+  $('monitorPeriod').value=event.period;
+  $('monitorTeam').value='';
+  $('monitorQuery').value='';
+  selectedEmployee=null;
+  renderMonitoring();
+  $('barRows')?.scrollIntoView({behavior:'smooth',block:'center'});
+  return;
+ }
  if(event.action==='input'&&event.activityId){
   gotoAllocation(event.activityId,event.month||1);
   return;
@@ -1128,15 +1143,15 @@ function renderWarningDialog(){
  const list=data.all.filter(item=>
   (category==='all'||item.level===category)
   &&(alertSelectedPeriod==='all'||item.period===alertSelectedPeriod));
- const names={all:'Seluruh Peringatan',over:'Beban Berlebih',near:'Mendekati Batas',pending:'Alokasi Perlu Diperiksa'};
+ const names={all:'Seluruh Peringatan',over:'Beban Berlebih',near:'Mendekati Batas',under:'Beban Sangat Rendah',pending:'Alokasi dan Tim Perlu Diperiksa'};
  const note=list.length?nf(list.length)+' Temuan Sesuai Filter':'Tidak Ada Temuan pada Filter Ini';
- const status=level=>level==='over'?'Prioritas Tinggi':level==='pending'?'Perlu Tindak Lanjut':'Pemantauan';
+ const status=level=>level==='over'?'Prioritas Tinggi':level==='pending'?'Perlu Diperiksa':level==='near'?'Mendekati Batas':'Beban Rendah';
  dialog.innerHTML=`<div class="mkp-warning-dialog-shell">
   <div class="mkp-warning-dialog-head">
    <div class="mkp-warning-dialog-title">
     <span class="mkp-warning-eyebrow">MONITORING MATRIKS PEGAWAI · ${activeYear}</span>
     <h2 id="mkpWarningDialogTitle">${names[category]}</h2>
-    <p>${category==='all'?'Diurutkan berdasarkan urgensi: beban berlebih, alokasi perlu diperiksa, kemudian mendekati batas.':'Tinjau temuan per periode dan buka rincian pekerjaan yang membutuhkan perhatian.'}</p>
+    <p>${category==='all'?'Diurutkan berdasarkan prioritas: kelebihan kapasitas pegawai, pemeriksaan alokasi/ketimpangan tim, mendekati batas, lalu beban sangat rendah.':'Tinjau temuan per periode dan buka rincian pekerjaan yang membutuhkan perhatian.'}</p>
    </div>
    <button type="button" class="mkp-warning-close" aria-label="Tutup Peringatan" id="closeWarningDialog">×</button>
   </div>
@@ -1152,12 +1167,12 @@ function renderWarningDialog(){
   </div>
   <div class="mkp-warning-dialog-scroll" id="warningDialogResults" tabindex="0" role="region" aria-label="Daftar temuan yang dapat digulir">
    ${list.length?list.map((item,index)=>`<button type="button" class="mkp-warning-item ${item.level}" data-warning-detail="${index}">
-    <span class="mkp-warning-icon" aria-hidden="true">${item.level==='over'?'!':item.level==='near'?'◷':'▤'}</span>
+    <span class="mkp-warning-icon" aria-hidden="true">${item.level==='over'?'!':item.level==='near'?'◷':item.level==='under'?'↓':'▤'}</span>
     <span class="mkp-warning-copy"><strong>${esc(item.title)}</strong><small>${esc(item.description)}</small></span>
     <span class="mkp-warning-meta"><em>${esc(item.periodName)}</em><b>${status(item.level)} ›</b></span>
    </button>`).join(''):`<div class="mkp-warning-empty"><strong>Tidak Ada Peringatan</strong><p>Tidak ditemukan temuan pada kategori dan periode yang dipilih.</p></div>`}
   </div>
-  <p class="mkp-warning-dialog-note">Angka merupakan jumlah temuan per periode, bukan jumlah pegawai unik. Pegawai yang tergabung dalam beberapa tim hanya dihitung sekali untuk kapasitas kantor. Peringatan kelebihan kapasitas menunjukkan perlunya evaluasi jadwal atau distribusi pekerjaan dan potensi lembur, bukan keputusan lembur otomatis.</p>
+  <p class="mkp-warning-dialog-note">Jumlah merupakan temuan per periode, bukan pegawai unik. Batas kapasitas total efektif hanya berlaku untuk pegawai. Ketimpangan tim dibandingkan terhadap rata-rata tim yang memiliki alokasi pada bulan terkait. Beban sangat rendah dihitung dari alokasi tercatat; periksa kelengkapan data sebelum menyimpulkan kondisi kerja. Kelebihan Jam tidak otomatis menetapkan lembur.</p>
  </div>`;
  dialog.querySelector('#closeWarningDialog').onclick=()=>dialog.close();
  dialog.querySelector('#warningDialogPeriod').onchange=event=>{
@@ -1183,11 +1198,12 @@ function renderCapacityWarnings(){
  const host=$('capacityWarningBoard');
  if(!host)return;
  const {totals,hasData}=warningCollection();
- const count=totals.over+totals.near+totals.pending;
+ const count=totals.over+totals.near+totals.under+totals.pending;
  const cards=[
-  {level:'over',label:'Beban Berlebih',note:'Di atas 100% kapasitas',count:totals.over},
-  {level:'near',label:'Mendekati Batas',note:'85%–100% kapasitas',count:totals.near},
-  {level:'pending',label:'Alokasi Perlu Diperiksa',note:'Kelengkapan dan konsistensi',count:totals.pending}
+  {level:'over',label:'Beban Berlebih',note:'Pegawai di atas 100% Total Efektif',count:totals.over},
+  {level:'near',label:'Mendekati Batas',note:'Pegawai 85%–100% Total Efektif',count:totals.near},
+  {level:'under',label:'Beban Sangat Rendah',note:'Pegawai dengan alokasi 1%–25%',count:totals.under},
+  {level:'pending',label:'Alokasi dan Tim Perlu Diperiksa',note:'Kelengkapan data dan ketimpangan beban',count:totals.pending}
  ];
  host.innerHTML=`<div class="mkp-warning-head">
   <div><h3>Peringatan dan Tindak Lanjut</h3>
@@ -1200,7 +1216,7 @@ function renderCapacityWarnings(){
  </div>
  <button type="button" class="mkp-warning-all" id="openAllWarnings">
   <span class="mkp-warning-all-icon" aria-hidden="true">▤</span>
-  <span><strong>Lihat Seluruh Peringatan</strong><small>${hasData?'Urut dari yang paling mendesak hingga pemantauan rutin.':'Belum ada alokasi untuk diperiksa.'}</small></span>
+  <span><strong>Lihat Seluruh Peringatan</strong><small>${hasData?'Prioritas kapasitas pegawai, kelengkapan data, ketimpangan tim, lalu beban sangat rendah.':'Belum ada alokasi untuk diperiksa.'}</small></span>
   <span class="mkp-warning-all-total">${nf(count)} Temuan <span aria-hidden="true">›</span></span>
  </button>`;
  host.querySelectorAll('[data-warning-category]').forEach(button=>{
