@@ -291,16 +291,26 @@ function renderMonitoring(){
   {t:'Perlu Perhatian',v:nf(exceedAll)+' Pegawai',note:nearAll+' Pegawai Mendekati Batas Kapasitas',sty:exceedAll?'red':'amber',ico:'!'}
  ];
  $('monitorKpis').innerHTML=cards.map(c=>`<div class="mon-kpi ${c.sty}"><div class="kpi-label"><span>${c.ico}</span>${esc(c.t)}</div><span class="kpi-value">${esc(c.v)}</span><div class="kpi-note">${esc(c.note)}</div></div>`).join('');
+ // The annual source represents the initial annual assignment, while the monthly
+ // series contains assignments already itemized for January–December. A difference
+ // is a reconciliation indicator, not an instruction to distribute hours blindly.
  const refTotal=org.reduce((t,e)=>t+(ref.totals.get(e.id)||0),0),diff=totalAll-refTotal,gap=Math.abs(diff),match=gap<.005;
- const frac=refTotal?gap/refTotal*100:(totalAll?100:0);
- $('reconTag').className='recon-tag '+(match?'ok':'');$('reconTag').textContent=match?'✓ Sesuai referensi':'⚠ Data sumber perlu ditinjau';
+ const frac=refTotal?gap/refTotal*100:(totalAll?100:0),notItemized=diff<-.005,overItemized=diff>.005;
+ $('reconTag').className='recon-tag '+(match?'ok':'');
+ $('reconTag').textContent=match?'✓ Alokasi Tahunan dan Bulanan Sesuai':notItemized?'⚠ Rincian Bulanan Belum Lengkap':'⚠ Alokasi Bulanan Melebihi Acuan';
+ const remainingTitle=match?'Selisih Alokasi':notItemized?'Jam Belum Terurai ke Bulan':'Kelebihan Alokasi Bulanan';
+ const remainingDesc=match?'Seluruh Jam tahunan sudah tercakup dalam rincian bulanan':notItemized?nf(frac)+'% dari Alokasi Tahunan Awal belum tercakup':nf(frac)+'% lebih tinggi dari Alokasi Tahunan Awal';
  $('reconCards').innerHTML=[
-  ['Referensi Tahunan Lama',nf(refTotal)+' Jam','Data acuan dari matriks asli',''],
-  ['Total Tahunan Otomatis',nf(totalAll)+' Jam','Penjumlahan alokasi 12 bulan',''],
-  ['Selisih terhadap Referensi',(diff>0?'+':'')+nf(diff)+' Jam',nf(frac)+'% perlu diperiksa',match?'equal':'diff']
+  ['Alokasi Tahunan Awal',nf(refTotal)+' Jam','Total Jam berdasarkan penetapan tahunan awal '+activeYear,''],
+  ['Alokasi yang Sudah Dirinci per Bulan',nf(totalAll)+' Jam','Akumulasi Jam teralokasi pada Januari–Desember '+activeYear,''],
+  [remainingTitle,nf(gap)+' Jam',remainingDesc,match?'equal':'diff']
  ].map(([lab,val,sub,cls])=>`<div class="recon-card ${cls}"><div class="recon-label">${esc(lab)}</div><div class="recon-value">${esc(val)}</div><div class="recon-desc">${esc(sub)}</div></div>`).join('');
  $('reconNote').className='recon-note '+(match?'':'warn');
- $('reconNote').innerHTML=match?'Data alokasi bulanan sesuai referensi lama.':'Perbedaan ini berasal dari data 2026 yang belum sepenuhnya terurai ke bulan. Lengkapi atau koreksi jadwal melalui Alokasi, bukan membagikan selisih secara otomatis.';
+ $('reconNote').textContent=match
+  ?'Seluruh Jam pada acuan tahunan telah tercakup dalam total alokasi bulanan. Tetap periksa kesesuaian kegiatan dan pegawai.'
+  :notItemized
+   ?nf(frac)+'% dari Alokasi Tahunan Awal '+activeYear+' belum tercakup dalam rincian bulanan. Kondisi ini mengindikasikan banyak kegiatan atau penugasan belum dijabarkan ke Januari–Desember, atau masih terdapat perbedaan pencatatan. Periksa dan lengkapi kegiatan, pegawai, serta jadwal melalui Input Alokasi; selisih tidak boleh dibagikan otomatis.'
+   :'Total alokasi bulanan melebihi acuan tahunan awal sebesar '+nf(gap)+' Jam ('+nf(frac)+'%). Periksa kemungkinan alokasi ganda, perubahan beban kerja, atau perbedaan pencatatan sebelum merevisi penetapan tahunan.';
  renderTrend();
  // This dataset, selected employee and comparison charts follow only the controls placed directly above them.
  const period=$('monitorPeriod').value,team=$('monitorTeam').value,q=$('monitorQuery').value.trim().toLocaleLowerCase('id'),metric=$('monitorMetric').value;
