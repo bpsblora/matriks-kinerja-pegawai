@@ -174,11 +174,11 @@ function setDateRangeMonthFromStart(){const start=$('planStart').value;
 function allocationStatus(){const a=byId.get(selectedId),mode=$('modeSelect').value,target=num($('targetInput').value),std=num($('standardInput').value);const perTotal=[...chosen].reduce((sum,id)=>sum+selectedVolume(id),0);const eventVolume=mode==='bersama'?target:perTotal;const duration=(Number.isFinite(std)&&Number.isFinite(eventVolume))?eventVolume*std:0;const personH=Number.isFinite(std)?perTotal*std:0;
 const errs=[];if(!a)errs.push('Pilih uraian terlebih dahulu');else if(a.status!=='aktif')errs.push('Uraian nonaktif — aktifkan dahulu');if(mode==='belum_ditentukan')errs.push('Pilih jenis pembebanan');if(!chosen.size)errs.push('Pilih anggota aktif di Kelola Tim');if([...chosen].some(id=>!assignedStaffIds(a?.team_id).has(id)))errs.push('Hanya anggota aktif dalam Kelola Tim yang boleh dialokasikan');if(!Number.isFinite(target)||target<=0)errs.push('Target volume harus lebih dari nol');if(!Number.isFinite(std)||std<=0)errs.push('Standar jam harus lebih dari nol');
 if([...chosen].some(e=>!Number.isFinite(num(amounts[e]))||num(amounts[e])<0)&&mode==='terbagi')errs.push('Volume pegawai tidak valid');if(mode==='terbagi'&&Number.isFinite(target)&&Math.abs(perTotal-target)>0.001)errs.push('Jumlah volume pegawai ('+nf(perTotal)+') belum sama dengan target ('+nf(target)+')');
-const start=$('planStart').value,end=$('planEnd').value;if(!!start!==!!end)errs.push('Lengkapi tanggal mulai dan selesai');else if(start&&end&&!distributionForDates(start,end))errs.push('Rentang tanggal harus valid dan dalam tahun '+activeYear);else if(start&&Number(start.slice(5,7))!==Number($('monthSelect').value))errs.push('Bulan alokasi awal belum sesuai tanggal mulai');
+const start=$('planStart').value,end=$('planEnd').value;if(!isBaseYear&&!start&&!end)errs.push('Tanggal Mulai dan Selesai wajib diisi untuk alokasi tahun '+activeYear);if(!!start!==!!end)errs.push('Lengkapi tanggal mulai dan selesai');else if(start&&end&&!distributionForDates(start,end))errs.push('Rentang tanggal harus valid dan dalam tahun '+activeYear);else if(start&&Number(start.slice(5,7))!==Number($('monthSelect').value))errs.push('Bulan alokasi awal belum sesuai tanggal mulai');
 return {mode,target,std,perTotal,eventVolume,duration,personH,errs}}
 function updateCalculations(){const s=allocationStatus();$('sumPeople').textContent=nf(chosen.size);$('checkedBadge').textContent=nf(chosen.size)+' Pegawai';$('sumActivityVolume').textContent=Number.isFinite(s.eventVolume)?nf(s.eventVolume):'—';$('sumDuration').textContent=nf(s.duration)+' Jam';$('sumPersonHours').textContent=nf(s.personH)+' Jam-Orang';$('sumPersonVolume').textContent=nf(s.perTotal);$('sumPersonVolume').closest('.summary-row').hidden=s.mode==='bersama';
 const stateEl=$('formState');stateEl.textContent=s.errs.length?s.errs.join(' • '):'';stateEl.className='state '+(s.errs.length?'bad':'ok');$('saveMonthly').disabled=!canEdit(byId.get(selectedId)?.team_id);syncWorkflowControls();
-$('staffList').querySelectorAll('[data-staffhours]').forEach(el=>{const id=el.dataset.staffhours;el.textContent=nf(selectedVolume(id)*(Number.isFinite(s.std)?s.std:0))+' jam'});
+$('staffList').querySelectorAll('[data-staffhours]').forEach(el=>{const id=el.dataset.staffhours;el.textContent=nf(selectedVolume(id)*(Number.isFinite(s.std)?s.std:0))+' Jam'});
 if(s.mode==='bersama')$('staffList').querySelectorAll('[data-amount]').forEach(el=>{el.value=chosen.has(el.dataset.amount)&&Number.isFinite(s.target)?s.target:''});schedulePreview()}
 function splitEven(){if($('modeSelect').value!=='terbagi'||chosen.size===0){toast('Pilih Volume terbagi dan centang pegawai');return}const target=num($('targetInput').value);if(!Number.isFinite(target)||target<0){toast('Isi volume target terlebih dahulu');return}const ids=[...chosen];const cents=Math.round(target*100);const div=Math.floor(cents/ids.length),remainder=cents%ids.length;ids.forEach((eid,i)=>amounts[eid]=(div+(i<remainder?1:0))/100);renderStaff()}
 async function saveAllocation(){
@@ -302,11 +302,9 @@ function renderMonitoring(){
  // Global 2026 indicators never depend on the comparison filters.
  const org=BASE.employees.filter(e=>e.type==='pegawai'),whole=periodAgg('monthly','');
  $('reconcilePanel').classList.toggle('hidden',!isBaseYear);
- const generalCap=capacity('monthly'),generalDays=workDays('monthly');
+ const generalDays=workDays('monthly');
  const totalAll=org.reduce((t,e)=>t+(whole.totals.get(e.id)||0),0);
  const avgAll=org.length?totalAll/(org.length*generalDays):0;
- const exceedAll=org.filter(e=>(whole.totals.get(e.id)||0)>generalCap+0.00001).length;
- const nearAll=org.filter(e=>{const v=whole.totals.get(e.id)||0;return v<=generalCap&&v>=generalCap*.85}).length;
  const effectiveDailyHours=Math.max(.5,Number(state.dailyHours)||7.5);
  $('effectiveTotalHours').textContent=nf(generalDays*effectiveDailyHours);
  $('effectiveTotalBasis').textContent=nf(generalDays)+' Hari × '+nf(effectiveDailyHours)+' Jam/Hari';
@@ -318,8 +316,7 @@ function renderMonitoring(){
  const cards=[
   {t:'Pegawai Terpantau',v:nf(org.length),note:'Seluruh pegawai organik '+activeYear,sty:'slate',ico:'♙'},
   {t:'Total Jam Alokasi',v:nf(totalAll)+' Jam',note:'Jumlah Jam-Orang Januari–Desember',sty:'',ico:'◷'},
-  {t:'Rata-rata Jam Kerja Harian',v:nf(avgAll)+' Jam',note:'Seluruh pegawai ÷ '+nf(generalDays)+' Hari Efektif',sty:'',ico:'◫'},
-  {t:'Perlu Perhatian',v:nf(exceedAll)+' Pegawai',note:nearAll+' Pegawai Mendekati Batas Kapasitas',sty:exceedAll?'red':'amber',ico:'!'}
+  {t:'Rata-rata Jam Kerja Harian',v:nf(avgAll)+' Jam',note:'Seluruh pegawai ÷ '+nf(generalDays)+' Hari Efektif',sty:'',ico:'◫'}
  ];
  $('monitorKpis').innerHTML=cards.map(c=>`<div class="mon-kpi ${c.sty}"><div class="kpi-label"><span>${c.ico}</span>${esc(c.t)}</div><span class="kpi-value">${esc(c.v)}</span><div class="kpi-note">${esc(c.note)}</div></div>`).join('');
  renderAnnualReconciliation();
