@@ -22,7 +22,7 @@ root.innerHTML=`
     <p class="mp-description">Silakan masuk dengan akun Google BPS Blora untuk melanjutkan.</p>
     <button class="mp-google" id="mpLogin" type="button"><img src="${googleIcon}" alt="">Masuk dengan Google</button>
     <p class="mp-error" id="mpError" role="alert"></p>
-    <p class="mp-note">Versi uji coba · Perubahan masih tersimpan di browser ini</p>
+    
   </section>
 </section>
 <section class="mp-frame-wrap" id="mpView" hidden><iframe id="mpFrame" title="Matriks Kinerja Pegawai BPS Blora" referrerpolicy="no-referrer"></iframe></section>`;
