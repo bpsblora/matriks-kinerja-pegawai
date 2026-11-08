@@ -405,6 +405,118 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
 @media(prefers-reduced-motion:reduce){
  .page :is(.combined-metrics article,.mon-kpi,.tl-kpi,.stat,.recon-card,.kro-audit-kpi,.quickbox,.navbutton.active,.dashboard-tab.is-active){animation:none!important;transition:none!important;transform:none!important}
 }
+
+/* Layout audit 2026: compact cards with balanced BPS blue hierarchy */
+/* Make the effective-hours section three balanced, naturally sized cards. */
+#pageDashboard .monitor-global-settings{margin:0 0 12px;padding:11px 12px;border:1px solid #d1e3f3;border-radius:19px;background:#fff}
+#pageDashboard .monitor-global-settings .effective-hours-layout{
+ display:grid!important;
+ grid-template-columns:minmax(220px,.88fr) minmax(270px,1fr) minmax(360px,1.3fr)!important;
+ gap:12px!important;
+ padding:0!important;
+ align-items:stretch!important;
+ background:transparent!important;
+ border:0!important;
+ margin:0!important
+}
+#pageDashboard .effective-hours-layout>:is(.effective-hours-summary,.effective-hours-config,.effective-hours-interpretation){
+ min-width:0!important;min-height:0!important;margin:0!important;
+ border-radius:15px;padding:16px 18px!important
+}
+#pageDashboard .effective-hours-summary{
+ display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:7px;
+ background:linear-gradient(125deg,#095da9,#1486ce);color:white;
+ border:1px solid #1581c7;box-shadow:0 8px 18px rgba(13,109,188,.14)
+}
+#pageDashboard .effective-hours-heading{font-size:13px;font-weight:900;color:#fff}
+#pageDashboard .effective-hours-number{
+ display:block!important;width:fit-content;max-width:100%;
+ font-size:clamp(29px,2.65vw,39px);line-height:1.13;letter-spacing:-.035em;
+ margin:5px 0 2px;padding:6px 11px!important;background:#ffffff2e!important;
+ border:1px solid #ffffff63!important;color:white!important;border-radius:12px
+}
+#pageDashboard .effective-hours-unit{color:#e9f6ff;font-size:12px;font-weight:900}
+#pageDashboard .effective-hours-basis{color:#e0f3ff;font-size:12px;line-height:1.45;font-weight:750;margin-top:1px}
+#pageDashboard .effective-hours-config{
+ display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:8px;
+ background:#f2f8ff;border:1px solid #d1e6f7
+}
+#pageDashboard .effective-hours-config>label{font-size:13px;font-weight:900;color:#124f84}
+#pageDashboard .effective-hours-control{margin:2px 0;gap:9px}
+#pageDashboard .effective-hours-control input{width:85px;height:40px;font-size:18px}
+#pageDashboard .effective-hours-control span{font-weight:900;color:#235b89}
+#pageDashboard .effective-hours-config p{max-width:none;line-height:1.5}
+#pageDashboard .effective-workday-info{
+ display:flex;flex-direction:column;gap:5px;width:100%;padding-top:9px;
+ margin-top:3px;border-top:1px solid #d3e5f4
+}
+#pageDashboard .effective-workday-note{font-size:12px;line-height:1.45;color:#12578f;font-weight:900}
+#pageDashboard .effective-workday-info .effective-workday-explanation{
+ display:block!important;font-size:11px;line-height:1.5;color:#587b99;font-weight:650
+}
+#pageDashboard .effective-hours-interpretation{
+ display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:9px;
+ background:#e8f3ff;border:1px solid #c8e0f6;box-shadow:none
+}
+#pageDashboard .effective-hours-interpretation>strong{
+ display:block;font-size:13px;color:#11528b;font-weight:900
+}
+#pageDashboard .effective-hours-interpretation p{
+ display:block!important;max-width:none;margin:0!important;
+ font-size:12px;line-height:1.56;color:#3c6589
+}
+#pageDashboard .effective-hours-interpretation #effectiveHoursWeeklyNote{
+ display:block!important;width:fit-content;max-width:100%;
+ background:#d4eaff;border:1px solid #b7d6f0;border-radius:10px;
+ padding:8px 10px;color:#0c528c;font-weight:900
+}
+#pageDashboard .effective-hours-interpretation small{
+ display:block;padding-top:8px;border-top:1px solid #cee0f0;
+ font-size:11px;line-height:1.5;color:#587997
+}
+/* Compact, aligned stat cards throughout the work areas. */
+.page :is(.combined-metrics,.stats,.mon-kpis,.tl-kpis,.recon-grid,.team-admin-kpis,.kro-audit-kpis,.input-quick-grid,.combined-final-grid){
+ align-items:stretch;gap:11px
+}
+#pageDashboard .combined-metrics{margin:7px 0 12px}
+#pageDashboard .combined-metrics article{
+ min-height:0!important;padding:12px 16px!important;
+ display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px
+}
+#pageDashboard .combined-metrics strong{
+ margin:0!important;font-size:clamp(21px,2.25vw,28px);
+ padding:5px 9px!important
+}
+#pageDashboard .combined-metrics small{font-size:12px;line-height:1.35}
+.page :is(.stat,.mon-kpi,.tl-kpi,.recon-card,.kro-audit-kpi,.quickbox){
+ min-height:0;padding:13px 15px
+}
+.page :is(.stat b,.mon-kpi .kpi-value,.tl-kpi .v,.recon-value,.kro-audit-kpi strong,.quickbox strong){
+ line-height:1.25;margin-top:5px;margin-bottom:3px
+}
+#pageTeams .team-admin-grid,#pageKRO .kro-hub-grid,#pageTimeline .tl-layout,#pageRecon .recon-grid{
+ align-items:start
+}
+#pageTeams .team-admin-card{min-height:0!important;padding:14px 16px}
+#pageKRO .kro-hub-card{min-height:0!important;padding:17px 18px}
+.page .section-top{margin-bottom:11px}
+.page .section-top h3{line-height:1.35}
+.page .section-top p{margin-top:4px}
+.page .panel{max-width:100%}
+@media(min-width:1151px){#pageDashboard .monitor-global-settings .effective-hours-layout{grid-template-columns:minmax(220px,.86fr) minmax(275px,1fr) minmax(350px,1.3fr)!important}}
+@media(max-width:1150px){
+ #pageDashboard .monitor-global-settings .effective-hours-layout{grid-template-columns:minmax(230px,.8fr) minmax(285px,1.2fr)!important}
+ #pageDashboard .effective-hours-interpretation{grid-column:1/-1}
+}
+@media(max-width:720px){
+ #pageDashboard .monitor-global-settings .effective-hours-layout{grid-template-columns:minmax(0,1fr)!important}
+ #pageDashboard .effective-hours-interpretation{grid-column:auto}
+ #pageDashboard .effective-hours-layout>:is(.effective-hours-summary,.effective-hours-config,.effective-hours-interpretation){padding:13px 15px!important}
+ #pageDashboard .combined-metrics article{padding:12px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #pageDashboard .effective-hours-summary,#pageDashboard .effective-hours-config,#pageDashboard .effective-hours-interpretation{animation:none!important;transition:none!important}
+}
 </style>
 </head><body>
 <header><div class="shell topbar"><div class="brand"><div class="mark">MP</div><div><h1>Matriks Pegawai</h1><div class="sub">BPS KABUPATEN BLORA</div></div></div><div class="rightbar"><div class="role-switch role-switch-v7"><button class="btn tiny blue-soft" id="modeView">Lihat (View)</button><button class="btn primary tiny" id="btnLoginEdit">Masuk Edit</button><button class="btn tiny hidden" id="btnLogout">Keluar</button></div><span class="role-pill read" id="rolePill">View</span><span class="user-summary" id="sessionUser">Akses umum</span><button class="btn tiny hidden" id="btnRoster">Kelola Tim</button><button class="btn" id="btnExport">↓ Ekspor Perubahan</button><button class="btn" id="btnImport">↑ Impor Backup</button><button class="btn warn" id="btnReset">Reset Uji Coba</button><input type="file" id="importFile" accept=".json,application/json" style="display:none"></div></div></header>
@@ -450,24 +562,27 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
    <div class="effective-hours-summary">
     <span class="effective-hours-heading">Total Jam Efektif</span>
     <strong id="effectiveTotalHours" class="effective-hours-number">—</strong>
-    <span class="effective-hours-unit">jam per pegawai / tahun</span>
+    <span class="effective-hours-unit">Jam per Pegawai / Tahun</span>
     <span id="effectiveTotalBasis" class="effective-hours-basis">Menghitung kapasitas…</span>
    </div>
    <div class="effective-hours-config">
     <label for="monitorDailyHours">Jam Efektif per Hari</label>
     <div class="effective-hours-control">
      <input type="number" id="monitorDailyHours" min="0.5" max="24" step="0.5" value="7.5" aria-describedby="effectiveHoursHelp">
-     <span>jam/hari</span>
+     <span>Jam/Hari</span>
     </div>
-    <p id="effectiveHoursHelp">Perkiraan jam efektif untuk menghitung kapasitas kerja, bukan jam alokasi aktual.</p>
-    <div class="effective-hours-interpretation" id="effectiveHoursInterpretation" aria-live="polite">
-      <strong>Interpretasi Jam Efektif</strong>
-      <p>Jam kerja kotor: Senin–Kamis 07.30–16.00 (8,5 jam/hari) dan Jumat 07.30–16.30 (9 jam). Total 43 jam/minggu.</p>
-      <p id="effectiveHoursWeeklyNote">Menghitung perbandingan jam efektif…</p>
-      <small>Jam kotor mencakup ISHOMA. Jam efektif adalah perkiraan waktu produktif bersih; selisihnya juga dapat mencakup kegiatan lain di luar alokasi produktif, bukan seluruhnya ISHOMA.</small>
+    <p id="effectiveHoursHelp">Perkiraan waktu produktif bersih untuk menghitung kapasitas kerja, bukan alokasi aktual.</p>
+    <div class="effective-workday-info" aria-live="polite">
+     <strong id="autoWorkdaysLabel" class="effective-workday-note">Menghitung hari kerja…</strong>
+     <p id="autoWorkdaysExplanation" class="effective-workday-explanation">Hari efektif dihitung otomatis.</p>
     </div>
-    <div class="effective-workday-info" aria-live="polite"><div id="autoWorkdaysLabel" class="effective-workday-note">Menghitung hari kerja…</div><p id="autoWorkdaysExplanation" class="effective-workday-explanation">Jumlah hari efektif dihitung otomatis.</p></div>
     <input type="number" id="monitorWorkdays" min="1" max="31" value="21" hidden>
+   </div>
+   <div class="effective-hours-interpretation" id="effectiveHoursInterpretation" aria-live="polite">
+    <strong>Interpretasi Jam Efektif</strong>
+    <p>Jam kerja kotor: Senin–Kamis 07.30–16.00 (8,5 Jam/Hari) dan Jumat 07.30–16.30 (9 Jam/Hari), atau 43 Jam/Minggu.</p>
+    <p id="effectiveHoursWeeklyNote">Menghitung perbandingan jam efektif…</p>
+    <small>Jam kotor mencakup ISHOMA. Jam efektif adalah perkiraan waktu produktif bersih; selisihnya tidak seluruhnya merupakan ISHOMA.</small>
    </div>
   </div>
  </section>
