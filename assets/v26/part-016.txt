@@ -259,10 +259,9 @@ function syncTeamWorkspace(){
   } else {$('teamSelect').value=roleTeamId;}
   if($('reconTeam').options.length){$('reconTeam').value=roleTeamId;}
   if($('monitorTeam').options.length){$('monitorTeam').value=roleTeamId;}if($('timelineTeam').options.length)$('timelineTeam').value=roleTeamId;
-  if($('trendScope') && $('trendScope').value!=='team'){$('trendScope').value='team';$('trendEntity').dataset.scope='';}
-  if($('trendEntity') && $('trendEntity').options.length){
-   if($('trendEntity').dataset.scope!=='team')renderTrend();
-   $('trendEntity').value=roleTeamId;
+  if($('trendScope')){
+   $('trendScope').value='allTeams';
+   trendSeriesSelection.allTeams=new Set([String(roleTeamId)]);
   }
  }
  applyRolePermissions();
@@ -316,7 +315,7 @@ function setupRoster(){
 function enterView(){
  try{sessionStorage.removeItem(SESSION_KEY)}catch(e){}
  currentRole='pegawai';sessionUser='';closeModal();$('loginScreen').classList.add('hidden');$('rosterScreen').classList.add('hidden');
- if($('monitorTeam'))$('monitorTeam').value='';if($('timelineTeam'))$('timelineTeam').value='';if($('trendScope')){$('trendScope').value='employee';$('trendEntity').dataset.scope='';}
+ if($('monitorTeam'))$('monitorTeam').value='';if($('timelineTeam'))$('timelineTeam').value='';if($('trendScope'))$('trendScope').value='allEmployees';
  syncTeamWorkspace();setPage('dashboard');renderTeamRosterHint();syncWorkflowControls();renderYearUI();maybeShowYearWelcome();
 }
 function enterPrototypeEdit(){
@@ -423,6 +422,25 @@ async function saveMoveModal(){
 
 let currentTrendMonth=1;
 const trendSeriesSelection={allTeams:null,allEmployees:null};
+let trendSelectedTeams=null;
+function renderTrendTeamFilter(){
+ const allIds=BASE.teams.map(t=>String(t.id));
+ if(!(trendSelectedTeams instanceof Set))trendSelectedTeams=new Set(allIds);
+ const selected=trendSelectedTeams;
+ const options=$('trendTeamOptions');if(!options)return;
+ const previousScroll=options.scrollTop||0;
+ options.innerHTML=BASE.teams.map(team=>`<label class="trend-team-option" title="${esc(team.name)}"><input type="checkbox" data-trend-team="${esc(String(team.id))}" ${selected.has(String(team.id))?'checked':''}><span>${esc(team.name)}</span></label>`).join('');
+ options.scrollTop=previousScroll;
+ const n=allIds.filter(id=>selected.has(id)).length;
+ $('trendTeamFilterSummary').textContent=n===allIds.length?'Semua Tim':n===0?'Tidak Ada Tim':n===1?(BASE.teams.find(t=>selected.has(String(t.id)))?.name||'1 Tim'):n+' Tim Dipilih';
+ $('trendTeamSelectAll').onclick=()=>{trendSelectedTeams=new Set(allIds);renderTrend()};
+ $('trendTeamClear').onclick=()=>{trendSelectedTeams=new Set();renderTrend()};
+ options.querySelectorAll('[data-trend-team]').forEach(checkbox=>checkbox.onchange=()=>{
+  if(checkbox.checked)trendSelectedTeams.add(checkbox.dataset.trendTeam);
+  else trendSelectedTeams.delete(checkbox.dataset.trendTeam);
+  renderTrend();
+ });
+}
 function trendSeriesColor(index){
  const palette=['#0c65b4','#12a3ae','#6a6edc','#e9982c','#3b9560','#bb629b'];
  return index<palette.length?palette[index]:`hsl(${Math.round((index*137.5+206)%360)} 66% 42%)`;
@@ -450,15 +468,13 @@ function renderTrendSelectors(scope,all,selected,colorById){
  });
 }
 function renderTrend(){
- const scope=$('trendScope').value,year=Number($('trendYear').value),entity=$('trendEntity'),wrap=$('trendEntityWrap');
- const singular=scope==='team'||scope==='employee';wrap.classList.toggle('hidden',!singular);
- const opts=scope==='employee'?BASE.employees.filter(e=>e.type==='pegawai').map(e=>({value:e.id,label:e.full_name})):scope==='team'?BASE.teams.map(t=>({value:t.id,label:t.name})):[];
- if(singular&&entity.dataset.scope!==scope){fillSelect(entity,opts);entity.dataset.scope=scope}if(!singular)entity.dataset.scope='';
- const id=entity.value,perMonth=year===activeYear?months.map((_,i)=>periodAgg(String(i+1),'')):months.map(()=>({totals:new Map()}));
+ const scope=$('trendScope').value,year=Number($('trendYear').value);
+ const compareEmployees=scope==='allEmployees';
+ $('trendTeamFilterWrap').classList.toggle('hidden',!compareEmployees);
+ if(compareEmployees)renderTrendTeamFilter();
+ const perMonth=year===activeYear?months.map((_,i)=>periodAgg(String(i+1),compareEmployees?trendSelectedTeams:'')):months.map(()=>({totals:new Map()}));
  let candidates=[];
  if(scope==='office'){candidates=[{id:'office',label:'Total Kantor',vals:perMonth.map(d=>BASE.employees.filter(e=>e.type==='pegawai').reduce((s,e)=>s+(d.totals.get(e.id)||0),0))}];}
- else if(scope==='employee'){const e=employeeMap.get(id);if(e)candidates=[{id,label:e.full_name,vals:perMonth.map(d=>d.totals.get(id)||0)}]}
- else if(scope==='team'){const t=teamMap.get(id);if(t)candidates=[{id,label:t.name,vals:months.map((_,i)=>year===activeYear?[...periodAgg(String(i+1),id).totals.values()].reduce((x,y)=>x+y,0):0)}]}
  else if(scope==='allEmployees'){candidates=BASE.employees.filter(e=>e.type==='pegawai').map(e=>({id:e.id,label:e.full_name,vals:perMonth.map(d=>d.totals.get(e.id)||0)}));}
  else if(scope==='allTeams'){candidates=BASE.teams.map(t=>({id:t.id,label:t.name,vals:months.map((_,i)=>year===activeYear?[...periodAgg(String(i+1),t.id).totals.values()].reduce((x,y)=>x+y,0):0)}));}
  // Annual team totals belong in the ranking card when comparing the whole office.
@@ -477,8 +493,15 @@ function renderTrend(){
  const colorById=new Map(all.map((e,i)=>[String(e.id),trendSeriesColor(i)]));
  $('trendYearLabel').textContent=String(year);
  const sum=scope==='office'?all[0]?.total||0:(multi?drawn:all).reduce((sum,e)=>sum+e.total,0);
- $('trendKpis').innerHTML=`<span>${esc(scope==='allTeams'?'Semua Tim':scope==='allEmployees'?'Semua Pegawai':drawn[0]?.label||'Belum dipilih')}</span><span>${multi?'Total terpilih':'Total'}: ${nf(sum)} jam</span><span>${multi?drawn.length+' dari '+all.length+' seri dipilih':all.length+' seri'}</span>`;
+ $('trendKpis').innerHTML=`<span>${esc(scope==='allTeams'?'Tim':scope==='allEmployees'?'Pegawai':drawn[0]?.label||'Belum dipilih')}</span><span>${multi?'Total terpilih':'Total'}: ${nf(sum)} jam</span><span>${multi?drawn.length+' dari '+all.length+' seri dipilih':all.length+' seri'}</span>`;
  if(year!==activeYear){$('twelveBars').innerHTML='<div class="empty">Belum ada alokasi tahun '+year+'. Tahun baru akan muncul setelah perencanaan dan migrasi data.</div>';$('trendRanking').innerHTML='';$('trendLegend').innerHTML='';return}
+ if(compareEmployees&&trendSelectedTeams.size===0){
+  $('twelveBars').innerHTML='<div class="empty">Pilih sedikitnya satu tim untuk menghitung beban kerja pegawai.</div>';
+  renderTrendSelectors(scope,all,selected,colorById);
+  $('trendRanking').innerHTML='<div class="tl-rank-card">Belum ada tim yang dipilih.</div>';
+  $('trendHelp').textContent='';
+  return;
+ }
  if(multi&&!drawn.length){
   $('twelveBars').innerHTML='<div class="empty">Centang pegawai atau tim di bawah grafik untuk mulai membandingkan.</div>';
   renderTrendSelectors(scope,all,selected,colorById);
@@ -593,7 +616,7 @@ function setupV5(){setupRoles();setupTimeline();fillSelect($('stdGroup'),[{value
  $('navRecon').onclick=()=>setPage('recon');$('navStandards').onclick=()=>setPage('standards');$('reconMonth').onchange=renderRecon;$('reconTeam').onchange=()=>{if(currentRole==='ketua')$('reconTeam').value=roleTeamId;renderRecon()};$('reconQuery').oninput=renderRecon;
   
  if($('stdAdd'))$('stdAdd').onclick=()=>openStandardModal();$('stdGroup').onchange=renderStandards;$('stdStatus').onchange=renderStandards;$('stdQuery').oninput=renderStandards;
- $('gotoStandards').onclick=()=>setPage('standards');fillSelect($('trendYear'),[{value:String(activeYear),label:String(activeYear)}],String(activeYear));$('trendYear').onchange=renderTrend;$('trendScope').value='office';$('trendScope').onchange=()=>{$('trendEntity').dataset.scope='';renderTrend()};$('trendEntity').onchange=renderTrend;
+ $('gotoStandards').onclick=()=>setPage('standards');fillSelect($('trendYear'),[{value:String(activeYear),label:String(activeYear)}],String(activeYear));$('trendYear').onchange=renderTrend;$('trendScope').value='office';$('trendScope').onchange=renderTrend;
  // Native modal save path extension for master edit and month movement.
  const oldModalSave=$('saveModal').onclick;
  $('saveModal').onclick=()=>{if(modalMode==='master-standard')return saveStandardModal();if(modalMode==='move-dates')return saveMoveModal();return oldModalSave()};
