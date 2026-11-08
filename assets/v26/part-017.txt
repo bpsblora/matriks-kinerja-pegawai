@@ -52,6 +52,81 @@ nst hasValidTeam=!tid||yearTeamReady(tid),hasCodes=!!(selectedCodes&&[...selecte
 }
 
 function openKroAssignmentPopup(){const d=$('kroAssignmentPopup');if(d&&!d.open)d.showModal();}
+
+/* KRO and activity groups have independent identities. The following mapping
+   is scoped to the active year; a new year's KRO codes are not inherited. */
+let kroActivityMapTeam='';
+function ensureKroActivityMapDialog(){
+ let dialog=$('kroActivityMapDialog');
+ if(dialog)return dialog;
+ dialog=document.createElement('dialog');
+ dialog.id='kroActivityMapDialog';
+ dialog.className='kro-activity-map-dialog';
+ dialog.setAttribute('aria-label','Pemetaan KRO dan Kegiatan Tahun Berjalan');
+ document.body.appendChild(dialog);
+ dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close()});
+ return dialog;
+}
+function showKroActivityMap(){
+ const dialog=ensureKroActivityMapDialog();
+ const allowedTeams=BASE.teams.filter(t=>currentRole!=='ketua'||t.id===roleTeamId);
+ const tid=currentRole==='ketua'?roleTeamId:(kroActivityMapTeam||selectedTeam||allowedTeams[0]?.id);
+ if(!allowedTeams.some(t=>t.id===tid))return;
+ kroActivityMapTeam=tid;
+ const groups=groupList(tid,false),availableCodes=teamKroCodes(tid);
+ const editable=!isBaseYear&&yearKroReady(tid)&&roleCanManageTeam(tid)&&yearInfo().status!=='closed';
+ const missing=groups.filter(([group])=>resolveGroupKro(tid,group)===NO_KRO).length;
+ dialog.innerHTML=`<div class="kro-activity-map-head">
+  <div><span class="kro-activity-map-eyebrow">HUBUNGAN KRO–KEGIATAN · TAHUN ${activeYear}</span>
+   <h2>Pemetaan KRO dan Kegiatan</h2>
+   <p>Setiap Kegiatan memiliki satu KRO acuan pada tahun berjalan. Kode KRO bisa berubah antar tahun dan tidak menjadi identitas permanen kegiatan.</p>
+  </div><button type="button" id="kroActivityMapClose" class="kro-activity-map-close" aria-label="Tutup Pemetaan">×</button>
+ </div>
+ <div class="kro-activity-map-toolbar"><label>Tim Pemilik Kegiatan
+  <select id="kroActivityMapTeam" ${currentRole==='ketua'?'disabled':''}>${allowedTeams.map(t=>`<option value="${esc(t.id)}" ${t.id===tid?'selected':''}>${esc(t.name)}</option>`).join('')}</select>
+ </label><div class="kro-activity-map-stats"><strong>${nf(groups.length)} Kegiatan</strong><span>${nf(missing)} Belum Dipetakan · ${nf(availableCodes.length)} KRO Tim</span></div></div>
+ <div class="kro-activity-map-scroll" role="region" aria-label="Daftar Kegiatan dan KRO Tahun Ini" tabindex="0">
+ ${groups.length?groups.map(([name,items],i)=>{
+  const code=resolveGroupKro(tid,name);
+  return `<div class="kro-activity-map-row ${code===NO_KRO?'needs-map':''}">
+   <div class="kro-activity-map-name"><strong>${esc(name)}</strong><small>${nf(items.filter(a=>a.status==='aktif').length)} Uraian · ${esc(teamMap.get(tid)?.name||'')}</small></div>
+   <label class="kro-activity-map-pick">KRO Tahun ${activeYear}
+    <select data-kro-activity-index="${i}" ${editable?'':'disabled'}>
+     <option value="${esc(NO_KRO)}">Belum Dipetakan</option>
+     ${availableCodes.map(value=>{const k=POK_KROS.find(row=>row.code===value);return `<option value="${esc(value)}" ${value===code?'selected':''}>${esc(value+' — '+(k?.name||'KRO'))}</option>`}).join('')}
+    </select>
+   </label>
+  </div>`;
+ }).join(''):'<div class="empty">Belum ada Kegiatan aktif pada Tim ini.</div>'}
+ </div>
+ <div class="kro-activity-map-footer"><p>Hubungan ini berlaku pada ${activeYear} saja. Perubahan KRO tidak mengubah volume, Jam-Orang, maupun riwayat tahun lainnya. ${editable?'Pilih pemetaan kemudian simpan.':isBaseYear?'Tahun 2026 ditampilkan sebagai referensi historis.':'Tetapkan susunan tim dan KRO tahun ini sebelum memetakan kegiatan.'}</p>
+  <button type="button" id="kroActivityMapSave" class="btn primary" ${!editable||!groups.length?'disabled':''}>Simpan Pemetaan ${activeYear}</button>
+ </div>`;
+ dialog.querySelector('#kroActivityMapClose').onclick=()=>dialog.close();
+ dialog.querySelector('#kroActivityMapTeam').onchange=e=>{kroActivityMapTeam=e.target.value;showKroActivityMap()};
+ dialog.querySelector('#kroActivityMapSave').onclick=()=>{
+  if(!editable)return;
+  const updates=[];
+  for(const select of dialog.querySelectorAll('[data-kro-activity-index]')){
+   const row=groups[Number(select.dataset.kroActivityIndex)];
+   if(!row)continue;
+   const code=select.value;
+   if(code!==NO_KRO&&!availableCodes.includes(code))return toast('KRO tidak ditetapkan pada tim ini.');
+   const key=groupKroKey(tid,row[0]);
+   if(resolveGroupKro(tid,row[0])!==code)updates.push({key,code,name:row[0]});
+  }
+  if(!updates.length){dialog.close();return toast('Tidak ada perubahan pemetaan.')}
+  for(const x of updates)state.groupKroOverrides[x.key]=x.code;
+  logChange('Pemetaan KRO Kegiatan '+activeYear,(teamMap.get(tid)?.name||tid)+' · '+updates.length+' Kegiatan diperbarui');
+  if(!persist())return;
+  dialog.close();
+  renderKroBoard();renderKroAudit();
+  if(selectedTeam===tid&&$('groupSelect'))renderGroups(selectedGroup);
+  toast(nf(updates.length)+' Pemetaan KRO–Kegiatan '+activeYear+' tersimpan.');
+ };
+ if(!dialog.open)dialog.showModal();
+}
+
 function renderKroBoard(){
  const el=$('kroBoardMain');if(!el)return;
  const canCentral=currentRole==='admin'||currentRole==='kepala';
@@ -86,6 +161,7 @@ function renderKroBoard(){
  <div class="kro-hub-grid" aria-label="Menu pembagian KRO">
   <button type="button" class="kro-hub-card" id="kroHubMaster"><span class="kro-hub-icon">▤</span><span class="kro-hub-card-content"><strong>Daftar Induk KRO</strong><small>Tambah, ubah, hapus, dan cari KRO tahun ${activeYear}.</small><span class="kro-hub-card-meta">${POK_KROS.length} KRO terdaftar</span></span><span class="kro-hub-arrow">↗</span></button>
   <button type="button" class="kro-hub-card" id="kroHubMap"><span class="kro-hub-icon">◫</span><span class="kro-hub-card-content"><strong>Peta KRO – Tim</strong><small>Lihat peta penugasan dan atur KRO untuk setiap tim.</small><span class="kro-hub-card-meta">${demoTeams.length} Tim kerja · ${POK_KROS.length} KRO</span></span><span class="kro-hub-arrow">↗</span></button>
+  <button type="button" class="kro-hub-card" id="kroHubActivity"><span class="kro-hub-icon">▦</span><span class="kro-hub-card-content"><strong>Pemetaan KRO–Kegiatan</strong><small>Pilih KRO yang berlaku untuk setiap kegiatan pada tahun ${activeYear}.</small><span class="kro-hub-card-meta">Pemetaan terpisah untuk tiap tahun</span></span><span class="kro-hub-arrow">↗</span></button>
  </div>
  <dialog id="kroMasterPopup" class="kro-hub-dialog" aria-labelledby="kroMasterModalTitle"><div class="kro-hub-dialog-head"><div><span class="kro-modal-eyebrow">PEMBAGIAN KRO</span><h2 id="kroMasterModalTitle">Daftar Induk KRO ${activeYear}</h2><p>Perbarui daftar KRO pada tahun matriks aktif.</p></div><button type="button" class="kro-hub-close" data-close-kro-master aria-label="Tutup Daftar Induk KRO">✕</button></div><div class="kro-hub-dialog-body"><section class="panel kro-master-panel"><div class="section-top"><div><h3>Daftar Induk KRO ${activeYear}</h3><p>Tambah, ubah, atau hapus KRO yang belum digunakan. Penetapan ke tim tersedia melalui Peta KRO.</p></div><div class="kro-master-heading"><span class="badge">${POK_KROS.length} KRO</span>${canEditMaster?'<button id="kroMasterAdd" class="btn primary" type="button">＋ Tambah KRO</button>':''}</div></div>
  <div class="kro-master-tools"><label for="kroMasterSearch">Cari KRO<input type="search" id="kroMasterSearch" placeholder="Cari kode atau nama KRO..." value="${esc(kroMasterQuery)}"></label><span>${canEditMaster?'Hak akses: Admin/Kepala':'Daftar induk hanya dapat diubah oleh Admin/Kepala.'}</span></div>
@@ -101,6 +177,7 @@ function renderKroBoard(){
  if(masterWasOpen)showBoardDialog('kroMasterPopup');
  if(assignmentWasOpen)showBoardDialog('kroAssignmentPopup');
  $('kroHubMaster').onclick=()=>showBoardDialog('kroMasterPopup');
+ $('kroHubActivity').onclick=()=>showKroActivityMap();
  $('kroHubMap').onclick=()=>{renderKroMap();const d=$('kroMapPopup');if(d&&!d.open)d.showModal();};
  el.querySelectorAll('[data-close-kro-master]').forEach(b=>b.onclick=()=>$('kroMasterPopup').close());
  el.querySelectorAll('[data-close-kro-assignment]').forEach(b=>b.onclick=()=>$('kroAssignmentPopup').close());
