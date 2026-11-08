@@ -106,15 +106,39 @@ const context={
 const evaluate=()=>vm.runInNewContext(warningCode+";capacityWarningEvents('monthly')",context);
 let events=evaluate().events;
 assert(events.some(e=>e.scope==="pegawai"&&e.level==="over"),"Pegawai di atas kapasitas harus terdeteksi");
-assert(!events.some(e=>e.scope==="kantor"&&e.level==="over"),"Kapasitas kantor menghitung pegawai ganda");
+assert(!events.some(e=>(e.scope==="kantor"||e.scope==="tim")&&(e.level==="over"||e.level==="near")),"Tim/kantor tidak boleh memakai peringatan batas kapasitas pegawai");
 assert(!events.some(e=>e.scope==="alokasi"),"Katalog tanpa alokasi tidak boleh ditandai belum lengkap");
 
 // Each actionable warning title states a concrete name and amount, not just
 // a generic capacity status. The subtitle retains the ratio and context.
-assert(events.some(e=>e.scope==="pegawai"&&e.level==="over"&&e.title==="Pegawai A — Kelebihan 1 Jam"),"Judul pegawai harus menunjukkan nama dan Jam kelebihan");
-context.assignedStaff=teamId=>teamId==="T1"?[e1]:[e2];
+assert(events.some(e=>e.scope==="pegawai"&&e.level==="over"&&e.title==="Pegawai A — Melebihi Kapasitas Total Efektif 1 Jam"),"Judul pegawai harus menyebut Kapasitas Total Efektif dan kelebihan Jam");
+const originalAggregate=context.periodAgg;
+const originalTeams=context.BASE.teams;
+context.periodAgg=(period,team)=>({totals:team==="T1"
+ ?new Map([["E1",250],["E2",0]]):team==="T2"
+ ?new Map([["E1",40],["E2",0]]):team==="T3"
+ ?new Map([["E1",20],["E2",0]]):team==="T4"
+ ?new Map([["E1",10],["E2",0]]):new Map([["E1",180],["E2",140]])});
+context.BASE.teams=[{id:"T1",name:"Tim A"},{id:"T2",name:"Tim B"},{id:"T3",name:"Tim C"},{id:"T4",name:"Tim D"}];
+events=vm.runInNewContext(warningCode+";capacityWarningEvents('1')",context).events;
+assert(events.some(e=>e.scope==="tim"&&e.anomaly==="high"&&e.title.includes("Jam di Atas Rata-rata Tim")),"Beban tim bulanan yang jauh di atas rata-rata harus diperingatkan");
+assert(events.some(e=>e.scope==="tim"&&e.anomaly==="low"&&e.title.includes("Jam di Bawah Rata-rata Tim")),"Beban tim bulanan yang jauh di bawah rata-rata harus diperingatkan");
+assert(!events.some(e=>e.scope==="tim"&&e.level==="over"),"Ketimpangan tim bukan kelebihan kapasitas tim");
+assert(!vm.runInNewContext(warningCode+";capacityWarningEvents('monthly')",context).events.some(e=>e.scope==="tim"&&e.anomaly),"Ketimpangan tim hanya dinilai untuk tiap bulan");
+context.BASE.teams=originalTeams;
+context.periodAgg=(period,team)=>({totals:team==="T1"
+ ?new Map([["E1",11],["E2",0]]):team==="T2"
+ ?new Map([["E1",0],["E2",2]]):new Map([["E1",11],["E2",2]])});
 events=evaluate().events;
-assert(events.some(e=>e.scope==="tim"&&e.level==="over"&&e.title==="Tim A — Kelebihan 1 Jam"),"Judul tim harus menunjukkan nama tim dan Jam kelebihan");
+assert(events.some(e=>e.scope==="pegawai"&&e.level==="under"&&e.title.includes("2 Jam Alokasi")),"Pegawai dengan 20% beban tercatat harus diperingatkan");
+context.periodAgg=(period,team)=>({totals:team==="T1"
+ ?new Map([["E1",11],["E2",0]]):team==="T2"
+ ?new Map([["E1",0],["E2",0]]):new Map([["E1",11],["E2",0]])});
+events=evaluate().events;
+assert(!events.some(e=>e.scope==="pegawai"&&e.level==="under"&&e.employeeId==="E2"),"Nol Jam berarti belum tercatat, bukan bukti pegawai sangat under");
+assert(events.some(e=>e.title.includes("Pegawai Belum Memiliki Alokasi Tercatat")),"Pegawai nol Jam harus masuk pemeriksaan kelengkapan");
+context.periodAgg=originalAggregate;
+events=evaluate().events;
 
 context.state.allocEdits={"A1|E1|1":4};
 events=evaluate().events;
@@ -126,6 +150,19 @@ context.state.allocEdits={};
 context.state.targets={"A1|1":2};
 events=evaluate().events;
 assert(events.some(e=>e.title.includes("Uraian Belum Dialokasikan ke Pegawai")),"Target tanpa penugasan harus diperingatkan");
+
+// Outside-team assignments are legitimate. The dashboard may still request a
+// date, but must not reject an assignee merely for lacking team membership.
+context.assignedStaffIds=()=>new Set(["E2"]);
+context.state.allocEdits={"A1|E1|1":4};
+events=evaluate().events;
+assert(!events.some(e=>e.title.includes("Penugasan di Luar Tim")),"Penugasan lintas tim bukan masalah validasi");
+context.state.allocEdits={};
+assert(!warningCode.includes("members.length*perPerson"),"Kapasitas tim tidak boleh dijumlah dari anggota tetap");
+assert(!warningCode.includes("officeCap"),"Kantor tidak memiliki ambang maksimum volume beban kerja");
+assert(warningCode.includes("pct<=.25"),"Pegawai dengan alokasi tercatat di bawah 25% belum dipantau");
+assert(warningCode.includes("working.length>=3"),"Pembandingan tim harus menggunakan sampel bulan yang memadai");
+
 assert(html.includes("Tanggal Mulai dan Selesai wajib diisi"),"Tahun baru harus mewajibkan tanggal pelaksanaan");
 assert(html.includes("moveAnnualAuditToRecon()"),"Pemeriksaan tahun 2026 harus tersedia di Rekonsiliasi");
 assert(html.includes('id="capacityWarningBoard"'),"Pusat peringatan Dashboard tidak ditemukan");
@@ -135,7 +172,7 @@ const warnSummaryStart=inline.indexOf("function renderCapacityWarnings(){");
 const warnSummaryEnd=inline.indexOf("function renderCombinedDashboard(){",warnSummaryStart);
 const warnSummary=inline.slice(warnSummaryStart,warnSummaryEnd);
 assert(warnSummaryStart>=0&&warnSummaryEnd>warnSummaryStart,"Ringkasan peringatan Dashboard tidak ditemukan");
-for(const level of ["over","near","pending"]){
+for(const level of ["over","near","under","pending"]){
   assert(warnSummary.includes("data-warning-category"),"Kartu "+level+" belum dapat membuka pop-up");
 }
 assert(warnSummary.includes('id="openAllWarnings"'),"Tombol Seluruh Peringatan tidak ditemukan");
@@ -156,12 +193,13 @@ const priorityFixture={
       {level:"near",title:"Cukup Dipantau",loadRatio:.91,period:"monthly",description:""},
       {level:"over",title:"Berlebih Ringan",loadRatio:1.03,period:"monthly",description:""},
       {level:"pending",title:"Data Perlu Diperiksa",period:"monthly",description:""},
+      {level:"under",title:"Beban Sangat Rendah",loadRatio:.15,period:"monthly",description:""},
       {level:"over",title:"Berlebih Tinggi",loadRatio:1.55,period:"monthly",description:""}
     ]:[],hasData:true
   })
 };
-const sorted=vm.runInNewContext(inline.slice(collStart,collEnd)+";warningCollection().all.map(x=>x.title).slice(0,4).join('|')",priorityFixture);
-assert.equal(sorted,"Berlebih Tinggi|Berlebih Ringan|Data Perlu Diperiksa|Cukup Dipantau","Prioritas pop-up tidak sesuai tingkat urgensi");
+const sorted=vm.runInNewContext(inline.slice(collStart,collEnd)+";warningCollection().all.map(x=>x.title).slice(0,5).join('|')",priorityFixture);
+assert.equal(sorted,"Berlebih Tinggi|Berlebih Ringan|Data Perlu Diperiksa|Cukup Dipantau|Beban Sangat Rendah","Prioritas pop-up tidak sesuai tingkat urgensi");
 
 
 // Monthly trend follows active year; office/team/employee comparison is a
