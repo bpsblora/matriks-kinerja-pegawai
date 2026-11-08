@@ -172,7 +172,7 @@ function setDateRangeMonthFromStart(){const start=$('planStart').value;
  updateCalculations();schedulePreview();
 }
 function allocationStatus(){const a=byId.get(selectedId),mode=$('modeSelect').value,target=num($('targetInput').value),std=num($('standardInput').value);const perTotal=[...chosen].reduce((sum,id)=>sum+selectedVolume(id),0);const eventVolume=mode==='bersama'?target:perTotal;const duration=(Number.isFinite(std)&&Number.isFinite(eventVolume))?eventVolume*std:0;const personH=Number.isFinite(std)?perTotal*std:0;
-const errs=[];if(!a)errs.push('Pilih uraian terlebih dahulu');else if(a.status!=='aktif')errs.push('Uraian nonaktif — aktifkan dahulu');if(mode==='belum_ditentukan')errs.push('Pilih jenis pembebanan');if(!chosen.size)errs.push('Pilih sedikitnya satu Pegawai Aktif');if([...chosen].some(id=>!allocationEligibleIds().has(id)))errs.push('Penugasan harus memilih Pegawai Aktif yang ditetapkan pada tahun ini');if(!Number.isFinite(target)||target<=0)errs.push('Target volume harus lebih dari nol');if(!Number.isFinite(std)||std<=0)errs.push('Standar jam harus lebih dari nol');
+const errs=[];if(!a)errs.push('Pilih uraian terlebih dahulu');else if(a.status!=='aktif')errs.push('Uraian nonaktif — aktifkan dahulu');if(mode==='belum_ditentukan')errs.push('Pilih jenis pembebanan');if(!chosen.size)errs.push('Pilih sedikitnya satu Pegawai Aktif');if([...chosen].some(id=>!allocationEligibleIds().has(id)))errs.push('Penugasan harus memilih Pegawai Aktif yang ditetapkan pada tahun ini');if(!Number.isFinite(target)||target<=0)errs.push('Target Volume harus lebih dari nol');if(!Number.isFinite(std)||std<=0)errs.push('Standar Jam per Satuan harus lebih dari nol');if(!Number.isFinite(eventVolume)||!Number.isFinite(perTotal)||!Number.isFinite(duration)||!Number.isFinite(personH))errs.push('Volume × Standar Waktu menghasilkan angka tidak valid; periksa satuan, volume, dan standar');
 if([...chosen].some(e=>!Number.isFinite(num(amounts[e]))||num(amounts[e])<0)&&mode==='terbagi')errs.push('Volume pegawai tidak valid');if(mode==='terbagi'&&Number.isFinite(target)&&Math.abs(perTotal-target)>0.001)errs.push('Jumlah volume pegawai ('+nf(perTotal)+') belum sama dengan target ('+nf(target)+')');
 const start=$('planStart').value,end=$('planEnd').value;if(!isBaseYear&&!start&&!end)errs.push('Tanggal Mulai dan Selesai wajib diisi untuk alokasi tahun '+activeYear);if(!!start!==!!end)errs.push('Lengkapi tanggal mulai dan selesai');else if(start&&end&&!distributionForDates(start,end))errs.push('Rentang tanggal harus valid dan dalam tahun '+activeYear);else if(start&&Number(start.slice(5,7))!==Number($('monthSelect').value))errs.push('Bulan alokasi awal belum sesuai tanggal mulai');
 return {mode,target,std,perTotal,eventVolume,duration,personH,errs}}
@@ -209,7 +209,11 @@ async function saveAllocation(){
    const full=selectedVolume(e.id);let partial=0;
    if(share){partial=month===monthsToWrite[monthsToWrite.length-1]?full-(portions.get(e.id)||0):Math.round(full*share*1e8)/1e8;
     portions.set(e.id,(portions.get(e.id)||0)+partial)}
-   state.allocEdits[key(a.id,e.id,month)]=partial;
+   // Store sparse overrides: preserve only deviations from the 2026 baseline.
+   // A zero override remains explicit only where a nonzero baseline must be cleared.
+   const allocKey=key(a.id,e.id,month),baseline=baseMonthly.get(allocKey)||0;
+   if(Math.abs(partial-baseline)<=1e-10)delete state.allocEdits[allocKey];
+   else state.allocEdits[allocKey]=partial;
   }
   state.monthlyStdEdits[amKey(a.id,month)]=s.std;
   state.targets[amKey(a.id,month)]=share?s.target*share:0;
