@@ -219,6 +219,11 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
 #pageDashboard .effective-hours-config p{margin:0;max-width:530px;font-size:12px;line-height:1.5;color:#4f7091;grid-column:auto}
 #pageDashboard .effective-workday-note{font-size:11px;font-weight:700;color:#607f9a}
 @media(max-width:740px){#pageDashboard .effective-hours-layout{grid-template-columns:1fr;gap:10px}#pageDashboard .effective-hours-summary{padding:16px 18px}#pageDashboard .effective-hours-config{padding:15px 18px}}
+
+/* Two concise lines for the annual effective-workday explanation */
+#pageDashboard .effective-workday-info{display:flex;flex-direction:column;gap:5px;margin-top:3px;width:100%;border-top:1px solid #d9e9f7;padding-top:10px}
+#pageDashboard .effective-workday-info .effective-workday-note{font-size:12px;font-weight:900;color:#18558c;line-height:1.5}
+#pageDashboard .effective-workday-info .effective-workday-explanation{margin:0;font-size:11px;font-weight:600;color:#637e98;line-height:1.55;max-width:560px}
 </style>
 </head><body>
 <header><div class="shell topbar"><div class="brand"><div class="mark">MP</div><div><h1>Matriks Pegawai</h1><div class="sub">BPS KABUPATEN BLORA</div></div></div><div class="rightbar"><div class="role-switch role-switch-v7"><button class="btn tiny blue-soft" id="modeView">Lihat (View)</button><button class="btn primary tiny" id="btnLoginEdit">Masuk Edit</button><button class="btn tiny hidden" id="btnLogout">Keluar</button></div><span class="role-pill read" id="rolePill">View</span><span class="user-summary" id="sessionUser">Akses umum</span><button class="btn tiny hidden" id="btnRoster">Kelola Tim</button><button class="btn" id="btnExport">↓ Ekspor perubahan</button><button class="btn" id="btnImport">↑ Impor backup</button><button class="btn warn" id="btnReset">Reset uji coba</button><input type="file" id="importFile" accept=".json,application/json" style="display:none"></div></div></header>
@@ -274,7 +279,7 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
      <span>jam/hari</span>
     </div>
     <p id="effectiveHoursHelp">Isi perkiraan jam kerja produktif per hari. Angka ini digunakan untuk menghitung kapasitas kerja, bukan realisasi alokasi.</p>
-    <div id="autoWorkdaysLabel" class="effective-workday-note">Menghitung hari kerja…</div>
+    <div class="effective-workday-info" aria-live="polite"><div id="autoWorkdaysLabel" class="effective-workday-note">Menghitung hari kerja…</div><p id="autoWorkdaysExplanation" class="effective-workday-explanation">Jumlah hari efektif dihitung otomatis.</p></div>
     <input type="number" id="monitorWorkdays" min="1" max="31" value="21" hidden>
    </div>
   </div>
