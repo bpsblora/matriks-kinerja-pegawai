@@ -422,6 +422,33 @@ async function saveMoveModal(){
 }
 
 let currentTrendMonth=1;
+const trendSeriesSelection={allTeams:null,allEmployees:null};
+function trendSeriesColor(index){
+ const palette=['#0c65b4','#12a3ae','#6a6edc','#e9982c','#3b9560','#bb629b'];
+ return index<palette.length?palette[index]:`hsl(${Math.round((index*137.5+206)%360)} 66% 42%)`;
+}
+function renderTrendSelectors(scope,all,selected,colorById){
+ const legend=$('trendLegend');
+ const scroll=legend.querySelector('.trend-series-options')?.scrollTop||0;
+ const noun=scope==='allTeams'?'tim':'pegawai';
+ legend.innerHTML=`<div class="trend-series-picker">
+  <div class="trend-series-toolbar"><div><strong>Pilih ${noun} yang dibandingkan</strong><small>${selected.size} dari ${all.length} terpilih</small></div>
+   <div class="trend-series-actions"><button type="button" data-trend-select-all>Pilih Semua</button><button type="button" data-trend-select-none>Kosongkan Semua</button></div>
+  </div>
+  <div class="trend-series-options" role="group" aria-label="Pilihan ${noun}">
+   ${all.map(e=>`<label class="trend-series-option" title="${esc(e.label)}"><input type="checkbox" data-trend-series="${esc(String(e.id))}" ${selected.has(String(e.id))?'checked':''}><i style="background:${colorById.get(String(e.id))}"></i><span>${esc(e.label)}</span></label>`).join('')}
+  </div>
+ </div>`;
+ const options=legend.querySelector('.trend-series-options');
+ if(options)options.scrollTop=scroll;
+ legend.querySelector('[data-trend-select-all]').onclick=()=>{trendSeriesSelection[scope]=new Set(all.map(e=>String(e.id)));renderTrend()};
+ legend.querySelector('[data-trend-select-none]').onclick=()=>{trendSeriesSelection[scope]=new Set();renderTrend()};
+ legend.querySelectorAll('[data-trend-series]').forEach(box=>box.onchange=()=>{
+  if(box.checked)trendSeriesSelection[scope].add(box.dataset.trendSeries);
+  else trendSeriesSelection[scope].delete(box.dataset.trendSeries);
+  renderTrend();
+ });
+}
 function renderTrend(){
  const scope=$('trendScope').value,year=Number($('trendYear').value),entity=$('trendEntity'),wrap=$('trendEntityWrap');
  const singular=scope==='team'||scope==='employee';wrap.classList.toggle('hidden',!singular);
@@ -441,21 +468,36 @@ function renderTrend(){
   ? BASE.teams.map(t=>({team:t,hours:months.reduce((sum,_,i)=>sum+[...periodAgg(String(i+1),t.id).totals.values()].reduce((a,b)=>a+b,0),0)})).sort((a,b)=>b.hours-a.hours)
   :[];
  const all=candidates.map(e=>({...e,total:e.vals.reduce((a,b)=>a+b,0)})).sort((a,b)=>b.total-a.total);
- const drawn=all.slice(0,scope==='allEmployees'||scope==='allTeams'?6:1),color=['#0c65b4','#12a3ae','#6a6edc','#e9982c','#3b9560','#bb629b'];
- $('trendYearLabel').textContent=String(year);const sum=scope==='office'?all[0]?.total||0:all.reduce((s,x)=>s+x.total,0);
- $('trendKpis').innerHTML=`<span>${esc(scope==='allTeams'?'Semua Tim':scope==='allEmployees'?'Semua Pegawai':drawn[0]?.label||'Belum dipilih')}</span><span>Total: ${nf(sum)} jam</span><span>${all.length} seri${(scope==='allTeams'||scope==='allEmployees')?' · 6 tertinggi ditonjolkan':''}</span>`;
+ const multi=scope==='allEmployees'||scope==='allTeams';
+ if(multi&&!(trendSeriesSelection[scope] instanceof Set)){
+  trendSeriesSelection[scope]=new Set(all.slice(0,6).map(e=>String(e.id)));
+ }
+ const selected=multi?trendSeriesSelection[scope]:null;
+ const drawn=multi?all.filter(e=>selected.has(String(e.id))):all.slice(0,1);
+ const colorById=new Map(all.map((e,i)=>[String(e.id),trendSeriesColor(i)]));
+ $('trendYearLabel').textContent=String(year);
+ const sum=scope==='office'?all[0]?.total||0:(multi?drawn:all).reduce((sum,e)=>sum+e.total,0);
+ $('trendKpis').innerHTML=`<span>${esc(scope==='allTeams'?'Semua Tim':scope==='allEmployees'?'Semua Pegawai':drawn[0]?.label||'Belum dipilih')}</span><span>${multi?'Total terpilih':'Total'}: ${nf(sum)} jam</span><span>${multi?drawn.length+' dari '+all.length+' seri dipilih':all.length+' seri'}</span>`;
  if(year!==activeYear){$('twelveBars').innerHTML='<div class="empty">Belum ada alokasi tahun '+year+'. Tahun baru akan muncul setelah perencanaan dan migrasi data.</div>';$('trendRanking').innerHTML='';$('trendLegend').innerHTML='';return}
+ if(multi&&!drawn.length){
+  $('twelveBars').innerHTML='<div class="empty">Centang pegawai atau tim di bawah grafik untuk mulai membandingkan.</div>';
+  renderTrendSelectors(scope,all,selected,colorById);
+  $('trendRanking').innerHTML='<div class="tl-rank-card">Belum ada seri yang dipilih.</div>';
+  $('trendHelp').textContent='';
+  return;
+ }
  const max=Math.max(1,...drawn.flatMap(e=>e.vals)),W=1080,H=345,left=60,right=35,top=30,bottom=48,CW=W-left-right,CH=H-top-bottom;
  const x=i=>left+i*CW/11,y=v=>top+CH*(1-v/max);
  let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tren beban kerja dalam jam antarb​​ulan">`;
  for(let j=0;j<=4;j++){const v=max*j/4,yy=y(v);svg+=`<line x1="${left}" y1="${yy}" x2="${W-right}" y2="${yy}" stroke="#e0eaf5"/><text x="${left-7}" y="${yy+4}" text-anchor="end" fill="#7b92a7" font-size="11">${nf(v)}</text>`}
  for(let i=0;i<12;i++)svg+=`<text x="${x(i)}" y="${H-20}" text-anchor="middle" fill="#607e9e" font-size="11" font-weight="700">${months[i].slice(0,3)}</text>`;
- drawn.forEach((e,k)=>{const path=e.vals.map((v,i)=>(i?'L':'M')+x(i).toFixed(2)+','+y(v).toFixed(2)).join(' ');svg+=`<path d="${path}" fill="none" stroke="${color[k]}" stroke-width="${drawn.length===1?3.5:2.8}" stroke-linecap="round" stroke-linejoin="round"/>`;
-  e.vals.forEach((v,i)=>{const picked=currentTrendMonth===i+1;svg+=`<circle class="trend-point" data-trend-month="${i+1}" cx="${x(i)}" cy="${y(v)}" r="${picked?6.5:4.3}" fill="${color[k]}" stroke="white" stroke-width="1.5"><title>${esc(e.label)} • ${esc(months[i])}: ${nf(v)} jam</title></circle>`;if(drawn.length===1)svg+=`<text x="${x(i)}" y="${y(v)-13}" text-anchor="middle" font-size="11" fill="#164b7e" font-weight="800">${nf(v)}</text>`})});
+ drawn.forEach((e,k)=>{const path=e.vals.map((v,i)=>(i?'L':'M')+x(i).toFixed(2)+','+y(v).toFixed(2)).join(' ');svg+=`<path d="${path}" fill="none" stroke="${colorById.get(String(e.id))}" stroke-width="${drawn.length===1?3.5:2.8}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  e.vals.forEach((v,i)=>{const picked=currentTrendMonth===i+1;svg+=`<circle class="trend-point" data-trend-month="${i+1}" cx="${x(i)}" cy="${y(v)}" r="${picked?6.5:4.3}" fill="${colorById.get(String(e.id))}" stroke="white" stroke-width="1.5"><title>${esc(e.label)} • ${esc(months[i])}: ${nf(v)} jam</title></circle>`;if(drawn.length===1)svg+=`<text x="${x(i)}" y="${y(v)-13}" text-anchor="middle" font-size="11" fill="#164b7e" font-weight="800">${nf(v)}</text>`})});
  svg+='</svg>';$('twelveBars').innerHTML=svg;
  $('twelveBars').querySelectorAll('[data-trend-month]').forEach(el=>el.onclick=()=>{currentTrendMonth=Number(el.dataset.trendMonth);renderTrend()});
- $('trendLegend').innerHTML=drawn.map((e,i)=>`<span class="tl-legend-item" title="${esc(e.label)}"><i style="background:${color[i]}"></i>${esc(e.label.length>31?e.label.slice(0,29)+'…':e.label)}</span>`).join('');
- const ranking=all.slice().sort((a,b)=>b.vals[currentTrendMonth-1]-a.vals[currentTrendMonth-1]);
+ if(multi)renderTrendSelectors(scope,all,selected,colorById);
+ else $('trendLegend').innerHTML=drawn.map(e=>`<span class="tl-legend-item" title="${esc(e.label)}"><i style="background:${colorById.get(String(e.id))}"></i>${esc(e.label.length>31?e.label.slice(0,29)+'…':e.label)}</span>`).join('');
+ const ranking=(multi?drawn:all).slice().sort((a,b)=>b.vals[currentTrendMonth-1]-a.vals[currentTrendMonth-1]);
  if(scope==='office'){
   const peak=Math.max(1,...annualTeamRows.map(r=>r.hours));
   $('trendRanking').innerHTML=`<div class="tl-rank-card office-annual-card">
@@ -468,8 +510,8 @@ function renderTrend(){
   });
   $('trendHelp').textContent='';
  }else{
-  $('trendRanking').innerHTML=`<div class="tl-rank-card"><strong>Peringkat ${months[currentTrendMonth-1]} ${year}</strong>${ranking.slice(0,7).map((a,i)=>`<div class="rank-row"><span>${i+1}. ${esc(a.label)}</span><b>${nf(a.vals[currentTrendMonth-1])} jam</b></div>`).join('')}</div>`;
-  $('trendHelp').textContent=(scope==='allTeams'||scope==='allEmployees')?'Garis menonjolkan enam seri dengan beban tahunan terbesar. Klik bulan untuk melihat peringkat di bulan tersebut; daftar peringkat menggunakan semua seri.':'Klik titik bulan untuk memilih bulan dan melihat nilainya.';
+  $('trendRanking').innerHTML=`<div class="tl-rank-card"><strong>Peringkat ${months[currentTrendMonth-1]} ${year}</strong><div class="trend-selected-rank-list">${(multi?ranking:ranking.slice(0,7)).map((a,i)=>`<div class="rank-row"><span>${i+1}. ${esc(a.label)}</span><b>${nf(a.vals[currentTrendMonth-1])} jam</b></div>`).join('')}</div></div>`;
+  $('trendHelp').textContent=multi?'Centang seri di legend untuk membandingkan. Klik titik grafik untuk melihat peringkat bulan tersebut.':'Klik titik bulan untuk melihat nilainya.';
  }
 }
 // --- Timeline Kerja V11; only dated entries appear on calendar days ---
