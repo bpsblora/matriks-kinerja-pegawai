@@ -1,0 +1,142 @@
+/*
+ * Matriks Pegawai — penyempurnaan tata letak dan penekanan visual (Nov 2026).
+ * Mempertahankan desain V25 Terpadu v2.6; dimuat setelah CSS asli di iframe.
+ * Tidak mengubah data, otorisasi, atau perhitungan beban kerja.
+ */
+:root{--mkp-accent:#126db4;--mkp-soft:#e5f3ff;--mkp-soft-line:#b9d9f3;--mkp-text:#124d80}
+.page .panel{min-width:0}
+.page :is(.panel,.team-admin-card,.kro-hub-card,.stat,.mon-kpi,.recon-card,.tl-kpi){height:auto;min-height:0}
+.page :is(.section-top,.alloc-top,.barhead){gap:10px}
+.page :is(.section-top h3,.alloc-top h3){line-height:1.35}
+.page .section-top>div{min-width:0}
+.page .section-top p{margin:3px 0 0;line-height:1.45}
+.page :is(.workspace,.monitor-main-grid,.team-admin-grid,.tl-layout,.kro-hub-grid){align-items:start}
+/* Satu atau dua filter grafik tidak meninggalkan slot kolom ketiga yang kosong. */
+#pageDashboard .tl-trend-filters{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ gap:11px;
+ align-items:end
+}
+#pageDashboard .tl-trend-filters:has(#trendTeamFilterWrap:not(.hidden)){
+ grid-template-columns:repeat(3,minmax(0,1fr))!important
+}
+#pageDashboard .tl-trend-filters>.field{min-width:0}
+#pageDashboard .tl-trend-filters :is(select,summary){width:100%}
+#pageDashboard #trendKpis:empty,#pageDashboard #trendLegend:empty,#pageDashboard #trendRanking:empty{display:none!important}
+/* Mode Total Kantor: legenda ringkas di atas, peringkat tim memakai seluruh lebar. */
+#pageDashboard .monthly-trend .tl-trend-footer:has(.office-annual-card){
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ align-items:start;
+ gap:9px;
+ margin-top:11px
+}
+#pageDashboard .monthly-trend .tl-trend-footer:has(.office-annual-card) #trendLegend{
+ display:flex;align-items:center;align-content:start;gap:7px;min-width:0
+}
+#pageDashboard .monthly-trend .tl-trend-footer:has(.office-annual-card) #trendRanking{width:100%;min-width:0}
+#pageDashboard .monthly-trend .office-annual-card{width:100%;padding:13px 15px}
+#pageDashboard .monthly-trend .office-annual-head{margin-bottom:8px}
+#pageDashboard .monthly-trend .office-annual-card .rank-row{gap:10px;align-items:center}
+#pageDashboard .monthly-trend .tl-trend-footer:has(.trend-series-picker){
+ grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);
+ align-items:start
+}
+#pageDashboard .monthly-trend :is(.trend-series-picker,.trend-selected-rank-list){min-width:0}
+#pageDashboard .monthly-trend .trend-series-options{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+#pageDashboard .monthly-trend .trend-series-option{min-height:33px;padding:6px 8px}
+#pageDashboard .monthly-trend .tl-line-chart{min-height:0}
+/* Gunakan lebar fleksibel; jangan mengosongkan area akibat card yang dipaksa tinggi. */
+#pageDashboard .combined-metrics{grid-auto-rows:auto;align-items:stretch}
+#pageDashboard .combined-metrics article{min-height:0!important;justify-content:center}
+#pageDashboard .monitor-main-grid{align-items:start}
+#pageDashboard #pageMonitor>.panel{height:auto}
+#pageDashboard .monitor-global-settings{height:auto}
+#pageDashboard .mon-kpis{grid-auto-rows:auto}
+#pageDashboard .trend-kpis{align-items:stretch;gap:9px}
+#pageTeams .team-admin-grid>*,
+#pageInput .workspace>*,
+#pageTimeline .tl-layout>*,
+#pageKRO .kro-hub-grid>*{min-height:0;align-self:start}
+/* Angka rekap yang berada di luar KPI standar tetap tampil sebagai chip kontras. */
+.page :is(.data-line b,.summary-row strong,.combined-final-grid strong,.std-time,
+ .tl-rank-card .rank-row b,.trend-selected-rank-list .rank-row b,
+ .office-annual-card .rank-row b,.trend-kpis strong,
+ .team-admin-kpis strong,.annual-count){
+ font-variant-numeric:tabular-nums;
+ font-weight:900
+}
+.page :is(.summary-row strong,.combined-final-grid strong,.std-time,
+ .tl-rank-card .rank-row b,.trend-selected-rank-list .rank-row b,
+ .office-annual-card .rank-row b,.trend-kpis strong){
+ display:inline-flex;
+ align-items:center;
+ width:fit-content;
+ max-width:100%;
+ padding:4px 9px;
+ border-radius:9px;
+ border:1px solid var(--mkp-soft-line);
+ background:var(--mkp-soft);
+ color:var(--mkp-text);
+ line-height:1.35;
+ overflow-wrap:anywhere;
+ animation:mkp-chip-pop .35s ease-out both
+}
+.page .data-line b{
+ display:inline-block;
+ padding:2px 6px;
+ border-radius:7px;
+ background:#e0efff;
+ color:#0c518a;
+ line-height:1.3
+}
+.page .data-line>span{white-space:normal}
+.page .summary-row,.page .combined-final-grid>div{gap:9px;align-items:center}
+.page .summary-row strong{margin-left:auto;text-align:right}
+.page :is(.trend-kpis strong,.tl-rank-card .rank-row b,.office-annual-card .rank-row b){white-space:nowrap}
+.page .std-time.missing{background:#fff3de;color:#925f14;border-color:#f0d39b}
+.page .badge,.page .recon-tag{letter-spacing:0;font-variant-numeric:tabular-nums}
+.page .badge:has(+.badge){margin-right:3px}
+/* Pengaturan dan tabel tetap mudah dibaca tanpa padding/card tinggi berlebihan. */
+#pageInput .summary{align-self:start}
+#pageInput :is(.summary-row,.alloc-top){min-height:0}
+#pageRecon .recon-grid{grid-auto-rows:auto}
+#pageStandards .std-list,#pageHistory .history-list{align-content:start}
+#pageTimeline .tl-kpis{grid-auto-rows:auto}
+.page .panel>.section-top:last-child{margin-bottom:0}
+.page :is(.empty,.notice,.recon-note){line-height:1.48}
+@keyframes mkp-chip-pop{
+ from{opacity:.55;transform:translateY(4px) scale(.98)}
+ to{opacity:1;transform:translateY(0) scale(1)}
+}
+@media(min-width:1180px){
+ #pageDashboard .monthly-trend .trend-series-options{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:970px){
+ #pageDashboard .tl-trend-filters:has(#trendTeamFilterWrap:not(.hidden)){
+  grid-template-columns:repeat(2,minmax(0,1fr))!important
+ }
+ #pageDashboard .tl-trend-filters #trendTeamFilterWrap{grid-column:1/-1}
+ #pageDashboard .monthly-trend .tl-trend-footer:has(.trend-series-picker){grid-template-columns:1fr!important}
+}
+@media(max-width:620px){
+ #pageDashboard .tl-trend-filters,
+ #pageDashboard .tl-trend-filters:has(#trendTeamFilterWrap:not(.hidden)){grid-template-columns:1fr!important}
+ #pageDashboard .tl-trend-filters #trendTeamFilterWrap{grid-column:auto}
+ #pageDashboard .monthly-trend .trend-series-options{grid-template-columns:1fr}
+ #pageDashboard .monthly-trend .office-annual-card{padding:11px}
+ .page :is(.summary-row strong,.combined-final-grid strong,.std-time,
+ .tl-rank-card .rank-row b,.trend-selected-rank-list .rank-row b,
+ .office-annual-card .rank-row b,.trend-kpis strong){padding:4px 7px}
+}
+@media(prefers-reduced-motion:reduce){
+ .page :is(.summary-row strong,.combined-final-grid strong,.std-time,
+ .tl-rank-card .rank-row b,.trend-selected-rank-list .rank-row b,
+ .office-annual-card .rank-row b,.trend-kpis strong){animation:none!important;transition:none!important}
+}
+@media print{
+ .page :is(.summary-row strong,.combined-final-grid strong,.std-time,
+ .tl-rank-card .rank-row b,.trend-selected-rank-list .rank-row b,
+ .office-annual-card .rank-row b,.trend-kpis strong){animation:none!important;box-shadow:none!important}
+}
