@@ -957,6 +957,7 @@ function capacityWarningEvents(period){
  const ratioText=(hours,cap)=>cap?nf(hours/cap*100)+'%':'—';
  const excess=(hours,cap)=>nf(Math.max(0,hours-cap))+' Jam';
  const remaining=(hours,cap)=>nf(Math.max(0,cap-hours))+' Jam';
+ const teamLabel=name=>/^tim\b/i.test(String(name))?String(name):'Tim '+String(name);
  for(const e of staff){
   const hours=getHours(e),pct=perPerson?hours/perPerson:0;
   if(pct>1.00001)mk('over','pegawai',e.full_name+' — Kelebihan '+excess(hours,perPerson),
@@ -969,14 +970,14 @@ function capacityWarningEvents(period){
   if(teamHours<=0)continue;
   const members=assignedStaff(t.id).filter(e=>e.type==='pegawai');
   if(!members.length){
-   if(!isBaseYear)mk('pending','alokasi','Tim '+t.name+' — '+nf(teamHours)+' Jam Tanpa Anggota Aktif',
+   if(!isBaseYear)mk('pending','alokasi',teamLabel(t.name)+' — '+nf(teamHours)+' Jam Tanpa Anggota Aktif',
     t.name+' memiliki '+nf(teamHours)+' Jam Alokasi, tetapi belum ada anggota aktif yang ditetapkan.',{teamId:t.id,action:'teams'});
    continue;
   }
   const teamCap=members.length*perPerson,ratio=teamCap?teamHours/teamCap:0;
-  if(ratio>1.00001)mk('over','tim','Tim '+t.name+' — Kelebihan '+excess(teamHours,teamCap),
+  if(ratio>1.00001)mk('over','tim',teamLabel(t.name)+' — Kelebihan '+excess(teamHours,teamCap),
    t.name+' · '+nf(teamHours)+' Jam dari kapasitas indikatif '+nf(teamCap)+' Jam ('+ratioText(teamHours,teamCap)+').',{teamId:t.id,loadRatio:ratio});
-  else if(ratio>=.85)mk('near','tim','Tim '+t.name+' — Tersisa '+remaining(teamHours,teamCap)+' Kapasitas',
+  else if(ratio>=.85)mk('near','tim',teamLabel(t.name)+' — Tersisa '+remaining(teamHours,teamCap)+' Kapasitas',
    t.name+' · '+nf(teamHours)+' Jam dari kapasitas indikatif '+nf(teamCap)+' Jam ('+ratioText(teamHours,teamCap)+').',{teamId:t.id,loadRatio:ratio});
  }
  const officeHours=staff.reduce((sum,e)=>sum+getHours(e),0);
