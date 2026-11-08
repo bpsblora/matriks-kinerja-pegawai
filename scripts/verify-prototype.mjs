@@ -374,4 +374,15 @@ assert(inline.includes("rows.slice(0,reconVisibleLimit)"),"Rekonsiliasi masih me
 assert(inline.includes("entry.qty=a.calculation_mode==='bersama'?Math.max(entry.qty,Number(q))"),"Volume kegiatan bersama terhitung berulang per peserta");
 assert(inline.includes("const nfPrecise=v=>"),"Standar waktu yang sangat kecil masih ditampilkan nol");
 
+// Unit suggestions normalize common case variants without preventing custom units.
+const unitStart=inline.indexOf("const ACTIVITY_UNIT_HINTS=");
+const unitEnd=inline.indexOf("// Hari libur nasional",unitStart);
+assert(unitStart>=0&&unitEnd>unitStart,"Katalog saran satuan belum ada");
+const known=vm.runInNewContext(inline.slice(unitStart,unitEnd)+";canonicalActivityUnit('dOkUmEn')");
+const custom=vm.runInNewContext(inline.slice(unitStart,unitEnd)+";canonicalActivityUnit('  Berkas Khusus  ')");
+assert.equal(known,"Dokumen","Nama satuan umum harus dibakukan kapitalisasinya");
+assert.equal(custom,"Berkas Khusus","Satuan khusus tidak boleh dibatasi secara kaku");
+assert(inline.includes("inp.setAttribute('list','activityUnitHints')"),"Input satuan belum memiliki pilihan saran");
+
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
