@@ -122,4 +122,37 @@ assert(html.includes("Tanggal Mulai dan Selesai wajib diisi"),"Tahun baru harus 
 assert(html.includes("moveAnnualAuditToRecon()"),"Pemeriksaan tahun 2026 harus tersedia di Rekonsiliasi");
 assert(html.includes('id="capacityWarningBoard"'),"Pusat peringatan Dashboard tidak ditemukan");
 
+
+const warnSummaryStart=inline.indexOf("function renderCapacityWarnings(){");
+const warnSummaryEnd=inline.indexOf("function renderCombinedDashboard(){",warnSummaryStart);
+const warnSummary=inline.slice(warnSummaryStart,warnSummaryEnd);
+assert(warnSummaryStart>=0&&warnSummaryEnd>warnSummaryStart,"Ringkasan peringatan Dashboard tidak ditemukan");
+for(const level of ["over","near","pending"]){
+  assert(warnSummary.includes("data-warning-category"),"Kartu "+level+" belum dapat membuka pop-up");
+}
+assert(warnSummary.includes('id="openAllWarnings"'),"Tombol Seluruh Peringatan tidak ditemukan");
+assert(!warnSummary.includes('class="mkp-warning-item"'),"Daftar panjang masih dirender di Dashboard");
+assert(inline.includes("dialog.showModal()"),"Pop-up peringatan belum dapat dibuka");
+assert(inline.includes('id="warningDialogResults"'),"Daftar peringatan dalam pop-up belum tersedia");
+assert(inline.includes('id="warningDialogPeriod"'),"Filter periode pop-up belum tersedia");
+assert(inline.includes("dialog.addEventListener('close'"),"Pemulihan fokus saat pop-up ditutup belum ada");
+const cssPolish=fs.readFileSync("src/sitePolish.css","utf8");
+assert(cssPolish.includes(".mkp-warning-dialog-scroll{overflow-y:auto"),"Daftar pop-up tidak dapat digulir");
+const collStart=inline.indexOf("function warningCollection(){");
+const collEnd=inline.indexOf("function ensureWarningDialog(){",collStart);
+assert(collStart>=0&&collEnd>collStart,"Pengurutan prioritas peringatan tidak ditemukan");
+const priorityFixture={
+  months:["Januari"],
+  capacityWarningEvents:()=>({
+    events:[
+      {level:"near",title:"Cukup Dipantau",loadRatio:.91,period:"monthly",description:""},
+      {level:"over",title:"Berlebih Ringan",loadRatio:1.03,period:"monthly",description:""},
+      {level:"pending",title:"Data Perlu Diperiksa",period:"monthly",description:""},
+      {level:"over",title:"Berlebih Tinggi",loadRatio:1.55,period:"monthly",description:""}
+    ],hasData:true
+  })
+};
+const sorted=vm.runInNewContext(inline.slice(collStart,collEnd)+";warningCollection().all.map(x=>x.title).slice(0,4).join('|')",priorityFixture);
+assert.equal(sorted,"Berlebih Tinggi|Berlebih Ringan|Data Perlu Diperiksa|Cukup Dipantau","Prioritas pop-up tidak sesuai tingkat urgensi");
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
