@@ -364,6 +364,9 @@ assert(inline.includes("if(partial===baseline)delete state.allocEdits[allocKey]"
 assert(inline.includes("if(allocatedMonths.length){"),"Satuan kegiatan beralokasi belum dikunci");
 assert(inline.includes("Satuan uraian yang sudah dialokasikan dikunci"),"Peringatan perubahan makna satuan belum tersedia");
 assert(inline.includes("state.monthlyStdEdits[k]=getStandard(previous,m)"),"Standar historis belum dibekukan sebelum edit master");
+assert(inline.includes("Uraian identik dengan satuan yang sama sudah terdaftar"),"Duplikasi uraian identik perlu ditolak");
+assert(inline.includes("Kegiatan dengan nama tersebut sudah ada"),"Ubah nama kegiatan tidak boleh menggabungkan kelompok tanpa sengaja");
+assert(inline.includes("Nama Kegiatan sudah terdaftar pada tim ini"),"Tambah kegiatan tidak boleh diam-diam menggabungkan kelompok lama");
 assert(inline.includes("let taskVisibleLimit=100"),"Daftar uraian belum dirender bertahap");
 assert(inline.includes("visible.slice(0,taskVisibleLimit)"),"Uraian besar masih seluruhnya dirender sekaligus");
 assert(inline.includes("let reconVisibleLimit=200"),"Rekonsiliasi belum ditampilkan bertahap");
