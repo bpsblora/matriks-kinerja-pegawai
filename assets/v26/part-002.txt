@@ -202,6 +202,23 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
 .nav .navbutton.stage-locked:not(.active){opacity:.65}
 .nav .navbutton.active{color:#fff!important}
 @media(max-width:700px){#pageDashboard .dashboard-section-heading h2{font-size:16px}#pageDashboard .office-team-breakdown{padding:12px}}
+
+/* Dashboard — kapasitas jam efektif: hasil utama di kiri, pengaturan di kanan */
+#pageDashboard .monitor-global-settings{padding:12px;border-color:#d1e5f7}
+#pageDashboard .effective-hours-layout{display:grid;grid-template-columns:minmax(240px,.88fr) minmax(310px,1.12fr);align-items:stretch;gap:16px;padding:0;border:0;background:transparent}
+#pageDashboard .effective-hours-summary{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;padding:19px 23px;border-radius:15px;background:linear-gradient(120deg,#0b65b3,#1386ce);color:#fff;box-shadow:0 6px 18px rgba(14,101,182,.13)}
+#pageDashboard .effective-hours-heading{font-size:13px;font-weight:900;color:#e9f6ff}
+#pageDashboard .effective-hours-number{font:800 clamp(26px,3vw,37px)/1.22 Poppins,Nunito,Arial,sans-serif;letter-spacing:-.04em;color:#fff}
+#pageDashboard .effective-hours-unit{font-size:12px;font-weight:800;color:#dcefff}
+#pageDashboard .effective-hours-basis{font-size:11px;color:#eaf6ff;margin-top:6px}
+#pageDashboard .effective-hours-config{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:8px;padding:14px 16px;border:1px solid #d5e6f5;border-radius:15px;background:#f5faff;min-width:0}
+#pageDashboard .effective-hours-config>label{font-size:13px;font-weight:900;color:#134d83}
+#pageDashboard .effective-hours-control{display:flex;align-items:center;gap:10px}
+#pageDashboard .effective-hours-control input{width:104px;height:41px;padding:8px 12px;border:1px solid #b9d6ef;border-radius:10px;background:#fff;color:#0f528e;font-size:17px;font-weight:900}
+#pageDashboard .effective-hours-control span{font-size:12px;color:#46749a;font-weight:800}
+#pageDashboard .effective-hours-config p{margin:0;max-width:530px;font-size:12px;line-height:1.5;color:#4f7091;grid-column:auto}
+#pageDashboard .effective-workday-note{font-size:11px;font-weight:700;color:#607f9a}
+@media(max-width:740px){#pageDashboard .effective-hours-layout{grid-template-columns:1fr;gap:10px}#pageDashboard .effective-hours-summary{padding:16px 18px}#pageDashboard .effective-hours-config{padding:15px 18px}}
 </style>
 </head><body>
 <header><div class="shell topbar"><div class="brand"><div class="mark">MP</div><div><h1>Matriks Pegawai</h1><div class="sub">BPS KABUPATEN BLORA</div></div></div><div class="rightbar"><div class="role-switch role-switch-v7"><button class="btn tiny blue-soft" id="modeView">Lihat (View)</button><button class="btn primary tiny" id="btnLoginEdit">Masuk Edit</button><button class="btn tiny hidden" id="btnLogout">Keluar</button></div><span class="role-pill read" id="rolePill">View</span><span class="user-summary" id="sessionUser">Akses umum</span><button class="btn tiny hidden" id="btnRoster">Kelola Tim</button><button class="btn" id="btnExport">↓ Ekspor perubahan</button><button class="btn" id="btnImport">↑ Impor backup</button><button class="btn warn" id="btnReset">Reset uji coba</button><input type="file" id="importFile" accept=".json,application/json" style="display:none"></div></div></header>
@@ -242,13 +259,24 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
   <div class="hero-symbol" aria-hidden="true"><span>▥</span><span>▤</span><span>▦</span></div>
  </section>
  <section class="monitor-global"><div><h3>Ringkasan Kantor</h3><p>Angka kantor tidak berubah saat filter perbandingan digunakan.</p></div></section>
- <section class="panel monitor-global-settings">  <div class="monitor-settings">
-   <div class="monitor-settings-title"><strong>⚙ Parameter kapasitas simulasi</strong><span>Jam efektif per hari dapat disesuaikan; hari kerja dihitung otomatis.</span></div>
-   <div class="monitor-settings-fields">
-    <div class="tl-auto-days"><strong>Hari kerja otomatis</strong><span id="autoWorkdaysLabel">Menghitung hari kerja…</span></div><input type="number" id="monitorWorkdays" min="1" max="31" value="21" hidden>
-    <label>Jam efektif per hari <input type="number" id="monitorDailyHours" min="0.5" max="24" step="0.5" value="7.5"></label>
+ <section class="panel monitor-global-settings" aria-label="Kapasitas jam kerja efektif">
+  <div class="monitor-settings effective-hours-layout">
+   <div class="effective-hours-summary">
+    <span class="effective-hours-heading">Total Jam Efektif</span>
+    <strong id="effectiveTotalHours" class="effective-hours-number">—</strong>
+    <span class="effective-hours-unit">jam per pegawai / tahun</span>
+    <span id="effectiveTotalBasis" class="effective-hours-basis">Menghitung kapasitas…</span>
    </div>
-   <p>Hari efektif tidak termasuk akhir pekan, libur nasional, dan cuti bersama.</p>
+   <div class="effective-hours-config">
+    <label for="monitorDailyHours">Jam Efektif per Hari</label>
+    <div class="effective-hours-control">
+     <input type="number" id="monitorDailyHours" min="0.5" max="24" step="0.5" value="7.5" aria-describedby="effectiveHoursHelp">
+     <span>jam/hari</span>
+    </div>
+    <p id="effectiveHoursHelp">Isi perkiraan jam kerja produktif per hari. Angka ini digunakan untuk menghitung kapasitas kerja, bukan realisasi alokasi.</p>
+    <div id="autoWorkdaysLabel" class="effective-workday-note">Menghitung hari kerja…</div>
+    <input type="number" id="monitorWorkdays" min="1" max="31" value="21" hidden>
+   </div>
   </div>
  </section>
  <div class="mon-kpis" id="monitorKpis" aria-live="polite"></div>
