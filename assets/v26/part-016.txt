@@ -317,19 +317,19 @@ function enterView(){
  try{sessionStorage.removeItem(SESSION_KEY)}catch(e){}
  currentRole='pegawai';sessionUser='';closeModal();$('loginScreen').classList.add('hidden');$('rosterScreen').classList.add('hidden');
  if($('monitorTeam'))$('monitorTeam').value='';if($('timelineTeam'))$('timelineTeam').value='';if($('trendScope')){$('trendScope').value='employee';$('trendEntity').dataset.scope='';}
- syncTeamWorkspace();setPage('monitor');renderTeamRosterHint();syncWorkflowControls();renderYearUI();maybeShowYearWelcome();
+ syncTeamWorkspace();setPage('dashboard');renderTeamRosterHint();syncWorkflowControls();renderYearUI();maybeShowYearWelcome();
 }
 function enterPrototypeEdit(){
  currentRole='admin';roleTeamId=BASE.teams[0]?.id||'';sessionUser='Google BPS Blora';
  $('loginScreen').classList.add('hidden');
- syncTeamWorkspace();setPage('teams');syncWorkflowControls();renderYearUI();maybeShowYearWelcome();
+ syncTeamWorkspace();setPage('dashboard');syncWorkflowControls();renderYearUI();maybeShowYearWelcome();
 }
 function setupRoles(){
  setupRoster();
  $('loginScreen').classList.add('hidden');
  $('btnLoginEdit').onclick=enterPrototypeEdit;
  $('modeView').onclick=enterView;
- $('btnLogout').onclick=()=>{enterView();toast('Keluar dari Gmail melalui tombol di atas website.');};
+ $('btnLogout').onclick=()=>{enterView();toast('Mode lihat aktif.');};
  enterPrototypeEdit();
 }
 
@@ -843,19 +843,23 @@ function renderKroAudit(){
 
 
 // V1.8: Additional screens from the prior multi-year prototype; V25 monitoring functions remain unchanged.
-function renderCombinedDashboard(){const el=$('pageDashboard');if(!el)return;
+function renderCombinedDashboard(){
+ const el=$('pageDashboard');if(!el)return;
  const monthly=periodAgg('monthly',''),active=BASE.employees.filter(e=>e.type==='pegawai'&&e.active!==false);
  const total=active.reduce((n,e)=>n+(monthly.totals.get(e.id)||0),0);
  const counts=new Map();for(const a of activities.filter(a=>a.status==='aktif'))counts.set(a.team_id,(counts.get(a.team_id)||0)+1);
  const workload=BASE.teams.map(t=>({t,h:[...periodAgg('monthly',t.id).totals.values()].reduce((a,b)=>a+b,0),n:counts.get(t.id)||0})).sort((a,b)=>b.h-a.h);
- const max=Math.max(1,...workload.map(x=>x.h)),format=nf;
- const links=[['Kelola Tim','teams','Pegawai dan susunan tim'],['Pembagian KRO','kro','KRO menurut tim'],['Input Alokasi','input','Kegiatan dan beban pegawai'],['Monitoring Pegawai','monitor','Grafik dan rincian interaktif']];
- el.innerHTML=`<section class="monitor-hero"><div><h2>Dashboard ${activeYear}</h2><p>Rekap perencanaan dan beban kerja pegawai berdasarkan matriks terpilih.</p></div></section>
- <div class="combined-metrics"><article><small>Tim</small><strong>${nf(BASE.teams.length)}</strong></article><article><small>Pegawai aktif</small><strong>${nf(active.length)}</strong></article><article><small>Uraian aktif</small><strong>${nf(activities.filter(a=>a.status==='aktif').length)}</strong></article><article><small>Total jam alokasi</small><strong>${nf(total)}</strong><small>Jam-orang</small></article></div>
- <div class="combined-two"><section class="panel"><div class="section-top"><div><h3>Perbandingan Beban Tim</h3><p>Klik tim untuk membuka grafik dan rincian di Monitoring.</p></div></div><div class="combined-team-chart">${workload.slice(0,12).map(x=>`<button class="combined-team-row" type="button" data-dashboard-team="${esc(x.t.id)}"><span>${esc(x.t.name)}</span><div class="combined-progress"><i style="width:${Math.max(0,x.h/max*100).toFixed(1)}%"></i></div><b>${nf(x.h)} jam</b></button>`).join('')}</div></section>
- <section class="panel"><div class="section-top"><div><h3>Menu Utama</h3></div></div><div class="combined-link-grid">${links.map(([title,page,note])=>`<button type="button" data-dashboard-go="${page}" class="combined-link"><strong>${esc(title)}</strong><span>${esc(note)}</span></button>`).join('')}</div><p class="combined-context">${isBaseYear?'Data 2026 berasal dari matriks lama dan masih dapat memerlukan rekonsiliasi.':'Data '+activeYear+' hanya menjadi matriks resmi setelah ditetapkan.'}</p></section></div>`;
- el.querySelectorAll('[data-dashboard-team]').forEach(b=>b.onclick=()=>{setPage('monitor');$('monitorTeam').value=b.dataset.dashboardTeam;renderMonitoring()});
- el.querySelectorAll('[data-dashboard-go]').forEach(b=>b.onclick=()=>setPage(b.dataset.dashboardGo));
+ const max=Math.max(1,...workload.map(x=>x.h));
+ el.innerHTML=`<div class="dashboard-tabs" role="group" aria-label="Bagian Dashboard">
+ <button type="button" class="dashboard-tab ${dashboardTab==='summary'?'is-active':''}" data-dashboard-tab="summary" aria-pressed="${dashboardTab==='summary'}"><span class="dashboard-tab-icon">▦</span><strong>Ringkasan</strong><small>Indikator dan beban tim</small></button>
+ <button type="button" class="dashboard-tab ${dashboardTab==='monitor'?'is-active':''}" data-dashboard-tab="monitor" aria-pressed="${dashboardTab==='monitor'}"><span class="dashboard-tab-icon">◫</span><strong>Monitoring</strong><small>Analisis pegawai dan tim</small></button>
+ </div>
+ <div class="dashboard-summary-content" ${dashboardTab==='monitor'?'hidden':''}>
+ <div class="combined-metrics"><article><small>Tim</small><strong>${nf(BASE.teams.length)}</strong></article><article><small>Pegawai aktif</small><strong>${nf(active.length)}</strong></article><article><small>Uraian aktif</small><strong>${nf(activities.filter(a=>a.status==='aktif').length)}</strong></article><article><small>Alokasi</small><strong>${nf(total)} jam</strong></article></div>
+ <section class="panel"><div class="section-top"><h3>Beban Kerja per Tim</h3></div><div class="combined-team-chart">${workload.map(x=>`<button class="combined-team-row" type="button" data-dashboard-team="${esc(x.t.id)}"><span>${esc(x.t.name)}</span><div class="combined-progress"><i style="width:${Math.max(0,x.h/max*100).toFixed(1)}%"></i></div><b>${nf(x.h)} jam</b></button>`).join('')}</div></section>
+ </div>`;
+ el.querySelectorAll('[data-dashboard-tab]').forEach(b=>b.onclick=()=>setPage('dashboard',b.dataset.dashboardTab));
+ el.querySelectorAll('[data-dashboard-team]').forEach(b=>b.onclick=()=>{setPage('dashboard','monitor');$('monitorTeam').value=b.dataset.dashboardTeam;renderMonitoring()});
 }
 let kroBoardDraft=new Set();
 let kroBoardEditTeam='';
@@ -931,4 +935,8 @@ function kroCoverageSnapshot(previewTeamId='',previewCodes=null){
  }
  const teamsMissing=demoTeams.filter(team=>!(assigned.get(team.id)||[]).length);
  const krosMissing=POK_KROS.filter(k=>!covered.has(k.code));
- return {teamsMissing,krosMissing,assignedTeamCount:demoTeams.length-teamsMissing.length,assignedKroCount:POK_KROS.length-krosMiss
+ return {teamsMissing,krosMissing,assignedTeamCount:demoTeams.length-teamsMissing.length,assignedKroCount:POK_KROS.length-krosMissing.length,teamCount:demoTeams.length,kroCount:POK_KROS.length};
+}
+function showKroCoverageDialog({tid='',selectedCodes=null,onSave=null,mode='team'}={}){
+ const blocked=mode==='final'||(!!tid&&(!yearTeamReady(tid)||!selectedCodes||![...selectedCodes].filter(code=>POK_KROS.some(k=>k.code===code)).length));
+ co
