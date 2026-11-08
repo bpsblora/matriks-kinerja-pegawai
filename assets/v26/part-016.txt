@@ -12,10 +12,9 @@ si tahun 2026 · Matriks Kegiatan Pegawai 2026.xlsx (V25): '+BASE.teams.length+'
  const legacy=document.createElement('div');legacy.id='kroLegacyInvisible';legacy.style.display='none';
  const oldKro=grid?.querySelector('.team-kro-panel');
  if(oldKro){if(isBaseYear)legacy.appendChild(oldKro);else $('annualKroPanelSlot').appendChild(oldKro);}
- if(isBaseYear){kroPage.appendChild(legacy)}
- else{legacy.appendChild($('annualKroStage'));kroPage.appendChild(legacy)}
+ legacy.appendChild($('annualKroStage'));kroPage.appendChild(legacy);
  const audit=$('kroAuditPanel');if(audit)kroPage.appendChild(audit);
- if(!isBaseYear){
+ {
   if(hero&&panel)page.insertBefore(hero,panel);
   if(grid)$('annualTeamGridSlot').appendChild(grid);
   const steps=panel.querySelectorAll('.annual-step');if(steps[2])steps[2].style.display='none';
@@ -131,7 +130,7 @@ let adminMemberWorking=new Set();
 function renderEstablishedTeams(){
  const el=$('establishedTeamSummary');if(!el)return;
  const employeeName=id=>BASE.employees.find(e=>e.id===id)?.full_name||id;
- const list=demoTeams.map(t=>{const ro=demoRoster[t.id]||{members:[]};const ids=(ro.members||[]).filter(id=>BASE.employees.some(e=>e.id===id));const complete=!!(ro.leaderId&&ids.length)&&(isBaseYear||yearTeamReady(t.id));return {t,ro,ids,complete}});
+ const list=demoTeams.map(t=>{const ro=demoRoster[t.id]||{members:[]};const ids=(ro.members||[]).filter(id=>BASE.employees.some(e=>e.id===id));const complete=!!(ro.leaderId&&ids.length)&&(isBaseYear?!!(yearSetup.teams[t.id]&&yearSetup.teams[t.id].leaderId===ro.leaderId&&equalIds(yearSetup.teams[t.id].members,ro.members)):yearTeamReady(t.id));return {t,ro,ids,complete}});
  const ready=list.filter(x=>x.complete),missing=list.filter(x=>!x.complete);
  const canEdit=yearInfo().status!=='closed'&&currentRole!=='pegawai'&&currentRole!=='view';
  const action=(x,label)=>canEdit&&roleCanManageTeam(x.t.id)?`<button class="btn tiny soft" type="button" data-team-summary-edit="${esc(x.t.id)}">${label}</button>`:'';
@@ -157,7 +156,7 @@ function renderTeamAdminPage(){
  const isCentral=currentRole==='admin'||currentRole==='kepala';$('teamAdminSelect').disabled=!isCentral;$('teamAdminNew').classList.toggle('hidden',!isCentral);$('teamAdminDelete').classList.toggle('hidden',!isCentral);$('teamAdminName').disabled=!isCentral;$('teamAdminLeader').disabled=!isCentral;
  $('teamAdminName').value=team.name;
  const ro=demoRoster[tid]||{members:[]},leaderId=ro.leaderId||'';
- const leaderOptions=[{value:'',label:'Belum ditetapkan'},...BASE.employees.filter(e=>e.type==='pegawai'&&(isBaseYear||!staffReady()||(yearSetup.staff.ids||[]).includes(e.id))).map(e=>({value:e.id,label:e.full_name}))];
+ const leaderOptions=[{value:'',label:'Belum ditetapkan'},...BASE.employees.filter(e=>e.type==='pegawai'&&e.active!==false&&(isBaseYear?(!yearSetup.staff?.confirmed||(yearSetup.staff.ids||[]).includes(e.id)):(!staffReady()||(yearSetup.staff.ids||[]).includes(e.id)))).map(e=>({value:e.id,label:e.full_name}))];
  if(!leaderId && ro.leaderName)leaderOptions.splice(1,0,{value:'external',label:ro.leaderName+' (di luar master pegawai)'});
  fillSelect($('teamAdminLeader'),leaderOptions,leaderId||(ro.leaderName?'external':''));
  $('teamAdminLeaderHint').textContent=ro.leaderName?'Sumber daftar tim 2026; perubahan hanya dapat dilakukan Admin/Kepala.':'';
@@ -175,7 +174,7 @@ function renderTeamAdminPage(){
 function drawWorkingMembers(){
  const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
  const target=$('teamMemberTarget');if(target)target.textContent='Centang pegawai untuk menambahkan ke '+(demoTeams.find(t=>t.id===tid)?.name||'tim ini')+'.';
- const q=$('teamAdminMemberSearch').value.trim().toLocaleLowerCase('id');$('teamAdminMembers').innerHTML=BASE.employees.filter(e=>(e.active!==false||adminMemberWorking.has(e.id))&&(isBaseYear||!staffReady()||(yearSetup.staff.ids||[]).includes(e.id)||adminMemberWorking.has(e.id))&&e.full_name.toLocaleLowerCase('id').includes(q)).sort((a,b)=>adminMemberWorking.has(a.id)===adminMemberWorking.has(b.id)?a.full_name.localeCompare(b.full_name,'id'):(adminMemberWorking.has(a.id)?-1:1)).map(e=>`<label class="${e.active===false?'inactive':''}"><input type="checkbox" data-team-member="${esc(e.id)}" ${adminMemberWorking.has(e.id)?'checked':''} ${e.active===false&&!adminMemberWorking.has(e.id)?'disabled':''}><span>${esc(e.full_name)}${e.active===false?' · Nonaktif':''}${e.type==='mitra'?' · Pegawai 040':''}</span></label>`).join('')||'<div class="empty">Tidak ada pegawai yang cocok.</div>';
+ const q=$('teamAdminMemberSearch').value.trim().toLocaleLowerCase('id');$('teamAdminMembers').innerHTML=BASE.employees.filter(e=>(e.active!==false||adminMemberWorking.has(e.id))&&((isBaseYear?!yearSetup.staff?.confirmed:!staffReady())||(yearSetup.staff.ids||[]).includes(e.id)||adminMemberWorking.has(e.id))&&e.full_name.toLocaleLowerCase('id').includes(q)).sort((a,b)=>adminMemberWorking.has(a.id)===adminMemberWorking.has(b.id)?a.full_name.localeCompare(b.full_name,'id'):(adminMemberWorking.has(a.id)?-1:1)).map(e=>`<label class="${e.active===false?'inactive':''}"><input type="checkbox" data-team-member="${esc(e.id)}" ${adminMemberWorking.has(e.id)?'checked':''} ${e.active===false&&!adminMemberWorking.has(e.id)?'disabled':''}><span>${esc(e.full_name)}${e.active===false?' · Nonaktif':''}${e.type==='mitra'?' · Pegawai 040':''}</span></label>`).join('')||'<div class="empty">Tidak ada pegawai yang cocok.</div>';
  $('teamAdminMembers').querySelectorAll('[data-team-member]').forEach(el=>el.onchange=()=>{if(el.checked)adminMemberWorking.add(el.dataset.teamMember);else adminMemberWorking.delete(el.dataset.teamMember);$('teamAdminMemberCount').textContent=nf(adminMemberWorking.size);drawWorkingMembers()});
 }
 function saveTeamAdmin(){
@@ -191,7 +190,7 @@ function saveTeamAdmin(){
  const leaderId=isCentral?(chosenLeader==='external'?'':chosenLeader):existing.leaderId;
  const leaderName=isCentral?(chosenLeader==='external'?existing.leaderName:BASE.employees.find(e=>e.id===chosenLeader)?.full_name||''):existing.leaderName;
  demoRoster[tid]={leaderId,leaderName,members:[...adminMemberWorking]};
- if(!isBaseYear){const rosterChanged=!equalIds(oldMembers,[...adminMemberWorking])||oldLeader!==leaderId;
+ if(!isBaseYear||yearSetup.staff?.confirmed){const rosterChanged=!equalIds(oldMembers,[...adminMemberWorking])||oldLeader!==leaderId;
   if(rosterChanged){delete yearSetup.teams[tid];delete yearSetup.kros[tid];}
   else if(!equalIds(oldKro,team.kroCodes)){delete yearSetup.kros[tid];}
   storeYearSetup();}
