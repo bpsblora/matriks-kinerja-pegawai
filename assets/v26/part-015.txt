@@ -439,23 +439,10 @@ function renderPerson(data,period,team,annual,monthly){
  $('personSummary').innerHTML=`<div class="personinfo"><div class="person-metrics"><div class="person-metric primary"><div class="pm-label">Total Jam</div><div class="pm-value">${nf(total)}</div><div class="pm-sub">Jam-Orang</div></div><div class="person-metric"><div class="pm-label">Rata-rata Harian</div><div class="pm-value">${nf(total/days)}</div><div class="pm-sub">Jam/Hari Kerja Efektif</div></div><div class="person-metric"><div class="pm-label">Kapasitas Terpakai</div><div class="pm-value">${nf(ratio.pct)}%</div><div class="pm-sub">Dari ${nf(cap)} Jam Kapasitas Acuan</div></div><div class="person-metric"><div class="pm-label">Rata-rata per Bulan</div><div class="pm-value">${nf(total/(period==='annual'||period==='monthly'?12:1))}</div><div class="pm-sub">Jam per Bulan dalam Periode</div></div></div><div class="person-reconcile"><strong>Audit data individu ${activeYear}</strong><br>Referensi tahunan lama: <strong>${nf(ya)} Jam</strong><br>Total tahunan otomatis (Σ 12 bulan): <strong>${nf(mo)} Jam</strong><br>Selisih terhadap referensi: <strong>${gap>0?'+':''}${nf(gap)} Jam</strong><br><span class="status-chip ${ratio.className}">${esc(ratio.text)}</span></div></div>`;
 
  const groups=groupPersonWorkload(rows);
- const top=groups.slice(0,3);
- $('personDetails').innerHTML=`<div class="person-work-compact">
-  <div class="person-work-compact-head">
-   <div><strong>Kelompok Beban Pekerjaan</strong><p>${nf(groups.length)} Kelompok Tim–Kegiatan · ${nf(rows.length)} Uraian</p></div>
-   <span class="person-work-total-chip">${nf(total)} Jam</span>
-  </div>
-  ${groups.length?`<div class="person-work-compact-highlights">
-   ${top.map((group,i)=>`<div class="person-work-mini person-work-${['blue','green','amber'][i%3]}">
-    <span><small>${esc(group.team)}</small><strong>${esc(group.activity)}</strong></span>
-    <b>${nf(group.hours)} Jam</b>
-   </div>`).join('')}
-  </div>`:'<p class="person-work-empty-note">Belum ada alokasi pekerjaan pada periode dan tim ini.</p>'}
-  <button type="button" id="openPersonWorkDialog" class="person-work-trigger" ${groups.length?'':'disabled'}>
-   <span><strong>Lihat Semua Beban Pekerjaan</strong><small>Daftar per Tim–Kegiatan, dari beban terbesar</small></span>
-   <span class="person-work-arrow" aria-hidden="true">›</span>
-  </button>
- </div>`;
+ $('personDetails').innerHTML=`<button type="button" id="openPersonWorkDialog" class="person-work-trigger" ${groups.length?'':'disabled'}>
+  <span><strong>Lihat Semua Beban Pekerjaan</strong><small>Rincian ${nf(rows.length)} Uraian dalam ${nf(groups.length)} Kelompok Tim–Kegiatan</small></span>
+  <span class="person-work-arrow" aria-hidden="true">›</span>
+ </button>`;
  $('openPersonWorkDialog').onclick=event=>openPersonWorkDialog({
   employee:e,period,total,groups,detailCount:rows.length
  },event.currentTarget);
