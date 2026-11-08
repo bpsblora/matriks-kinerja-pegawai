@@ -985,7 +985,7 @@ function capacityWarningEvents(period){
  const officeHours=staff.reduce((sum,e)=>sum+getHours(e),0);
  const noAllocation=staff.filter(e=>getHours(e)<=0);
  const effectiveCalendarReady=typeof HOLIDAYS==='undefined'||!!HOLIDAYS[activeYear];
- if(!effectiveCalendarReady)mk('pending','alokasi','Kalender Hari Kerja '+activeYear+' Belum Diverifikasi',
+ if(!effectiveCalendarReady&&period==='monthly')mk('pending','alokasi','Kalender Hari Kerja '+activeYear+' Belum Diverifikasi',
   'Daftar libur nasional/cuti bersama tahun '+activeYear+' belum tersedia. Penilaian melebihi, mendekati, atau sangat rendah dibanding kapasitas efektif ditangguhkan agar tidak menyesatkan.',{action:'check-staff'});
  // A person has one effective work capacity across all assignments.
  // A team owns a workload; it does not have a fixed capacity denominator.
