@@ -170,6 +170,16 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
 .navbutton.stage-locked{opacity:.45}
 @media(prefers-reduced-motion:reduce){.btn,.navbutton,.dashboard-tab{transition:none!important;animation:none!important;transform:none!important}}
 @media(max-width:800px){.nav{padding:7px;gap:4px}.navbutton{padding:9px 11px;font-size:11px}.page{padding-top:12px}}
+
+/* Navigation card separation v2.6 */
+.nav{gap:10px;padding:10px;background:#e3effa;border:1px solid #cde1f3;border-radius:18px}
+.nav .navbutton{flex:0 0 auto;min-height:42px;padding:10px 16px;background:#fff;border:1px solid #c9dfee;border-radius:12px;color:#255a86;box-shadow:0 2px 6px rgba(17,78,133,.06);transition:background .2s,border-color .2s,color .2s,box-shadow .2s,transform .2s}
+.nav .navbutton:hover:not(:disabled){background:#f3f9ff;color:#075b9f;border-color:#93c5e9;transform:translateY(-2px);box-shadow:0 5px 13px rgba(17,95,164,.12)}
+.nav .navbutton.active{background:linear-gradient(120deg,#0967b8,#147ec9);border-color:#0a64b0;color:#fff;box-shadow:0 6px 15px rgba(9,93,168,.24)}
+.nav .navbutton.active:hover:not(:disabled){background:linear-gradient(120deg,#075aa4,#0d72bf);color:#fff}
+.nav .navbutton.stage-locked{background:#f3f6fa;border-color:#dce6ef;color:#8a9fb1;box-shadow:none}
+@media(max-width:800px){.nav{gap:7px;padding:8px}.nav .navbutton{min-height:39px;padding:9px 12px;font-size:11px}}
+@media(prefers-reduced-motion:reduce){.nav .navbutton{transition:none!important}.nav .navbutton:hover{transform:none!important}}
 </style>
 </head><body>
 <header><div class="shell topbar"><div class="brand"><div class="mark">MP</div><div><h1>Matriks Pegawai</h1><div class="sub">BPS KABUPATEN BLORA</div></div></div><div class="rightbar"><div class="role-switch role-switch-v7"><button class="btn tiny blue-soft" id="modeView">Lihat (View)</button><button class="btn primary tiny" id="btnLoginEdit">Masuk Edit</button><button class="btn tiny hidden" id="btnLogout">Keluar</button></div><span class="role-pill read" id="rolePill">View</span><span class="user-summary" id="sessionUser">Akses umum</span><button class="btn tiny hidden" id="btnRoster">Kelola Tim</button><button class="btn" id="btnExport">↓ Ekspor perubahan</button><button class="btn" id="btnImport">↑ Impor backup</button><button class="btn warn" id="btnReset">Reset uji coba</button><input type="file" id="importFile" accept=".json,application/json" style="display:none"></div></div></header>
