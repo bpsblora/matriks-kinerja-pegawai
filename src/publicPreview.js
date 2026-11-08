@@ -2,13 +2,9 @@
 // No Firebase sign-in, no Firestore reads/writes, no real employee data.
 const root=document.querySelector("#app");
 root.innerHTML=`
-<header class="mp-head">
-  <div class="mp-brand"><div class="mp-mark">MP</div><div><strong>Matriks Kinerja Pegawai</strong><span>BPS Kabupaten Blora · V25 Terpadu v2.6</span></div></div>
-  <div class="mp-session">Prototipe Pengujian 2026–2027</div>
-</header>
 <section class="mp-frame-wrap" id="mpFrameWrap">
-  <div style="padding:24px" id="mpLoading" role="status">Memuat prototipe Matriks Pegawai…</div>
-  <iframe id="mpFrame" title="Prototipe Matriks Pegawai V25 Terpadu v2.6" referrerpolicy="no-referrer" hidden></iframe>
+  <div style="padding:24px" id="mpLoading" role="status">Memuat Matriks Pegawai…</div>
+  <iframe id="mpFrame" title="Matriks Kinerja Pegawai BPS Blora" referrerpolicy="no-referrer" hidden></iframe>
 </section>`;
 (async()=>{
  try{
