@@ -422,24 +422,36 @@ async function saveMoveModal(){
 
 let currentTrendMonth=1;
 const trendSeriesSelection={allTeams:null,allEmployees:null};
-let trendSelectedTeams=null;
-function renderTrendTeamFilter(){
- const allIds=BASE.teams.map(t=>String(t.id));
- if(!(trendSelectedTeams instanceof Set))trendSelectedTeams=new Set(allIds);
- const selected=trendSelectedTeams;
- const options=$('trendTeamOptions');if(!options)return;
- const previousScroll=options.scrollTop||0;
- options.innerHTML=BASE.teams.map(team=>`<label class="trend-team-option" title="${esc(team.name)}"><input type="checkbox" data-trend-team="${esc(String(team.id))}" ${selected.has(String(team.id))?'checked':''}><span>${esc(team.name)}</span></label>`).join('');
- options.scrollTop=previousScroll;
- const n=allIds.filter(id=>selected.has(id)).length;
- $('trendTeamFilterSummary').textContent=n===allIds.length?'Semua Tim':n===0?'Tidak Ada Tim':n===1?(BASE.teams.find(t=>selected.has(String(t.id)))?.name||'1 Tim'):n+' Tim Dipilih';
- $('trendTeamSelectAll').onclick=()=>{trendSelectedTeams=new Set(allIds);renderTrend()};
- $('trendTeamClear').onclick=()=>{trendSelectedTeams=new Set();renderTrend()};
- options.querySelectorAll('[data-trend-team]').forEach(checkbox=>checkbox.onchange=()=>{
-  if(checkbox.checked)trendSelectedTeams.add(checkbox.dataset.trendTeam);
-  else trendSelectedTeams.delete(checkbox.dataset.trendTeam);
-  renderTrend();
- });
+let trendOwnerTeam='',trendActivityKey='';
+/* Filter by the activity owner, never the organizational membership of
+   employees. Contributions from outside the owner team remain included. */
+function trendWorkloadMonth(month,ownerTeam='',activityKey=''){
+ const result=periodAgg(String(month),''),totals=new Map(),teamTotals=new Map();
+ for(const [key,hours] of result.details){
+  const split=key.lastIndexOf('|'),activityId=key.slice(0,split),employeeId=key.slice(split+1);
+  const activity=byId.get(activityId)||baseActivity.get(activityId);
+  if(!activity)continue;
+  if(ownerTeam&&String(activity.team_id)!==String(ownerTeam))continue;
+  if(activityKey&&groupName(activity)!==activityKey)continue;
+  totals.set(employeeId,(totals.get(employeeId)||0)+hours);
+  const teamId=String(activity.team_id);
+  teamTotals.set(teamId,(teamTotals.get(teamId)||0)+hours);
+ }
+ return {totals,teamTotals};
+}
+function renderTrendActivityFilters(scope){
+ const visible=scope==='allTeams'||scope==='allEmployees';
+ const ownerWrap=$('trendTeamFilterWrap'),activityWrap=$('trendActivityFilterWrap');
+ ownerWrap.classList.toggle('hidden',!visible);
+ activityWrap.classList.toggle('hidden',!visible);
+ if(!visible)return;
+ const ownerOptions=[{value:'',label:'Seluruh Tim Pemilik'},...BASE.teams.map(t=>({value:String(t.id),label:t.name}))];
+ if(trendOwnerTeam&&!ownerOptions.some(t=>t.value===trendOwnerTeam))trendOwnerTeam='';
+ fillSelect($('trendOwnerTeam'),ownerOptions,trendOwnerTeam);
+ const available=[...new Set(activities.filter(a=>!trendOwnerTeam||String(a.team_id)===trendOwnerTeam)
+   .map(a=>groupName(a)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'id'));
+ if(trendActivityKey&&!available.includes(trendActivityKey))trendActivityKey='';
+ fillSelect($('trendActivityFilter'),[{value:'',label:'Seluruh Kegiatan'},...available.map(name=>({value:name,label:name}))],trendActivityKey);
 }
 function trendSeriesColor(index){
  const palette=['#0c65b4','#12a3ae','#6a6edc','#e9982c','#3b9560','#bb629b'];
@@ -476,13 +488,13 @@ function renderTrend(){
   button.setAttribute('aria-pressed',String(active));
  });
  const compareEmployees=scope==='allEmployees';
- $('trendTeamFilterWrap').classList.toggle('hidden',!compareEmployees);
- if(compareEmployees)renderTrendTeamFilter();
- const perMonth=year===activeYear?months.map((_,i)=>periodAgg(String(i+1),compareEmployees?trendSelectedTeams:'')):months.map(()=>({totals:new Map()}));
+ renderTrendActivityFilters(scope);
+ const teamFilter=scope==='office'?'':trendOwnerTeam,activityFilter=scope==='office'?'':trendActivityKey;
+ const perMonth=months.map((_,i)=>trendWorkloadMonth(i+1,teamFilter,activityFilter));
  let candidates=[];
  if(scope==='office'){candidates=[{id:'office',label:'Total Kantor',vals:perMonth.map(d=>BASE.employees.filter(e=>e.type==='pegawai').reduce((s,e)=>s+(d.totals.get(e.id)||0),0))}];}
  else if(scope==='allEmployees'){candidates=BASE.employees.filter(e=>e.type==='pegawai').map(e=>({id:e.id,label:e.full_name,vals:perMonth.map(d=>d.totals.get(e.id)||0)}));}
- else if(scope==='allTeams'){candidates=BASE.teams.map(t=>({id:t.id,label:t.name,vals:months.map((_,i)=>year===activeYear?[...periodAgg(String(i+1),t.id).totals.values()].reduce((x,y)=>x+y,0):0)}));}
+ else if(scope==='allTeams'){candidates=BASE.teams.filter(t=>!teamFilter||String(t.id)===teamFilter).map(t=>({id:t.id,label:t.name,vals:perMonth.map(d=>d.teamTotals.get(String(t.id))||0)}));}
  // Annual team totals belong in the ranking card when comparing the whole office.
  const oldAnnualPanel=$('officeTeamBreakdown');
  if(oldAnnualPanel)oldAnnualPanel.remove();
@@ -492,7 +504,7 @@ function renderTrend(){
  const all=candidates.map(e=>({...e,total:e.vals.reduce((a,b)=>a+b,0)})).sort((a,b)=>b.total-a.total);
  const multi=scope==='allEmployees'||scope==='allTeams';
  if(multi&&!(trendSeriesSelection[scope] instanceof Set)){
-  trendSeriesSelection[scope]=new Set(all.slice(0,6).map(e=>String(e.id)));
+  trendSeriesSelection[scope]=new Set(all.filter(e=>e.total>0).slice(0,6).map(e=>String(e.id)));
  }
  const selected=multi?trendSeriesSelection[scope]:null;
  const drawn=multi?all.filter(e=>selected.has(String(e.id))):all.slice(0,1);
@@ -503,15 +515,8 @@ function renderTrend(){
  const sum=scope==='office'?all[0]?.total||0:(multi?drawn:all).reduce((sum,e)=>sum+e.total,0);
  $('trendKpis').innerHTML=`<span>${esc(scope==='allTeams'?'Tim':scope==='allEmployees'?'Pegawai':drawn[0]?.label||'Belum dipilih')}</span><span>${multi?'Total terpilih':'Total'}: ${nf(sum)} Jam</span><span>${multi?drawn.length+' dari '+all.length+' Seri Dipilih':all.length+' Seri'}</span>`;
  if(year!==activeYear){$('twelveBars').innerHTML='<div class="empty">Belum ada alokasi tahun '+year+'. Tahun baru akan muncul setelah perencanaan dan migrasi data.</div>';$('trendRanking').innerHTML='';$('trendLegend').innerHTML='';return}
- if(compareEmployees&&trendSelectedTeams.size===0){
-  $('twelveBars').innerHTML='<div class="empty">Pilih sedikitnya satu tim untuk menghitung beban kerja pegawai.</div>';
-  renderTrendSelectors(scope,all,selected,colorById);
-  $('trendRanking').innerHTML='<div class="tl-rank-card">Belum ada tim yang dipilih.</div>';
-  $('trendHelp').textContent='';
-  return;
- }
  if(multi&&!drawn.length){
-  $('twelveBars').innerHTML='<div class="empty">Centang pegawai atau tim di bawah grafik untuk mulai membandingkan.</div>';
+  $('twelveBars').innerHTML='<div class="empty">'+(all.some(e=>e.total>0)?'Centang pegawai atau tim di bawah grafik untuk mulai membandingkan.':'Belum ada alokasi pada Tim/Kegiatan yang dipilih.')+'</div>';
   renderTrendSelectors(scope,all,selected,colorById);
   $('trendRanking').innerHTML='<div class="tl-rank-card">Belum ada seri yang dipilih.</div>';
   $('trendHelp').textContent='';
@@ -542,7 +547,7 @@ function renderTrend(){
   $('trendHelp').textContent='';
  }else{
   $('trendRanking').innerHTML=`<div class="tl-rank-card"><strong>Peringkat ${months[currentTrendMonth-1]} ${year}</strong><div class="trend-selected-rank-list">${(multi?ranking:ranking.slice(0,7)).map((a,i)=>`<div class="rank-row"><span>${i+1}. ${esc(a.label)}</span><b>${nf(a.vals[currentTrendMonth-1])} Jam</b></div>`).join('')}</div></div>`;
-  $('trendHelp').textContent=multi?'Centang seri di legend untuk membandingkan. Klik titik grafik untuk melihat peringkat bulan tersebut.':'Klik titik bulan untuk melihat nilainya.';
+  $('trendHelp').textContent=multi?'Daftar centang otomatis diurutkan menurut Jam pada Tim/Kegiatan terpilih. Pilih seri lain bila perlu; klik titik untuk peringkat bulan.':'Klik titik bulan untuk melihat nilainya.';
  }
 }
 // --- Timeline Kerja V11; only dated entries appear on calendar days ---
@@ -625,6 +630,8 @@ function setupV5(){setupRoles();setupTimeline();fillSelect($('stdGroup'),[{value
   
  if($('stdAdd'))$('stdAdd').onclick=()=>openStandardModal();$('stdGroup').onchange=renderStandards;$('stdStatus').onchange=renderStandards;$('stdQuery').oninput=renderStandards;
  $('gotoStandards').onclick=()=>setPage('standards');fillSelect($('trendYear'),[{value:String(activeYear),label:String(activeYear)}],String(activeYear));$('trendScope').value='office';$('trendScope').onchange=renderTrend;
+ $('trendOwnerTeam').onchange=()=>{trendOwnerTeam=$('trendOwnerTeam').value;trendActivityKey='';trendSeriesSelection.allTeams=null;trendSeriesSelection.allEmployees=null;renderTrend()};
+ $('trendActivityFilter').onchange=()=>{trendActivityKey=$('trendActivityFilter').value;trendSeriesSelection.allTeams=null;trendSeriesSelection.allEmployees=null;renderTrend()};
  document.querySelectorAll('[data-trend-scope]').forEach(button=>button.onclick=()=>{
   $('trendScope').value=button.dataset.trendScope;
   renderTrend();
