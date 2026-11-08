@@ -279,7 +279,8 @@ function renderMonitoring(){
  const effectiveDailyHours=Math.max(.5,Number(state.dailyHours)||7.5);
  $('effectiveTotalHours').textContent=nf(generalDays*effectiveDailyHours);
  $('effectiveTotalBasis').textContent=nf(generalDays)+' hari × '+nf(effectiveDailyHours)+' jam/hari';
- $('autoWorkdaysLabel').textContent=nf(generalDays)+' hari kerja efektif pada '+activeYear+' (otomatis).';
+ $('autoWorkdaysLabel').textContent='Keterangan: Terdapat '+nf(generalDays)+' hari kerja efektif di tahun '+activeYear+'.';
+ $('autoWorkdaysExplanation').textContent='Hari efektif dihitung otomatis berdasarkan kalender kerja tahun '+activeYear+', tidak termasuk Sabtu, Minggu, libur nasional, dan cuti bersama yang tercatat.';
  const cards=[
   {t:'Pegawai Terpantau',v:nf(org.length),note:'Seluruh pegawai organik '+activeYear,sty:'slate',ico:'♙'},
   {t:'Total Jam Alokasi',v:nf(totalAll)+' jam',note:'Jumlah jam-orang Januari–Desember',sty:'',ico:'◷'},
