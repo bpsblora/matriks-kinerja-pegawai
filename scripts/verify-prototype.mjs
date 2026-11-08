@@ -79,4 +79,47 @@ for (const text of [
 assert(!html.includes("Referensi Tahunan Lama"), "Nama acuan tahunan lama belum diperjelas");
 assert(!html.includes("Selisih terhadap Referensi"), "Nama selisih bulanan lama belum diperjelas");
 
+
+// Dashboard warning behavior test: duplicate team membership must not double
+// the office denominator, and only planned/recorded work triggers date warnings.
+const beginAlert=inline.indexOf("function capacityWarningEvents(period){");
+const endAlert=inline.indexOf("function renderCapacityWarnings(){",beginAlert);
+assert(beginAlert>=0&&endAlert>beginAlert,"Fungsi peringatan bulanan/tahunan tidak ditemukan");
+const warningCode=inline.slice(beginAlert,endAlert);
+const e1={id:"E1",full_name:"Pegawai A",type:"pegawai",active:true};
+const e2={id:"E2",full_name:"Pegawai B",type:"pegawai",active:true};
+const a1={id:"A1",team_id:"T1",status:"aktif",description:"Uraian uji"};
+const context={
+ activeYear:2027,isBaseYear:false,
+ months:["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],
+ BASE:{employees:[e1,e2],teams:[{id:"T1",name:"Tim A"},{id:"T2",name:"Tim B"}]},
+ yearSetup:{staff:{ids:["E1","E2"]}},
+ capacity:()=>10,nf:n=>String(n),
+ periodAgg:(period,team)=>({totals:team==="T1"
+  ?new Map([["E1",11],["E2",0]]):team==="T2"
+  ?new Map([["E1",0],["E2",7]]):new Map([["E1",11],["E2",7]])}),
+ assignedStaff:()=>[e1,e2],
+ assignedStaffIds:()=>new Set(["E1","E2"]),
+ byId:new Map([["A1",a1]]),baseMonthly:new Map(),amKey:(id,m)=>id+"|"+m,
+ state:{allocEdits:{},targets:{},workflowPlans:{},scheduleEdits:{}}
+};
+const evaluate=()=>vm.runInNewContext(warningCode+";capacityWarningEvents('monthly')",context);
+let events=evaluate().events;
+assert(events.some(e=>e.scope==="pegawai"&&e.level==="over"),"Pegawai di atas kapasitas harus terdeteksi");
+assert(!events.some(e=>e.scope==="kantor"&&e.level==="over"),"Kapasitas kantor menghitung pegawai ganda");
+assert(!events.some(e=>e.scope==="alokasi"),"Katalog tanpa alokasi tidak boleh ditandai belum lengkap");
+context.state.allocEdits={"A1|E1|1":4};
+events=evaluate().events;
+assert(events.some(e=>e.title==="Tanggal Pelaksanaan Belum Lengkap"),"Tanggal kegiatan kosong harus diperingatkan");
+context.state.scheduleEdits={"A1|1":{start:"2027-01-04",end:"2027-01-06"}};
+events=evaluate().events;
+assert(!events.some(e=>e.title==="Tanggal Pelaksanaan Belum Lengkap"),"Tanggal valid tidak boleh diperingatkan");
+context.state.allocEdits={};
+context.state.targets={"A1|1":2};
+events=evaluate().events;
+assert(events.some(e=>e.title==="Alokasi Pegawai Belum Lengkap"),"Target tanpa penugasan harus diperingatkan");
+assert(html.includes("Tanggal Mulai dan Selesai wajib diisi"),"Tahun baru harus mewajibkan tanggal pelaksanaan");
+assert(html.includes("moveAnnualAuditToRecon()"),"Pemeriksaan tahun 2026 harus tersedia di Rekonsiliasi");
+assert(html.includes('id="capacityWarningBoard"'),"Pusat peringatan Dashboard tidak ditemukan");
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
