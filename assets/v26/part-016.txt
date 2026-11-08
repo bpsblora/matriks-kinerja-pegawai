@@ -984,10 +984,13 @@ function capacityWarningEvents(period){
  const teamLabel=name=>/^tim\b/i.test(String(name))?String(name):'Tim '+String(name);
  const officeHours=staff.reduce((sum,e)=>sum+getHours(e),0);
  const noAllocation=staff.filter(e=>getHours(e)<=0);
+ const effectiveCalendarReady=typeof HOLIDAYS==='undefined'||!!HOLIDAYS[activeYear];
+ if(!effectiveCalendarReady)mk('pending','alokasi','Kalender Hari Kerja '+activeYear+' Belum Diverifikasi',
+  'Daftar libur nasional/cuti bersama tahun '+activeYear+' belum tersedia. Penilaian melebihi, mendekati, atau sangat rendah dibanding kapasitas efektif ditangguhkan agar tidak menyesatkan.',{action:'check-staff'});
  // A person has one effective work capacity across all assignments.
  // A team owns a workload; it does not have a fixed capacity denominator.
  // Under-allocation is provisional: 0 hours means absent records, not proven idle time.
- if(perPerson>0&&officeHours>0){
+ if(effectiveCalendarReady&&perPerson>0&&officeHours>0){
   for(const e of staff){
    const hours=getHours(e),pct=hours/perPerson;
    if(pct>1.00001)mk('over','pegawai',e.full_name+' — Melebihi Kapasitas Total Efektif '+excess(hours,perPerson),
@@ -997,10 +1000,10 @@ function capacityWarningEvents(period){
    else if(hours>0&&pct<=.25)mk('under','pegawai',e.full_name+' — '+nf(hours)+' Jam Alokasi ('+nf(pct*100)+'% dari Total Efektif)',
     'Alokasi tercatat sangat rendah dibanding '+nf(perPerson)+' Jam Kapasitas Total Efektif. Periksa kelengkapan pencatatan sebelum menyimpulkan pegawai kurang pekerjaan.',{employeeId:e.id,loadRatio:pct});
   }
-  if(noAllocation.length){
-   mk('pending','alokasi',nf(noAllocation.length)+' Pegawai Belum Memiliki Alokasi Tercatat',
-    'Pada '+periodName+', terdapat '+nf(noAllocation.length)+' Pegawai dengan 0 Jam alokasi. Periksa kelengkapan pencatatan; ini bukan bukti pegawai tidak bekerja.',{action:'check-staff'});
-  }
+ }
+ if(officeHours>0&&noAllocation.length){
+  mk('pending','alokasi',nf(noAllocation.length)+' Pegawai Belum Memiliki Alokasi Tercatat',
+   'Pada '+periodName+', terdapat '+nf(noAllocation.length)+' Pegawai dengan 0 Jam alokasi. Periksa kelengkapan pencatatan; ini bukan bukti pegawai tidak bekerja.',{action:'check-staff'});
  }
  // Monthly distribution: compare only teams with actual recorded work.
  // A zero-work team is not deemed idle without a known planned assignment.
