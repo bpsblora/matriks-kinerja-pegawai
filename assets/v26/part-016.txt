@@ -278,7 +278,7 @@ function renderTeamRosterHint(){
  const el=$('teamRosterHint');if(!el)return;
  const team=demoRoster[selectedTeam],chief=team?.leaderName||'Belum ditetapkan',count=(team?.members||[]).length;
  el.hidden=!team||(!team.leaderId&&!count);el.textContent='Ketua: '+chief+' · '+(count?count+' anggota terdaftar':'anggota belum ditetapkan')+'.';
- $('staffOnlyTeam').checked=true;$('staffOnlyTeam').disabled=true;
+ $('staffOnlyTeam').disabled=false;
 }
 function setupRoster(){
  fillSelect($('rosterTeam'),BASE.teams.map(x=>({value:x.id,label:x.name})),BASE.teams[0]?.id);
