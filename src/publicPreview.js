@@ -99,7 +99,7 @@ $("mpLogin").addEventListener("click",async()=>{
  button.disabled=true;$("mpError").textContent="";
  try{
    const provider=new GoogleAuthProvider();
-   provider.setCustomParameters({hd:"bps.go.id",prompt:"select_account"});
+   provider.setCustomParameters({hd:"bps.go.id"});
    await signInWithPopup(auth,provider);
  }catch(e){$("mpError").textContent=errorText(e.code);}
  finally{button.disabled=false;}
