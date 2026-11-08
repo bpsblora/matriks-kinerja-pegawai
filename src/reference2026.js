@@ -116,9 +116,9 @@ export function createReference2026View() {
       const h = document.createElement("strong");
       h.textContent = t.name;
       const details = document.createElement("p");
-      details.textContent = "Ketua: " + (t.leadId || "—") + " · " + t.memberIds.length + " anggota";
+      details.textContent = "Ketua: " + (t.leadId || "—") + " · " + t.memberIds.length + " Anggota";
       const source = document.createElement("small");
-      source.textContent = (t.summary?.activities || 0) + " kegiatan tercatat pada rekap sumber 2026";
+      source.textContent = (t.summary?.activities || 0) + " Kegiatan Tercatat pada Rekap Sumber 2026";
       c.append(h, details, source);
       teamGrid.append(c);
     });
