@@ -202,27 +202,6 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
 .nav .navbutton.stage-locked:not(.active){opacity:.65}
 .nav .navbutton.active{color:#fff!important}
 @media(max-width:700px){#pageDashboard .dashboard-section-heading h2{font-size:16px}#pageDashboard .office-team-breakdown{padding:12px}}
-
-/* Monthly team breakdown lives in the chart's ranking panel, not a second card */
-#pageDashboard .monthly-trend .tl-trend-footer{display:flex;flex-direction:column;gap:10px}
-#pageDashboard .monthly-trend #trendLegend{width:100%;min-width:0}
-#pageDashboard .monthly-trend #trendRanking{width:100%;min-width:0}
-#pageDashboard .monthly-trend .tl-rank-card{background:#f4f9ff;border:1px solid #d5e7f7;border-radius:15px;padding:16px 18px}
-#pageDashboard .monthly-trend .trend-rank-head{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-bottom:12px}
-#pageDashboard .monthly-trend .trend-rank-head>div:first-child{display:flex;flex-direction:column;gap:3px}
-#pageDashboard .monthly-trend .trend-rank-head strong{font-family:Poppins,Nunito,sans-serif;font-size:15px;color:#134f87}
-#pageDashboard .monthly-trend .trend-rank-head small{font-size:11px;color:#60809d}
-#pageDashboard .monthly-trend .trend-month-chooser{display:flex;align-items:center;gap:10px;background:white;border:1px solid #cbdff1;padding:5px;border-radius:12px;color:#0d5b9b;font-weight:900;font-size:12px}
-#pageDashboard .monthly-trend .trend-month-chooser button{min-width:29px;min-height:29px;border:0;border-radius:8px;background:#e8f3fc;color:#1369aa;font-size:20px;line-height:1}
-#pageDashboard .monthly-trend .trend-month-chooser button:hover{background:#cee6f9}
-#pageDashboard .monthly-trend .trend-rank-list{max-height:380px;overflow:auto;scrollbar-width:thin}
-#pageDashboard .monthly-trend .trend-team-row{display:grid!important;grid-template-columns:minmax(170px,1.2fr) minmax(90px,1fr) minmax(105px,auto);gap:14px;align-items:center;padding:10px 6px!important;font-size:12px!important}
-#pageDashboard .monthly-trend .trend-team-row>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#pageDashboard .monthly-trend .trend-team-row b{text-align:right;color:#164d84;white-space:nowrap}
-#pageDashboard .monthly-trend .trend-rank-bar{height:9px;border-radius:10px;background:#dfeaf6;overflow:hidden}
-#pageDashboard .monthly-trend .trend-rank-bar i{display:block;height:100%;border-radius:10px;background:linear-gradient(90deg,#1265ad,#2d9bdd)}
-#pageDashboard .office-team-breakdown{display:none!important}
-@media(max-width:620px){#pageDashboard .monthly-trend .trend-team-row{grid-template-columns:minmax(100px,1fr) minmax(65px,.6fr) auto;gap:6px;font-size:10px!important}#pageDashboard .monthly-trend .tl-rank-card{padding:12px}}
 </style>
 </head><body>
 <header><div class="shell topbar"><div class="brand"><div class="mark">MP</div><div><h1>Matriks Pegawai</h1><div class="sub">BPS KABUPATEN BLORA</div></div></div><div class="rightbar"><div class="role-switch role-switch-v7"><button class="btn tiny blue-soft" id="modeView">Lihat (View)</button><button class="btn primary tiny" id="btnLoginEdit">Masuk Edit</button><button class="btn tiny hidden" id="btnLogout">Keluar</button></div><span class="role-pill read" id="rolePill">View</span><span class="user-summary" id="sessionUser">Akses umum</span><button class="btn tiny hidden" id="btnRoster">Kelola Tim</button><button class="btn" id="btnExport">↓ Ekspor perubahan</button><button class="btn" id="btnImport">↑ Impor backup</button><button class="btn warn" id="btnReset">Reset uji coba</button><input type="file" id="importFile" accept=".json,application/json" style="display:none"></div></div></header>
