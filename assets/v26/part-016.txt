@@ -129,6 +129,7 @@ function paintTeamAdminMembers(){const q=$('teamAdminMemberSearch').value.trim()
 let adminMemberWorking=new Set();
 function renderEstablishedTeams(){
  const el=$('establishedTeamSummary');if(!el)return;
+ el.classList.toggle('hidden',isBaseYear&&!yearSetup.staff?.confirmed);
  const employeeName=id=>BASE.employees.find(e=>e.id===id)?.full_name||id;
  const list=demoTeams.map(t=>{const ro=demoRoster[t.id]||{members:[]};const ids=(ro.members||[]).filter(id=>BASE.employees.some(e=>e.id===id));const complete=!!(ro.leaderId&&ids.length)&&(isBaseYear?!!(yearSetup.teams[t.id]&&yearSetup.teams[t.id].leaderId===ro.leaderId&&equalIds(yearSetup.teams[t.id].members,ro.members)):yearTeamReady(t.id));return {t,ro,ids,complete}});
  const ready=list.filter(x=>x.complete),missing=list.filter(x=>!x.complete);
