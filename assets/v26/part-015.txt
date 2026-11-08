@@ -437,7 +437,29 @@ function renderPerson(data,period,team,annual,monthly){
  $('personTitle').textContent=e.full_name;
  $('personSubtitle').textContent=rows.length+' Uraian dengan alokasi pada periode terpilih';
  $('personSummary').innerHTML=`<div class="personinfo"><div class="person-metrics"><div class="person-metric primary"><div class="pm-label">Total Jam</div><div class="pm-value">${nf(total)}</div><div class="pm-sub">Jam-Orang</div></div><div class="person-metric"><div class="pm-label">Rata-rata Harian</div><div class="pm-value">${nf(total/days)}</div><div class="pm-sub">Jam/Hari Kerja Efektif</div></div><div class="person-metric"><div class="pm-label">Kapasitas Terpakai</div><div class="pm-value">${nf(ratio.pct)}%</div><div class="pm-sub">Dari ${nf(cap)} Jam Kapasitas Acuan</div></div><div class="person-metric"><div class="pm-label">Rata-rata per Bulan</div><div class="pm-value">${nf(total/(period==='annual'||period==='monthly'?12:1))}</div><div class="pm-sub">Jam per Bulan dalam Periode</div></div></div><div class="person-reconcile"><strong>Audit data individu ${activeYear}</strong><br>Referensi tahunan lama: <strong>${nf(ya)} Jam</strong><br>Total tahunan otomatis (Σ 12 bulan): <strong>${nf(mo)} Jam</strong><br>Selisih terhadap referensi: <strong>${gap>0?'+':''}${nf(gap)} Jam</strong><br><span class="status-chip ${ratio.className}">${esc(ratio.text)}</span></div></div>`;
- $('personDetails').innerHTML=rows.slice(0,90).map(r=>`<div class="detailrow"><div><div class="dname">${esc(r.ac.description)}</div><div class="dsub">${esc(r.ac.team)} › ${esc(groupName(r.ac))}</div></div><strong>${nf(r.h)} Jam</strong></div>`).join('')+(rows.length>90?'<div class="help">Menampilkan 90 uraian dengan jam terbesar.</div>':'')||'<div class="empty">Tidak ada alokasi pada periode dan tim ini.</div>';
+
+ const groups=groupPersonWorkload(rows);
+ const top=groups.slice(0,3);
+ $('personDetails').innerHTML=`<div class="person-work-compact">
+  <div class="person-work-compact-head">
+   <div><strong>Kelompok Beban Pekerjaan</strong><p>${nf(groups.length)} Kelompok Tim–Kegiatan · ${nf(rows.length)} Uraian</p></div>
+   <span class="person-work-total-chip">${nf(total)} Jam</span>
+  </div>
+  ${groups.length?`<div class="person-work-compact-highlights">
+   ${top.map((group,i)=>`<div class="person-work-mini person-work-${['blue','green','amber'][i%3]}">
+    <span><small>${esc(group.team)}</small><strong>${esc(group.activity)}</strong></span>
+    <b>${nf(group.hours)} Jam</b>
+   </div>`).join('')}
+  </div>`:'<p class="person-work-empty-note">Belum ada alokasi pekerjaan pada periode dan tim ini.</p>'}
+  <button type="button" id="openPersonWorkDialog" class="person-work-trigger" ${groups.length?'':'disabled'}>
+   <span><strong>Lihat Semua Beban Pekerjaan</strong><small>Daftar per Tim–Kegiatan, dari beban terbesar</small></span>
+   <span class="person-work-arrow" aria-hidden="true">›</span>
+  </button>
+ </div>`;
+ $('openPersonWorkDialog').onclick=event=>openPersonWorkDialog({
+  employee:e,period,total,groups,detailCount:rows.length
+ },event.currentTarget);
+
 }
 function renderHistory(){const items=state.log;$('historyItems').innerHTML=items.length?items.map(row=>`<div class="detailrow" style="grid-template-columns:190px minmax(0,1fr)"><div class="help">${esc(new Date(row.at).toLocaleString('id-ID'))}</div><div><strong>${esc(row.action)}</strong><span class="help"> · ${esc(row.actor||"Sesi lama")}</span><div class="help">${esc(row.detail)}</div></div></div>`).join(''):'<div class="empty">Belum ada perubahan. Uji pengeditan atau alokasi untuk menampilkan riwayat.</div>'}
 function exportJson(){const payload={year:activeYear,format:'Matriks-Pegawai-V25-Overlay-Multitahun-v17',createdAt:new Date().toISOString(),yearCatalog:yearCatalog,yearSetup,employeeMaster,demoTeams,demoRoster,source:'Matriks Kegiatan Pegawai 2026.xlsx',state};download('Matriks_Pegawai_'+activeYear+'_Backup_Perubahan.json',JSON.stringify(payload,null,2),'application/json');toast('Backup perubahan diunduh. Simpan di tempat yang aman.')}
