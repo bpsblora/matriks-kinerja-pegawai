@@ -397,7 +397,7 @@ export function createLiveMatrixWorkspace(context) {
   });
   const sorted=[...map.values()].filter(e=>matches(e.employee.id,e.employee.name)).sort((a,b)=>b.hrs-a.hrs);
   const box=card("Monitoring Beban Pegawai","Akumulasi jam dari seluruh alokasi yang tersimpan.");
-  const rowsTable=sorted.map(x=>[x.employee.id,x.employee.name,fmt(x.hrs),x.records+" alokasi",
+  const rowsTable=sorted.map(x=>[x.employee.id,x.employee.name,fmt(x.hrs),x.records+" Alokasi",
    x.hrs>157.5?"Periksa beban": "Dalam pemantauan"]);
   box.box.append(table(["ID","Nama","Total Jam","Banyak Alokasi","Indikasi"],rowsTable));
   content.append(box.box);
