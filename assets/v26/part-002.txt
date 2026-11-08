@@ -252,6 +252,34 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
 #pageDashboard .monthly-trend .office-progress i{display:block;height:100%;border-radius:12px;background:linear-gradient(90deg,#1165b0,#2a9ade)}
 #pageDashboard .office-team-breakdown{display:none!important}
 @media(max-width:700px){#pageDashboard .monthly-trend .tl-trend-footer:has(.office-annual-card){grid-template-columns:1fr}#pageDashboard .monthly-trend .office-annual-row{grid-template-columns:minmax(105px,1.2fr) minmax(60px,.6fr) auto;gap:6px}}
+
+/* Multi-select comparison legend for all employees and all teams */
+#pageDashboard .monthly-trend .tl-trend-footer:has(.trend-series-picker){grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);align-items:start;gap:14px}
+#pageDashboard .monthly-trend #trendLegend:has(.trend-series-picker){display:block;min-width:0}
+#pageDashboard .monthly-trend .trend-series-picker{width:100%;border:1px solid #cfe3f5;background:#f6fbff;padding:12px;border-radius:14px}
+#pageDashboard .monthly-trend .trend-series-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+#pageDashboard .monthly-trend .trend-series-toolbar>div:first-child{display:flex;flex-direction:column;gap:3px}
+#pageDashboard .monthly-trend .trend-series-toolbar strong{font-size:12px;font-weight:900;color:#11558f}
+#pageDashboard .monthly-trend .trend-series-toolbar small{font-size:11px;color:#68819b;font-weight:700}
+#pageDashboard .monthly-trend .trend-series-actions{display:flex;gap:6px;flex-wrap:wrap}
+#pageDashboard .monthly-trend .trend-series-actions button{font:800 11px Nunito,Arial,sans-serif;background:#fff;border:1px solid #bad8f1;border-radius:9px;padding:7px 9px;color:#125f9f;cursor:pointer;transition:background .18s,transform .18s}
+#pageDashboard .monthly-trend .trend-series-actions button:hover{background:#e5f3ff;transform:translateY(-1px)}
+#pageDashboard .monthly-trend .trend-series-actions button:focus-visible{outline:2px solid #69afe5;outline-offset:2px}
+#pageDashboard .monthly-trend .trend-series-options{max-height:255px;overflow-y:auto;scrollbar-width:thin;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:3px 2px}
+#pageDashboard .monthly-trend .trend-series-option{display:flex;align-items:center;gap:7px;min-width:0;min-height:35px;padding:7px 8px;border:1px solid #cddff0;background:#fff;border-radius:10px;color:#285981;font-size:11px;font-weight:800;cursor:pointer;transition:background .18s,border-color .18s,opacity .18s}
+#pageDashboard .monthly-trend .trend-series-option:has(input:checked){background:#e6f4ff;border-color:#a7d1f1}
+#pageDashboard .monthly-trend .trend-series-option:not(:has(input:checked)){opacity:.69}
+#pageDashboard .monthly-trend .trend-series-option:hover{background:#eaf5ff;opacity:1}
+#pageDashboard .monthly-trend .trend-series-option input{width:15px;height:15px;flex:0 0 auto;accent-color:#0d74bc;cursor:pointer;margin:0}
+#pageDashboard .monthly-trend .trend-series-option i{width:10px;height:10px;flex:0 0 auto;border-radius:50%}
+#pageDashboard .monthly-trend .trend-series-option span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pageDashboard .monthly-trend .trend-selected-rank-list{max-height:265px;overflow-y:auto;scrollbar-width:thin}
+#pageDashboard .monthly-trend .trend-selected-rank-list .rank-row{gap:10px}
+#pageDashboard .monthly-trend .trend-selected-rank-list .rank-row span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pageDashboard .monthly-trend .trend-selected-rank-list .rank-row b{text-align:right;white-space:nowrap}
+@media(max-width:920px){#pageDashboard .monthly-trend .tl-trend-footer:has(.trend-series-picker){grid-template-columns:1fr}}
+@media(max-width:520px){#pageDashboard .monthly-trend .trend-series-options{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){#pageDashboard .monthly-trend .trend-series-actions button{transition:none;transform:none!important}}
 </style>
 </head><body>
 <header><div class="shell topbar"><div class="brand"><div class="mark">MP</div><div><h1>Matriks Pegawai</h1><div class="sub">BPS KABUPATEN BLORA</div></div></div><div class="rightbar"><div class="role-switch role-switch-v7"><button class="btn tiny blue-soft" id="modeView">Lihat (View)</button><button class="btn primary tiny" id="btnLoginEdit">Masuk Edit</button><button class="btn tiny hidden" id="btnLogout">Keluar</button></div><span class="role-pill read" id="rolePill">View</span><span class="user-summary" id="sessionUser">Akses umum</span><button class="btn tiny hidden" id="btnRoster">Kelola Tim</button><button class="btn" id="btnExport">↓ Ekspor perubahan</button><button class="btn" id="btnImport">↑ Impor backup</button><button class="btn warn" id="btnReset">Reset uji coba</button><input type="file" id="importFile" accept=".json,application/json" style="display:none"></div></div></header>
