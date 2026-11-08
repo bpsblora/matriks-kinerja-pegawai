@@ -617,7 +617,7 @@ function renderYearSetup(){
  $('annualConfirmStaff').classList.toggle('hidden',allReady&&!staffEditing);
  $('annualConfirmStaff').disabled=!canCentral||!prevReady||!writable||!staffDraft.size;
  $('annualEditStaff').classList.toggle('hidden',!canCentral||!writable);
- const teamStage=$('annualTeamStage');teamStage.classList.toggle('is-locked',!allReady||staffEditing);
+ const teamStage=$('annualTeamStage');teamStage.classList.toggle('is-locked',!allReady||staffEditing);teamStage.classList.toggle('hidden',isBaseYear&&!allReady);
  const teamComplete=teamOk&&!teamEditing;
  teamStage.classList.toggle('is-complete',teamComplete);
  $('annualTeamGridSlot').classList.toggle('is-complete',teamComplete);
