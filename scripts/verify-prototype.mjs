@@ -198,4 +198,21 @@ assert(!stageCode.includes("if(!isBaseYear){\n  if(hero&&panel)"),"Tahapan 2026 
 assert(inline.includes("if(membershipChanged&&(!isBaseYear||yearSetup.staff?.confirmed))"),"Perubahan pegawai perlu meninjau ulang penetapan");
 assert(inline.includes("el.classList.toggle('hidden',isBaseYear&&!yearSetup.staff?.confirmed)"),"Ringkasan tim 2026 harus menunggu tahap pegawai");
 
+
+// Paired cards must have identical outside height and independently scroll
+// their lengthy employee/activity lists. Do not hide full forms by overflow.
+for (const rule of [
+  "#pageDashboard .monitor-main-grid{",
+  "#pageDashboard .monitor-main-grid > :is(.chart-panel,.person-panel){",
+  "#pageDashboard .monitor-main-grid #barRows,",
+  "#pageDashboard .monitor-main-grid #personDetails{",
+  "#pageTeams .team-admin-grid{align-items:stretch!important}",
+  "#pageTeams .team-admin-grid > .team-admin-card{",
+  "@media(max-width:1240px){",
+  "@media(max-width:980px){"
+]) assert(cssPolish.includes(rule),"Aturan penyamaan kartu/area gulir belum tersedia: "+rule);
+assert(cssPolish.includes("overflow-y:auto;"),"Daftar panjang perlu gulir vertikal");
+assert(cssPolish.includes("max-height:none!important;"),"Batas lama tinggi daftar di desktop perlu ditimpa");
+assert(cssPolish.includes("overflow:visible;"),"Formulir kartu bertumpuk tidak boleh terpotong");
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
