@@ -300,6 +300,32 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
 #pageDashboard .trend-team-option input{width:15px;height:15px;accent-color:#0c6fba;flex-shrink:0;cursor:pointer;margin:0}
 #pageDashboard .trend-team-option span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:650px){#pageDashboard .trend-team-menu{min-width:min(310px,90vw)}}
+
+/* Cross-menu typography and metrics audit */
+:root{--bps-metric:#0d4d83;--bps-label:#426786;--bps-line:#cfe2f4}
+.page :is(.combined-metrics article,.stat,.mon-kpi,.recon-card,.tl-kpi,.kro-audit-kpi,.quickbox){min-width:0;border-color:var(--bps-line);box-shadow:0 4px 16px rgba(17,85,146,.065)}
+#pageDashboard .combined-metrics article{position:relative;overflow:hidden;padding:17px 19px;border-top:3px solid #1683ce;background:linear-gradient(175deg,#fff,#f7fbff);min-height:108px}
+#pageDashboard .combined-metrics article:focus-within{outline:2px solid #63aee7}
+#pageDashboard .combined-metrics strong{font-size:clamp(22px,2.4vw,28px);font-weight:900;line-height:1.28}
+#pageDashboard .mon-kpi{border-top:3px solid #1683ce}
+#pageDashboard .mon-kpi.red{border-top-color:#d75566}
+#pageTimeline .tl-kpi{border-top:3px solid #2383cb}
+#pageKRO .kro-audit-kpi{border-left:4px solid #2280c6;background:#f5faff}
+#pageInput .quickbox{border-top:3px solid #2789d0}
+.page :is(.stat b,.quickbox strong,.combined-metrics strong,.mon-kpi .kpi-value,.recon-value,.tl-kpi .v,.kro-audit-kpi strong){color:var(--bps-metric);font-family:Poppins,Nunito,Arial,sans-serif;font-weight:900;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.page .mon-kpi.red .kpi-value,.page .recon-card.diff .recon-value{color:#b52e45}
+.page .recon-card.equal .recon-value{color:#0c8064}
+.page :is(.stat small,.quickbox .q-label,.combined-metrics small,.mon-kpi .kpi-label,.recon-card .recon-label,.tl-kpi .k,.kro-audit-kpi small){font-size:12px;color:var(--bps-label);font-weight:850;line-height:1.45}
+.page :is(.stat,.tl-kpi,.quickbox) :is(small,.d,.q-help){line-height:1.5}
+.page :is(.section-top h3,.panel>h3,.team-admin-card h3,.kro-audit-heading h3){font-family:Poppins,Nunito,Arial,sans-serif;color:#124d80;font-weight:800;letter-spacing:-.025em;line-height:1.4}
+.page .field>label{color:#285c88;font-weight:850;font-size:12px;line-height:1.4}
+.page :is(.status-chip,.recon-tag,.badge,.kro-audit-status){font-weight:850}
+.page :is(.status-chip,.recon-tag,.badge){border:1px solid rgba(23,104,178,.11)}
+.page :is(.status-chip.high,.recon-card.diff,.badge.orange){border-color:#efd6a0}
+.page :is(.status-chip.over,.badge.red){border-color:#f0c3c9}
+.page :is(.section-top p,.help,.kpi-note,.recon-desc,.team-admin-note){line-height:1.55}
+.page button:focus-visible,.page select:focus-visible,.page input:focus-visible,.page summary:focus-visible{outline:3px solid #7bbdec;outline-offset:2px}
+@media(max-width:700px){#pageDashboard .combined-metrics article{min-height:90px;padding:13px 15px}.page .field>label{font-size:11px}}
 </style>
 </head><body>
 <header><div class="shell topbar"><div class="brand"><div class="mark">MP</div><div><h1>Matriks Pegawai</h1><div class="sub">BPS KABUPATEN BLORA</div></div></div><div class="rightbar"><div class="role-switch role-switch-v7"><button class="btn tiny blue-soft" id="modeView">Lihat (View)</button><button class="btn primary tiny" id="btnLoginEdit">Masuk Edit</button><button class="btn tiny hidden" id="btnLogout">Keluar</button></div><span class="role-pill read" id="rolePill">View</span><span class="user-summary" id="sessionUser">Akses umum</span><button class="btn tiny hidden" id="btnRoster">Kelola Tim</button><button class="btn" id="btnExport">↓ Ekspor Perubahan</button><button class="btn" id="btnImport">↑ Impor Backup</button><button class="btn warn" id="btnReset">Reset Uji Coba</button><input type="file" id="importFile" accept=".json,application/json" style="display:none"></div></div></header>
