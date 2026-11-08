@@ -371,7 +371,7 @@ async function applyMasterToTask(id){const r=STANDARDS.find(x=>x.id===id),a=byId
  logChange('Terapkan master standar',a.team+' › '+a.description+': '+nf(hours)+' Jam mulai '+months[from-1]+' ('+r.group+')');persist();closeModal();setPage('input');loadAllocation();toast('Standar diterapkan untuk periode yang dipilih.')}
 function qtyMapForMonth(m,teamId){const map=new Map();function accept(aid,eid,month,q){if(Number(month)!==Number(m))return;const a=byId.get(aid);if(!a||(teamId&&a.team_id!==teamId))return;if(Number(q)<=0)return;const keyid=aid;if(!map.has(keyid))map.set(keyid,{activity:a,people:0,qty:0,personHours:0});const entry=map.get(keyid);entry.people++;entry.qty+=Number(q);entry.personHours+=Number(q)*getStandard(a,Number(m));}
  const handled=new Set();for(const [k,v] of baseMonthly){handled.add(k);const [a,e,month]=k.split('|');const q=Object.prototype.hasOwnProperty.call(state.allocEdits,k)?state.allocEdits[k]:v;accept(a,e,month,q)}for(const [k,v] of Object.entries(state.allocEdits))if(!handled.has(k)){const [a,e,month]=k.split('|');accept(a,e,month,v)}return map}
-function renderRecon(){const m=Number($('reconMonth').value),tid=currentRole==='ketua'?roleTeamId:$('reconTeam').value,q=$('reconQuery').value.trim().toLocaleLowerCase('id');const map=qtyMapForMonth(m,tid);
+function renderRecon(){moveAnnualAuditToRecon();renderAnnualReconciliation();const m=Number($('reconMonth').value),tid=currentRole==='ketua'?roleTeamId:$('reconTeam').value,q=$('reconQuery').value.trim().toLocaleLowerCase('id');const map=qtyMapForMonth(m,tid);
  const rows=[...map.values()].filter(e=>(e.activity.description+' '+groupName(e.activity)+' '+e.activity.team).toLocaleLowerCase('id').includes(q)).sort((a,b)=>b.personHours-a.personHours);
  const total=rows.reduce((s,x)=>s+x.personHours,0),peopleAlloc=rows.reduce((s,x)=>s+x.people,0);
  $('reconSummary').innerHTML=[["Uraian Terjadwal",nf(rows.length),'Kegiatan dengan alokasi pegawai'],['Total Beban Pegawai',nf(total)+' Jam','Akumulasi jam-orang untuk bulan terpilih'],['Penugasan Tercatat',nf(peopleAlloc),'Jumlah keterlibatan pegawai per uraian']].map(([k,v,d])=>`<div class="mini-kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
@@ -929,6 +929,174 @@ function renderKroAudit(){
 
 
 // V1.8: Additional screens from the prior multi-year prototype; V25 monitoring functions remain unchanged.
+
+/* Peringatan berbasis data matriks: kapasitas kantor menggunakan pegawai
+   unik; pembandingan tim tidak pernah dijumlahkan sebagai kapasitas kantor.
+   Perhitungan bulanan dan tahunan berasal dari alokasi yang sama. */
+let alertSelectedPeriod='all',alertExpanded=false;
+
+function moveAnnualAuditToRecon(){
+ const audit=$('reconcilePanel'),recon=$('pageRecon');
+ if(!audit||!recon)return;
+ if(audit.parentElement!==recon){
+  const hero=recon.querySelector('.recon-hero');
+  if(hero)hero.insertAdjacentElement('afterend',audit);
+  else recon.prepend(audit);
+ }
+ audit.classList.toggle('hidden',!isBaseYear);
+}
+function capacityWarningEvents(period){
+ const periodName=period==='monthly'?'Tahun '+activeYear:months[Number(period)-1]+' '+activeYear;
+ const permitted=isBaseYear?null:new Set(yearSetup.staff?.ids||[]);
+ const staff=BASE.employees.filter(e=>e.type==='pegawai'&&e.active!==false&&(!permitted||permitted.has(e.id)));
+ const perPerson=capacity(period),overall=periodAgg(period,'').totals;
+ const events=[],mk=(level,scope,title,description,extra={})=>events.push({
+  level,scope,title,description,period,periodName,...extra
+ });
+ const getHours=e=>overall.get(e.id)||0;
+ const ratioText=(hours,cap)=>cap?nf(hours/cap*100)+'%':'—';
+ for(const e of staff){
+  const hours=getHours(e),pct=perPerson?hours/perPerson:0;
+  if(pct>1.00001)mk('over','pegawai','Beban Pegawai Melebihi Kapasitas',
+   e.full_name+' · '+nf(hours)+' Jam dari '+nf(perPerson)+' Jam Kapasitas ('+ratioText(hours,perPerson)+'). Periksa distribusi pekerjaan dan potensi kebutuhan lembur.',{employeeId:e.id});
+  else if(pct>=.85)mk('near','pegawai','Beban Pegawai Mendekati Batas',
+   e.full_name+' · '+nf(hours)+' Jam dari '+nf(perPerson)+' Jam Kapasitas ('+ratioText(hours,perPerson)+').',{employeeId:e.id});
+ }
+ for(const t of BASE.teams){
+  const teamHours=[...periodAgg(period,t.id).totals.values()].reduce((x,y)=>x+y,0);
+  if(teamHours<=0)continue;
+  const members=assignedStaff(t.id).filter(e=>e.type==='pegawai');
+  if(!members.length){
+   if(!isBaseYear)mk('pending','alokasi','Anggota Tim Perlu Dilengkapi',
+    t.name+' memiliki '+nf(teamHours)+' Jam Alokasi, tetapi belum ada anggota aktif yang ditetapkan.',{teamId:t.id,action:'teams'});
+   continue;
+  }
+  const teamCap=members.length*perPerson,ratio=teamCap?teamHours/teamCap:0;
+  if(ratio>1.00001)mk('over','tim','Beban Tim Melebihi Kapasitas',
+   t.name+' · '+nf(teamHours)+' Jam dari kapasitas indikatif '+nf(teamCap)+' Jam ('+ratioText(teamHours,teamCap)+').',{teamId:t.id});
+  else if(ratio>=.85)mk('near','tim','Beban Tim Mendekati Batas',
+   t.name+' · '+nf(teamHours)+' Jam dari kapasitas indikatif '+nf(teamCap)+' Jam ('+ratioText(teamHours,teamCap)+').',{teamId:t.id});
+ }
+ const officeHours=staff.reduce((sum,e)=>sum+getHours(e),0);
+ const officeCap=staff.length*perPerson,officeRatio=officeCap?officeHours/officeCap:0;
+ if(officeRatio>1.00001)mk('over','kantor','Beban Kantor Melebihi Kapasitas',
+  nf(officeHours)+' Jam dari '+nf(officeCap)+' Jam Kapasitas ('+ratioText(officeHours,officeCap)+'). Pegawai dihitung satu kali walaupun tergabung dalam beberapa tim.');
+ else if(officeRatio>=.85)mk('near','kantor','Beban Kantor Mendekati Batas',
+  nf(officeHours)+' Jam dari '+nf(officeCap)+' Jam Kapasitas ('+ratioText(officeHours,officeCap)+').');
+ if(isBaseYear){
+  if(period==='monthly'){
+   const annual=periodAgg('annual','').totals;
+   const reference=BASE.employees.filter(e=>e.type==='pegawai').reduce((n,e)=>n+(annual.get(e.id)||0),0);
+   const current=BASE.employees.filter(e=>e.type==='pegawai').reduce((n,e)=>n+(overall.get(e.id)||0),0);
+   if(Math.abs(reference-current)>=.005)mk('pending','referensi','Alokasi Tahunan 2026 Belum Sesuai',
+    'Selisih '+nf(Math.abs(reference-current))+' Jam ('+nf(reference?Math.abs(reference-current)/reference*100:100)+'%). Rincian bulanan dan acuan tahunan perlu diperiksa di Rekonsiliasi.',{action:'recon'});
+  }
+ }else{
+  // Only assess work with a recorded monthly allocation, a positive target,
+  // or a workflow plan. Catalogue activities alone are not missing allocations.
+  const monthMatches=m=>period==='monthly'||Number(m)===Number(period);
+  const records=new Map(),assigned=new Map();
+  const saved=new Map(baseMonthly);
+  for(const [key,val] of Object.entries(state.allocEdits||{}))saved.set(key,Number(val)||0);
+  const missingDate=new Map(),missingMember=new Map();
+  for(const [allocKey,qty] of saved){
+   if(!(Number(qty)>0))continue;
+   const [aid,eid,rawMonth]=allocKey.split('|'),m=Number(rawMonth);
+   if(!monthMatches(m))continue;
+   const a=byId.get(aid);if(!a||a.status!=='aktif')continue;
+   const lookup=aid+'|'+m;
+   assigned.set(lookup,(assigned.get(lookup)||0)+1);
+   records.set(lookup,{a,m});
+   const schedule=state.scheduleEdits?.[amKey(aid,m)];
+   const dateOK=schedule&&/^\d{4}-\d{2}-\d{2}$/.test(schedule.start||'')
+    &&/^\d{4}-\d{2}-\d{2}$/.test(schedule.end||'')
+    &&schedule.start<=schedule.end
+    &&schedule.start.slice(0,4)===String(activeYear)
+    &&schedule.end.slice(0,4)===String(activeYear);
+   if(!dateOK&&!missingDate.has(aid))missingDate.set(aid,{a,m});
+   if(!assignedStaffIds(a.team_id).has(eid)&&!missingMember.has(aid))missingMember.set(aid,{a,m});
+  }
+  const expected=new Map();
+  for(const [key,target] of Object.entries(state.targets||{})){
+   if(!(Number(target)>0))continue;
+   const [aid,rawMonth]=key.split('|'),m=Number(rawMonth);
+   if(monthMatches(m)&&byId.get(aid)?.status==='aktif')expected.set(aid+'|'+m,{a:byId.get(aid),m});
+  }
+  for(const [key,plan] of Object.entries(state.workflowPlans||{})){
+   if(!plan||plan.status==='cancelled')continue;
+   const [aid,rawMonth]=key.split('|'),m=Number(rawMonth);
+   if(monthMatches(m)&&byId.get(aid)?.status==='aktif')expected.set(aid+'|'+m,{a:byId.get(aid),m});
+  }
+  const unassigned=[...expected.entries()].filter(([k])=>!assigned.has(k)).map(([,item])=>item);
+  if(missingDate.size){
+   const first=missingDate.values().next().value;
+   mk('pending','alokasi','Tanggal Pelaksanaan Belum Lengkap',
+    missingDate.size+' Uraian memiliki alokasi pegawai, tetapi tanggal mulai atau selesai belum lengkap.',{activityId:first.a.id,month:first.m,action:'input'});
+  }
+  if(missingMember.size){
+   const first=missingMember.values().next().value;
+   mk('pending','alokasi','Penugasan Pegawai Perlu Diperiksa',
+    missingMember.size+' Uraian memiliki alokasi untuk pegawai di luar daftar anggota aktif tim.',{activityId:first.a.id,month:first.m,action:'input'});
+  }
+  if(unassigned.length){
+   const first=unassigned[0];
+   mk('pending','alokasi','Alokasi Pegawai Belum Lengkap',
+    new Set(unassigned.map(x=>x.a.id)).size+' Uraian yang sudah direncanakan belum memiliki alokasi pegawai.',{activityId:first.a.id,month:first.m,action:'input'});
+  }
+ }
+ return {events,hasData:officeHours>0||events.length>0};
+}
+function renderCapacityWarnings(){
+ const host=$('capacityWarningBoard');if(!host)return;
+ const options=['monthly',...months.map((_,i)=>String(i+1))];
+ const snapshots=options.map(period=>capacityWarningEvents(period));
+ const all=snapshots.flatMap(o=>o.events);
+ const filtered=alertSelectedPeriod==='all'?all:snapshots[options.indexOf(alertSelectedPeriod)]?.events||[];
+ const order={over:0,pending:1,near:2};
+ const ordered=filtered.sort((a,b)=>order[a.level]-order[b.level]||a.periodName.localeCompare(b.periodName,'id')||a.title.localeCompare(b.title,'id'));
+ const totals={over:0,near:0,pending:0};for(const event of ordered)totals[event.level]++;
+ const haveData=snapshots.some(o=>o.hasData);
+ const visible=alertExpanded?ordered:ordered.slice(0,6);
+ const word=event=>event.level==='over'?'Berlebih':event.level==='near'?'Mendekati Batas':'Perlu Diperiksa';
+ host.innerHTML=\`<div class="mkp-warning-head"><div><h3>Peringatan dan Tindak Lanjut</h3>
+ <p>Pemeriksaan otomatis beban kerja dan kelengkapan alokasi berdasarkan data tahun \${activeYear}.</p></div>
+ <label class="mkp-warning-select">Periode Pemeriksaan<select id="alertPeriodSelect" aria-label="Periode Pemeriksaan">
+ <option value="all" \${alertSelectedPeriod==='all'?'selected':''}>Seluruh Periode</option>
+ <option value="monthly" \${alertSelectedPeriod==='monthly'?'selected':''}>Tahunan (Januari–Desember)</option>
+ \${months.map((m,i)=>\`<option value="\${i+1}" \${alertSelectedPeriod===String(i+1)?'selected':''}>\${m} \${activeYear}</option>\`).join('')}</select></label></div>
+ <div class="mkp-warning-kpis">
+ <div class="mkp-warning-kpi over"><span>Beban Berlebih</span><strong>\${nf(totals.over)}</strong><small>Indikasi melebihi kapasitas</small></div>
+ <div class="mkp-warning-kpi near"><span>Mendekati Batas</span><strong>\${nf(totals.near)}</strong><small>85%–100% dari kapasitas</small></div>
+ <div class="mkp-warning-kpi pending"><span>Alokasi Perlu Diperiksa</span><strong>\${nf(totals.pending)}</strong><small>Kelengkapan dan konsistensi data</small></div>
+ </div>
+ <div class="mkp-warning-list" aria-live="polite">
+ \${ordered.length?visible.map((e,i)=>\`<button type="button" class="mkp-warning-item \${e.level}" data-warning-index="\${i}">
+ <span class="mkp-warning-icon" aria-hidden="true">\${e.level==='over'?'!':e.level==='near'?'◷':'▤'}</span>
+ <span class="mkp-warning-copy"><strong>\${esc(e.title)}</strong><small>\${esc(e.description)}</small></span>
+ <span class="mkp-warning-meta"><em>\${esc(e.periodName)}</em><b>\${word(e)} ›</b></span></button>\`).join(''): \`<div class="mkp-warning-empty"><strong>\${haveData?'Tidak Ada Peringatan':'Belum Ada Alokasi untuk Dievaluasi'}</strong>
+ <p>\${haveData?'Tidak ditemukan indikasi yang melewati ambang pada periode terpilih.':'Masukkan dan tetapkan alokasi agar pemeriksaan beban kerja dapat dilakukan.'}</p></div>\`}
+ </div>
+ \${ordered.length>6?\`<button type="button" class="mkp-warning-expand" id="alertShowAll">\${alertExpanded?'Ringkas Daftar':'Lihat Semua '+nf(ordered.length)+' Peringatan'}</button>\`:''}
+ <p class="mkp-warning-foot">Jumlah menunjukkan temuan per periode, bukan jumlah pegawai unik. Kapasitas kantor menggunakan pegawai unik; anggota lintas tim tidak digandakan pada total kantor. Beban berlebih merupakan indikasi untuk penjadwalan ulang, redistribusi pekerjaan, atau evaluasi potensi lembur, bukan penetapan lembur otomatis.</p>\`;
+ host.querySelector('#alertPeriodSelect').onchange=e=>{alertSelectedPeriod=e.target.value;alertExpanded=false;renderCapacityWarnings()};
+ host.querySelector('#alertShowAll')?.addEventListener('click',()=>{alertExpanded=!alertExpanded;renderCapacityWarnings()});
+ host.querySelectorAll('[data-warning-index]').forEach(btn=>btn.onclick=()=>{
+  const event=ordered[Number(btn.dataset.warningIndex)];
+  if(!event)return;
+  if(event.action==='recon'){setPage('recon');$('reconcilePanel')?.scrollIntoView({behavior:'smooth',block:'start'});return;}
+  if(event.action==='teams'){setPage('teams');return;}
+  if(event.action==='input'&&event.activityId){
+   gotoAllocation(event.activityId,event.month||1);return;
+  }
+  $('monitorPeriod').value=event.period;
+  $('monitorTeam').value=event.scope==='tim'?event.teamId||'':'';
+  $('monitorQuery').value='';
+  selectedEmployee=event.employeeId||null;
+  renderMonitoring();
+  (event.scope==='pegawai' ? $('personSummary'):document.querySelector('#pageDashboard .chart-panel'))?.scrollIntoView({behavior:'smooth',block:'center'});
+ });
+}
+
 function renderCombinedDashboard(){
  const el=$('pageDashboard');if(!el)return;
  const monitor=$('pageMonitor');
@@ -944,8 +1112,10 @@ function renderCombinedDashboard(){
   <article><small>Uraian Aktif</small><strong>${nf(activities.filter(a=>a.status==='aktif').length)}</strong></article>
   <article><small>Total Jam Alokasi</small><strong>${nf(total)} Jam</strong></article>
  </div>
+ <section class="panel mkp-warning-board" id="capacityWarningBoard" aria-label="Peringatan dan Tindak Lanjut"></section>
  `;
  if(monitor){el.appendChild(monitor);monitor.classList.remove('hidden');}
+ moveAnnualAuditToRecon();
 }
 let kroBoardDraft=new Set();
 let kroBoardEditTeam='';
