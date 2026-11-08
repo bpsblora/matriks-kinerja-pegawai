@@ -654,3 +654,60 @@
 @media(max-width:650px){
  #pageDashboard .mkp-warning-kpis{grid-template-columns:1fr}
 }
+
+
+/* Trend filter 2026+: activity owner → activity, independent of staff roster. */
+#pageDashboard .tl-trend-filters #trendTeamFilterWrap,
+#pageDashboard .tl-trend-filters #trendActivityFilterWrap{
+ flex:1 1 220px;
+ width:auto;
+ max-width:345px;
+ min-width:185px;
+ display:flex;
+ flex-direction:column;
+ gap:6px;
+ grid-column:auto;
+}
+#pageDashboard .tl-trend-filters #trendTeamFilterWrap.hidden,
+#pageDashboard .tl-trend-filters #trendActivityFilterWrap.hidden{
+ display:none!important
+}
+#pageDashboard .tl-trend-filters #trendTeamFilterWrap label,
+#pageDashboard .tl-trend-filters #trendActivityFilterWrap label{
+ font-size:12px;
+ font-weight:900;
+ color:#275d89;
+}
+#pageDashboard .tl-trend-filters :is(#trendOwnerTeam,#trendActivityFilter){
+ width:100%;
+ min-height:47px;
+ min-width:0;
+ padding:9px 11px;
+ border-radius:11px;
+ border:1px solid #b8d7ed;
+ background:#fff;
+ color:#174d7b;
+ font-weight:800;
+ box-shadow:0 2px 8px rgba(12,90,155,.04);
+}
+#pageDashboard .tl-trend-filters :is(#trendOwnerTeam,#trendActivityFilter):focus-visible{
+ outline:3px solid #92c7f0;
+ outline-offset:2px;
+}
+#pageDashboard .monthly-trend .trend-series-option{min-width:0}
+#pageDashboard .monthly-trend .trend-series-option span{overflow-wrap:anywhere}
+@media(max-width:1120px){
+ #pageDashboard .tl-trend-filters #trendTeamFilterWrap,
+ #pageDashboard .tl-trend-filters #trendActivityFilterWrap{
+  flex:1 1 calc(50% - 8px);
+  max-width:none;
+ }
+}
+@media(max-width:650px){
+ #pageDashboard .tl-trend-filters #trendTeamFilterWrap,
+ #pageDashboard .tl-trend-filters #trendActivityFilterWrap{
+  flex:1 1 100%;
+  max-width:none;
+  min-width:0;
+ }
+}
