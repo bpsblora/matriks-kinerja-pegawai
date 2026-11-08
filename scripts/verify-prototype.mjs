@@ -338,4 +338,37 @@ assert(detailCss.includes("flex:0 0 auto!important;"),"Tombol detail tidak boleh
 assert(detailCss.includes("overflow:visible!important;"),"Tombol detail tidak boleh memiliki scrollbar");
 assert(modalCode.includes('person-work-dialog-scroll'),"Daftar panjang tetap digulir di pop-up");
 
+
+// Activity growth and cross-team validation regression.
+assert(html.includes('id="staffOnlyTeam"')&&!html.includes('id="staffOnlyTeam" checked hidden'),"Filter keanggotaan tim masih mengunci pegawai");
+assert(html.includes('Anggota Tim Saja'),"Filter opsional anggota tim belum tersedia");
+const eligibleStart=inline.indexOf("function allocationEligibleEmployees(){");
+const eligibleEnd=inline.indexOf("function renderEmployeeMaster(){",eligibleStart);
+assert(eligibleStart>=0&&eligibleEnd>eligibleStart,"Pemilihan pegawai aktif lintas tim belum tersedia");
+const activeEmployees=vm.runInNewContext(inline.slice(eligibleStart,eligibleEnd)+";allocationEligibleEmployees().map(e=>e.id).join(',')",{
+ BASE:{employees:[
+  {id:"E1",type:"pegawai",active:true},
+  {id:"E2",type:"pegawai",active:true},
+  {id:"E3",type:"pegawai",active:false},
+  {id:"E4",type:"mitra",active:true}
+ ]},isBaseYear:true,yearSetup:{staff:{ids:[]}}
+});
+assert.equal(activeEmployees,"E1,E2","Keanggotaan tim tidak boleh menjadi syarat pemilihan pegawai aktif");
+const inputStart=inline.indexOf("function allocationStatus(){");
+const inputEnd=inline.indexOf("function updateCalculations(){",inputStart);
+const validationCode=inline.slice(inputStart,inputEnd);
+assert(!validationCode.includes('assignedStaffIds('),"Validasi masih melarang penugasan lintas tim");
+assert(validationCode.includes('allocationEligibleIds()'),"Validasi harus mengacu pada seluruh pegawai aktif");
+assert(validationCode.includes("!Number.isFinite(personH)"),"Beban numerik tidak valid perlu ditolak");
+assert(inline.includes("if(Math.abs(partial-baseline)<=1e-10)delete state.allocEdits[allocKey]"),"Penyimpanan alokasi masih menulis seluruh nilai nol");
+assert(inline.includes("if(allocatedMonths.length){"),"Satuan kegiatan beralokasi belum dikunci");
+assert(inline.includes("Satuan uraian yang sudah dialokasikan dikunci"),"Peringatan perubahan makna satuan belum tersedia");
+assert(inline.includes("state.monthlyStdEdits[k]=getStandard(previous,m)"),"Standar historis belum dibekukan sebelum edit master");
+assert(inline.includes("let taskVisibleLimit=100"),"Daftar uraian belum dirender bertahap");
+assert(inline.includes("visible.slice(0,taskVisibleLimit)"),"Uraian besar masih seluruhnya dirender sekaligus");
+assert(inline.includes("let reconVisibleLimit=200"),"Rekonsiliasi belum ditampilkan bertahap");
+assert(inline.includes("rows.slice(0,reconVisibleLimit)"),"Rekonsiliasi masih memotong daftar secara permanen");
+assert(inline.includes("entry.qty=a.calculation_mode==='bersama'?Math.max(entry.qty,Number(q))"),"Volume kegiatan bersama terhitung berulang per peserta");
+assert(inline.includes("const nfPrecise=v=>"),"Standar waktu yang sangat kecil masih ditampilkan nol");
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
