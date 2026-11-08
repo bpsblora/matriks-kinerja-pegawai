@@ -490,7 +490,9 @@ function renderTrend(){
  }
  const selected=multi?trendSeriesSelection[scope]:null;
  const drawn=multi?all.filter(e=>selected.has(String(e.id))):all.slice(0,1);
- const colorById=new Map(all.map((e,i)=>[String(e.id),trendSeriesColor(i)]));
+ const stableColorIds=scope==='allEmployees'?BASE.employees.filter(e=>e.type==='pegawai').map(e=>String(e.id))
+  :scope==='allTeams'?BASE.teams.map(t=>String(t.id)):all.map(e=>String(e.id));
+ const colorById=new Map(stableColorIds.map((id,i)=>[id,trendSeriesColor(i)]));
  $('trendYearLabel').textContent=String(year);
  const sum=scope==='office'?all[0]?.total||0:(multi?drawn:all).reduce((sum,e)=>sum+e.total,0);
  $('trendKpis').innerHTML=`<span>${esc(scope==='allTeams'?'Tim':scope==='allEmployees'?'Pegawai':drawn[0]?.label||'Belum dipilih')}</span><span>${multi?'Total terpilih':'Total'}: ${nf(sum)} jam</span><span>${multi?drawn.length+' dari '+all.length+' seri dipilih':all.length+' seri'}</span>`;
