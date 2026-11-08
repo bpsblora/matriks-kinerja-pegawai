@@ -443,8 +443,8 @@ function renderTrend(){
   const trendCard=$('twelveBars')?.closest('.monthly-trend');
   if(trendCard)trendCard.insertAdjacentElement('afterend',officePanel);
  }
- officePanel.classList.toggle('hidden',scope!=='office');
- if(scope==='office'){
+ officePanel.classList.toggle('hidden',scope!=='office'||year!==activeYear);
+ if(scope==='office'&&year===activeYear){
   const teamRows=BASE.teams.map(t=>({team:t,hours:months.reduce((sum,_,i)=>sum+[...periodAgg(String(i+1),t.id).totals.values()].reduce((a,b)=>a+b,0),0)})).sort((a,b)=>b.hours-a.hours);
   const maxTeam=Math.max(1,...teamRows.map(x=>x.hours));
   officePanel.innerHTML=`<div class="section-top"><h3>Beban Kerja per Tim</h3></div>
