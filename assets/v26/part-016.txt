@@ -72,20 +72,45 @@ const KRO_2026_REFERENCE=(()=>{try{return JSON.parse(document.getElementById('kr
 const KRO_SIMILAR_STOP=new Set(['statistik','laporan','publikasi','dan','atau','dari','untuk','pada','kegiatan','penyusunan','survei','pelaksanaan','dokumen','pengembangan','layanan','nasional','pengelolaan','tahunan','terpadu','pembinaan']);
 function kroWords(s){return new Set(String(s||'').toLocaleLowerCase('id').replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>=4&&!KRO_SIMILAR_STOP.has(w)))}
 function kroSimilarity(a,b){const x=kroWords(a),y=kroWords(b);if(!x.size||!y.size)return 0;let equal=0;for(const w of x)if(y.has(w))equal++;return equal/Math.max(x.size,y.size)}
+function previousYearKroReference(tid){
+ if(activeYear===2027)return KRO_2026_REFERENCE.filter(k=>(k.mappings||[]).some(m=>m.team_id===tid));
+ if(activeYear<2027)return [];
+ try{
+  const previousTeamStore=JSON.parse(localStorage.getItem('bps-blora-v19-team-store-'+(activeYear-1)))||[];
+  const previousCodes=new Set(previousTeamStore.find(t=>t.id===tid)?.kroCodes||[]);
+  const previousCatalog=JSON.parse(localStorage.getItem('bps-blora-kro-master-v23-'+(activeYear-1)))?.kros||[];
+  return previousCatalog.filter(k=>previousCodes.has(k.code));
+ }catch(e){return []}
+}
 function kroRecommendation(k,tid){
- if(activeYear>=2028){
-  try{const old=JSON.parse(localStorage.getItem('bps-blora-v19-team-store-'+(activeYear-1)));if(old?.find(t=>t.id===tid)?.kroCodes?.includes(k.code))return {kind:'langsung',label:'Acuan tahun sebelumnya',reason:'KRO sama dengan penugasan tim '+(activeYear-1)};}catch(e){}
+ // Recommendations use work/activity and KRO *names*, not a permanent KRO code.
+ // Always require an explicit annual assignment/confirmation.
+ let topGroup=null,bestGroup=0;
+ for(const [group] of groupList(tid,true)){
+  const score=kroSimilarity(group,k.name);
+  if(score>bestGroup){topGroup=group;bestGroup=score}
  }
- if((k.mappings||[]).some(m=>m.team_id===tid))return {kind:'langsung',label:'Acuan 2026',reason:'Ada kesesuaian pemetaan tim dari matriks 2026 dan referensi POK 2027.'};
- if(activeYear>=2027&&activeYear<=2027){
-  const old=KRO_2026_REFERENCE.filter(k=>k.mappings?.some(m=>m.team_id===tid));
-  const exact=old.find(p=>p.code===k.code);
-  if(exact)return {kind:'langsung',label:'Sama seperti 2026',reason:'Kode KRO tercantum untuk tim ini pada referensi 2026.'};
-  let closest=null,best=0;
-  for(const p of old){const v=kroSimilarity(p.name,k.name);if(v>best){closest=p;best=v}}
-  if(best>=0.66&&closest)return {kind:'serupa',label:'KRO serupa 2026',reason:'Mirip dengan '+closest.code+' — '+closest.name+' (2026); mohon periksa cakupan pekerjaan.'};
+ if(bestGroup>=.67&&topGroup)return {
+  kind:'serupa',label:'Nama Kegiatan Sesuai',
+  reason:'Nama Kegiatan "'+topGroup+'" mirip dengan Nama KRO "'+k.name+'". Periksa cakupan POK '+activeYear+' sebelum menetapkan.'
+ };
+ const previous=previousYearKroReference(tid);
+ let closest=null,best=0;
+ for(const earlier of previous){
+  const score=kroSimilarity(earlier.name,k.name);
+  if(score>best){closest=earlier;best=score}
+ }
+ if(best>=.67&&closest)return {
+  kind:'serupa',label:'Nama KRO Tahun Lalu Serupa',
+  reason:'Nama KRO '+(activeYear-1)+' "'+closest.name+'" mirip dengan "'+k.name+'". Kode dapat berbeda; penetapan tahun '+activeYear+' tetap perlu konfirmasi.'
+ };
+ if((k.mappings||[]).some(m=>m.team_id===tid))return {
+  kind:'pendukung',label:'Acuan Tim Historis',
+  reason:'Terdapat referensi hubungan tim dan KRO pada data sumber. Ini bukan penetapan otomatis untuk '+activeYear+'.'
+ };
+ if(activeYear===2027){
   const support=REKOMENDASI_KRO_LINTAS_TIM[tid]?.[k.code];
-  if(support)return {kind:'pendukung',label:'Usulan dukungan lintas tim',reason:support+' Bukan KRO khusus milik tim; perlu konfirmasi.'};
+  if(support)return {kind:'pendukung',label:'Usulan Tugas Tim',reason:support+' Periksa kesesuaian tugas dengan KRO tahun berjalan.'}
  }
  return null;
 }
@@ -102,9 +127,9 @@ function renderKroChecks(){
  const recommended=POK_KROS.filter(k=>suggestedKroForTeam(k,tid));
  $('teamAdminKroSelection').textContent=selectedKroCodes.size+' dari '+POK_KROS.length+' KRO dipilih';
  const note=$('teamKroRecommendation');if(note)note.textContent=activeYear>=2027?
-  recommended.length+' KRO disarankan dari tahun '+(activeYear-1)+'; pilihan baru berlaku setelah disimpan.':
+  recommended.length+' saran berdasarkan Nama Kegiatan/KRO dan referensi sebelumnya. Seluruh pilihan harus diperiksa terhadap POK '+activeYear+'.':
   'Penugasan KRO mengikuti hasil identifikasi 2026.';
- const btn=$('applyKroRecommendations');if(btn){btn.classList.toggle('hidden',activeYear<=2026);btn.disabled=!recommended.length;btn.textContent='✓ Pilih '+recommended.length+' KRO rekomendasi '+(activeYear-1)}
+ const btn=$('applyKroRecommendations');if(btn){btn.classList.toggle('hidden',activeYear<=2026);btn.disabled=!recommended.length;btn.textContent='✓ Centang '+recommended.length+' KRO yang Disarankan'}
  $('teamAdminKroList').innerHTML=rows.map(k=>{const selected=selectedKroCodes.has(k.code),rec=suggestedKroForTeam(k,tid);
   const suggestion=kroRecommendation(k,tid);const recommendation=suggestion?`<span class="kro-recommend" title="${esc(suggestion.reason)}">${esc(suggestion.label)}</span>`:'';
   const note=k.name.trim().toLowerCase().startsWith('xxxx')?'<span class="kro-review">Nama di POK perlu konfirmasi</span>':'';
