@@ -873,14 +873,13 @@ function renderCombinedDashboard(){
  const active=BASE.employees.filter(e=>e.type==='pegawai'&&e.active!==false);
  const total=active.reduce((sum,e)=>sum+(monthly.totals.get(e.id)||0),0);
  el.innerHTML=`
- <div class="dashboard-section-heading"><h2>Ringkasan</h2></div>
  <div class="combined-metrics">
   <article><small>Tim</small><strong>${nf(BASE.teams.length)}</strong></article>
   <article><small>Pegawai aktif</small><strong>${nf(active.length)}</strong></article>
   <article><small>Uraian aktif</small><strong>${nf(activities.filter(a=>a.status==='aktif').length)}</strong></article>
   <article><small>Alokasi</small><strong>${nf(total)} jam</strong></article>
  </div>
- <div class="dashboard-section-heading"><h2>Monitoring</h2></div>`;
+ `;
  if(monitor){el.appendChild(monitor);monitor.classList.remove('hidden');}
 }
 let kroBoardDraft=new Set();
