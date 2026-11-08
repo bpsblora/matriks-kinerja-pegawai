@@ -360,7 +360,7 @@ const validationCode=inline.slice(inputStart,inputEnd);
 assert(!validationCode.includes('assignedStaffIds('),"Validasi masih melarang penugasan lintas tim");
 assert(validationCode.includes('allocationEligibleIds()'),"Validasi harus mengacu pada seluruh pegawai aktif");
 assert(validationCode.includes("!Number.isFinite(personH)"),"Beban numerik tidak valid perlu ditolak");
-assert(inline.includes("if(Math.abs(partial-baseline)<=1e-10)delete state.allocEdits[allocKey]"),"Penyimpanan alokasi masih menulis seluruh nilai nol");
+assert(inline.includes("if(partial===baseline)delete state.allocEdits[allocKey]"),"Override sparse harus mempertahankan volume yang sangat kecil");
 assert(inline.includes("if(allocatedMonths.length){"),"Satuan kegiatan beralokasi belum dikunci");
 assert(inline.includes("Satuan uraian yang sudah dialokasikan dikunci"),"Peringatan perubahan makna satuan belum tersedia");
 assert(inline.includes("state.monthlyStdEdits[k]=getStandard(previous,m)"),"Standar historis belum dibekukan sebelum edit master");
