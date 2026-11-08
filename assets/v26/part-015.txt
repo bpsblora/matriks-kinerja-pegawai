@@ -223,7 +223,7 @@ async function saveAllocation(){
 function updateWorkspaceSubtitle(){
  const read=currentRole==='pegawai';const y=activeYear;const isDraft=!isBaseYear&&yearInfo().status!=='approved';
  const subtitle={
-  dashboard:'Ringkasan alokasi kerja dan kelengkapan penyusunan matriks tahun terpilih.',
+  dashboard:'',
   kro:'Pilih KRO setiap tim. Rekomendasi tahun sebelumnya hanya referensi, bukan penetapan otomatis.',
   final:'Periksa kelengkapan matriks dan status penetapan tahun sebelum disahkan.',
   input: read?(isDraft?'Rencana '+y+' belum ditetapkan.':'Lihat kegiatan yang telah ditetapkan. Perubahan memerlukan login Edit.'):(isDraft?'Tetapkan tim, anggota, dan KRO di Kelola Tim sebelum mengisi alokasi tahun '+y+'.':'Daftar petugas berasal dari Kelola Tim; ubah keanggotaan di sana jika perlu.'),
@@ -237,7 +237,28 @@ function updateWorkspaceSubtitle(){
  };
  $('workspaceSubtitle').textContent=subtitle[activePage]||subtitle.input;
 }
-function setPage(page){if(!stageAccess(page)){toast(stageBlockReason(page));refreshStageNav();return false;}const previousPage=activePage;activePage=page;if(previousPage!==page)window.scrollTo(0,0);updateWorkspaceSubtitle();for(const name of ['Dashboard','Input','Teams','KRO','Monitor','Timeline','Recon','Standards','History','Final']){$('page'+name).classList.toggle('hidden',page!==name.toLowerCase());$('nav'+name).classList.toggle('active',page===name.toLowerCase())}if(page==='teams')renderTeamAdminPage();if(page==='monitor')renderMonitoring();if(page==='history')renderHistory();if(page==='recon')renderRecon();if(page==='standards')renderStandards();if(page==='timeline')renderTimeline();if(page==='dashboard')renderCombinedDashboard();if(page==='kro'){renderKroBoard();renderKroAudit();}if(page==='final')renderFinalBoard();applyRolePermissions();refreshStageNav();return true}
+let dashboardTab='summary';
+function setPage(page,tab='summary'){
+ if(page==='monitor'){page='dashboard';tab='monitor';}
+ if(!stageAccess(page)){toast(stageBlockReason(page));refreshStageNav();return false;}
+ const previousPage=activePage;activePage=page;dashboardTab=page==='dashboard'?tab:'summary';
+ if(previousPage!==page)window.scrollTo(0,0);
+ updateWorkspaceSubtitle();
+ for(const name of ['Dashboard','Input','Teams','KRO','Monitor','Timeline','Recon','Standards','History','Final']){
+  const visible=page===name.toLowerCase()||(name==='Monitor'&&page==='dashboard'&&dashboardTab==='monitor');
+  $('page'+name).classList.toggle('hidden',!visible);
+  $('nav'+name).classList.toggle('active',page===name.toLowerCase()&&name!=='Monitor');
+ }
+ if(page==='teams')renderTeamAdminPage();
+ if(page==='history')renderHistory();
+ if(page==='recon')renderRecon();
+ if(page==='standards')renderStandards();
+ if(page==='timeline')renderTimeline();
+ if(page==='dashboard'){renderCombinedDashboard();if(dashboardTab==='monitor')renderMonitoring();}
+ if(page==='kro'){renderKroBoard();renderKroAudit();}
+ if(page==='final')renderFinalBoard();
+ applyRolePermissions();refreshStageNav();return true;
+}
 function periodAgg(period,teamFilter){const totals=new Map(BASE.employees.map(e=>[e.id,0]));const details=new Map();const annual=period==='annual';const isIncluded=m=>period==='monthly'||Number(period)===Number(m);
 if(annual){for(const [a,e,q] of BASE.annual_allocations_source){const act=baseActivity.get(a);if(!act||(teamFilter&&act.team_id!==teamFilter))continue;const h=(Number(q)||0)*(Number(act.standard_hours)||0);if(!h)continue;totals.set(e,(totals.get(e)||0)+h);const dk=a+'|'+e;details.set(dk,(details.get(dk)||0)+h)}}
 else{const seen=new Set();const add=(a,e,m,qty)=>{const ac=byId.get(a);if(!ac||(teamFilter&&ac.team_id!==teamFilter)||!isIncluded(m))return;const h=(Number(qty)||0)*getStandard(ac,m);if(!h)return;totals.set(e,(totals.get(e)||0)+h);const dk=a+'|'+e;details.set(dk,(details.get(dk)||0)+h)};for(const [k,v] of baseMonthly){seen.add(k);const [a,e,m]=k.split('|');const val=Object.prototype.hasOwnProperty.call(state.allocEdits,k)?state.allocEdits[k]:v;add(a,e,Number(m),val)}for(const [k,v] of Object.entries(state.allocEdits))if(!seen.has(k)){const [a,e,m]=k.split('|');add(a,e,Number(m),v)}}
@@ -246,7 +267,7 @@ function workDays(period){if(period==='monthly'||period==='annual')return daysFo
 function capacity(period){return workDays(period)*Math.max(.5,Number(state.dailyHours)||7.5)}
 function capLabel(v,c){const r=c>0?v/c:0;return {pct:r*100,className:r>1.00001?'over':r>=.85?'high':'',text:r>1.00001?'Melebihi kapasitas simulasi':r>=.85?'Mendekati kapasitas simulasi':'Di bawah kapasitas simulasi'}}
 function renderMonitoring(){
- if(activePage!=='monitor')return;
+ if(activePage!=='monitor'&&!(activePage==='dashboard'&&dashboardTab==='monitor'))return;
  // Global 2026 indicators never depend on the comparison filters.
  const org=BASE.employees.filter(e=>e.type==='pegawai'),whole=periodAgg('monthly',''),ref=periodAgg('annual','');
  $('reconcilePanel').classList.toggle('hidden',!isBaseYear);
@@ -366,7 +387,7 @@ $('hoursdayInput').oninput=()=>{const v=Number($('hoursdayInput').value);if(Numb
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();if($('loginScreen'))$('loginScreen').classList.add('hidden');if($('rosterScreen'))$('rosterScreen').classList.add('hidden');if($('employeeScreen'))$('employeeScreen').classList.add('hidden')}})}
 function init(){refreshTeamStore();refreshEmployeeMaster();rebuild();syncAllTeamSelectors();selectedTeam=BASE.teams.find(t=>t.name==='INPEK')?.id||BASE.teams[0].id;$('teamSelect').value=selectedTeam;
 fillSelect($('monthSelect'),months.map((m,i)=>({value:String(i+1),label:m+' '+activeYear})));$('monthSelect').value='1';fillSelect($('monitorPeriod'),[{value:'monthly',label:'Tahunan '+activeYear+' (Jan–Des)'},...months.map((m,i)=>({value:String(i+1),label:m+' '+activeYear}))]);
-fillSelect($('monitorTeam'),[{value:'',label:'Semua Tim'},...BASE.teams.map(t=>({value:t.id,label:t.name}))]);$('monitorPeriod').value='monthly';$('monitorWorkdays').value=state.days;$('monitorDailyHours').value=state.dailyHours;$('workdaysInput').value=state.days;$('hoursdayInput').value=state.dailyHours;bind();renderGroups();setPage('teams')}
+fillSelect($('monitorTeam'),[{value:'',label:'Semua Tim'},...BASE.teams.map(t=>({value:t.id,label:t.name}))]);$('monitorPeriod').value='monthly';$('monitorWorkdays').value=state.days;$('monitorDailyHours').value=state.dailyHours;$('workdaysInput').value=state.days;$('hoursdayInput').value=state.dailyHours;bind();renderGroups();setPage('dashboard')}
 
 // ---------- V5 multi-role demo. UI restrictions are NOT server-side authentication. ----------
 let currentRole='admin',roleTeamId=BASE.teams[0]?.id||'',trendSelection='',trendScope='employee';
