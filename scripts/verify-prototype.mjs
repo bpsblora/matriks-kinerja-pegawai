@@ -177,4 +177,25 @@ assert(inline.includes("button.onclick=()=>{\n  $('trendScope').value=button.dat
 assert(inline.includes("const scope=$('trendScope').value,year=activeYear;"),"Tren belum mengikuti tahun aktif");
 assert(cssPolish.includes(".trend-scope-buttons"),"Tombol pilihan grafik belum mendapat desain horizontal");
 
+
+// Historical 2026 must expose the same staff -> team establishment workflow
+// as subsequent years without overwriting its source allocations.
+const setupStart=inline.indexOf("function renderYearSetup(){");
+const setupEnd=inline.indexOf("function confirmStaffYear(){",setupStart);
+const yearSetupCode=inline.slice(setupStart,setupEnd);
+assert(setupStart>=0&&setupEnd>setupStart,"Panel penetapan pegawai dan tim tidak tersedia");
+assert(yearSetupCode.includes("panel.classList.remove('hidden')"),"Tahapan tahun 2026 masih disembunyikan");
+assert(yearSetupCode.includes("isBaseYear?!!(yearSetup.staff?.confirmed"),"Tahun 2026 harus memerlukan penetapan daftar pegawai");
+assert(yearSetupCode.includes("teamStage.classList.toggle('hidden',isBaseYear&&!allReady)"),"Tahap tim tidak menunggu penetapan pegawai");
+const stageStart=inline.indexOf("function setupYearStages(){");
+const stageEnd=inline.indexOf("function refreshTeamStore(){",stageStart);
+const stageCode=inline.slice(stageStart,stageEnd);
+assert(stageStart>=0&&stageEnd>stageStart,"Pengaitan tahap penetapan tidak tersedia");
+assert(stageCode.includes("if(grid)$('annualTeamGridSlot').appendChild(grid)"),"Rincian tim belum berada di bawah tahapan penetapan");
+assert(stageCode.includes("addEventListener('click',confirmStaffYear)"),"Tombol penetapan pegawai belum aktif di 2026");
+assert(stageCode.includes("addEventListener('click',confirmTeamYear)"),"Tombol penetapan tim belum aktif di 2026");
+assert(!stageCode.includes("if(!isBaseYear){\n  if(hero&&panel)"),"Tahapan 2026 tidak boleh dikecualikan");
+assert(inline.includes("if(membershipChanged&&(!isBaseYear||yearSetup.staff?.confirmed))"),"Perubahan pegawai perlu meninjau ulang penetapan");
+assert(inline.includes("el.classList.toggle('hidden',isBaseYear&&!yearSetup.staff?.confirmed)"),"Ringkasan tim 2026 harus menunggu tahap pegawai");
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
