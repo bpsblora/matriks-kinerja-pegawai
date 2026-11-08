@@ -238,14 +238,14 @@ function updateWorkspaceSubtitle(){
  $('workspaceSubtitle').textContent=subtitle[activePage]||subtitle.input;
 }
 let dashboardTab='summary';
-function setPage(page,tab='summary'){
- if(page==='monitor'){page='dashboard';tab='monitor';}
+function setPage(page){
+ if(page==='monitor')page='dashboard';
  if(!stageAccess(page)){toast(stageBlockReason(page));refreshStageNav();return false;}
- const previousPage=activePage;activePage=page;dashboardTab=page==='dashboard'?tab:'summary';
+ const previousPage=activePage;activePage=page;
  if(previousPage!==page)window.scrollTo(0,0);
  updateWorkspaceSubtitle();
  for(const name of ['Dashboard','Input','Teams','KRO','Monitor','Timeline','Recon','Standards','History','Final']){
-  const visible=page===name.toLowerCase()||(name==='Monitor'&&page==='dashboard'&&dashboardTab==='monitor');
+  const visible=page===name.toLowerCase()||(name==='Monitor'&&page==='dashboard');
   $('page'+name).classList.toggle('hidden',!visible);
   $('nav'+name).classList.toggle('active',page===name.toLowerCase()&&name!=='Monitor');
  }
@@ -254,7 +254,7 @@ function setPage(page,tab='summary'){
  if(page==='recon')renderRecon();
  if(page==='standards')renderStandards();
  if(page==='timeline')renderTimeline();
- if(page==='dashboard'){renderCombinedDashboard();if(dashboardTab==='monitor')renderMonitoring();}
+ if(page==='dashboard'){renderCombinedDashboard();renderMonitoring();}
  if(page==='kro'){renderKroBoard();renderKroAudit();}
  if(page==='final')renderFinalBoard();
  applyRolePermissions();refreshStageNav();return true;
@@ -267,7 +267,7 @@ function workDays(period){if(period==='monthly'||period==='annual')return daysFo
 function capacity(period){return workDays(period)*Math.max(.5,Number(state.dailyHours)||7.5)}
 function capLabel(v,c){const r=c>0?v/c:0;return {pct:r*100,className:r>1.00001?'over':r>=.85?'high':'',text:r>1.00001?'Melebihi kapasitas simulasi':r>=.85?'Mendekati kapasitas simulasi':'Di bawah kapasitas simulasi'}}
 function renderMonitoring(){
- if(activePage!=='monitor'&&!(activePage==='dashboard'&&dashboardTab==='monitor'))return;
+ if(activePage!=='monitor'&&activePage!=='dashboard')return;
  // Global 2026 indicators never depend on the comparison filters.
  const org=BASE.employees.filter(e=>e.type==='pegawai'),whole=periodAgg('monthly',''),ref=periodAgg('annual','');
  $('reconcilePanel').classList.toggle('hidden',!isBaseYear);
