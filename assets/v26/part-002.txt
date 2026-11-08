@@ -234,6 +234,24 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
 #pageDashboard .effective-hours-interpretation #effectiveHoursWeeklyNote{color:#0b5591;font-weight:900}
 #pageDashboard .effective-hours-interpretation small{color:#577994;font-size:11px;line-height:1.5}
 #pageDashboard .effective-workday-info .effective-workday-explanation{display:block!important;color:#567a99;font-size:12px;line-height:1.55}
+
+/* Annual team composition inside the Total Kantor ranking card */
+#pageDashboard .monthly-trend .tl-trend-footer:has(.office-annual-card){grid-template-columns:minmax(115px,.55fr) minmax(0,1.45fr);align-items:start;gap:12px}
+#pageDashboard .monthly-trend #trendRanking{min-width:0}
+#pageDashboard .monthly-trend .office-annual-card{background:#f5faff;border:1px solid #d9e8f7;padding:15px 16px;border-radius:14px}
+#pageDashboard .monthly-trend .office-annual-head{display:flex;flex-direction:column;gap:4px;margin-bottom:11px}
+#pageDashboard .monthly-trend .office-annual-head strong{font-family:Poppins,Nunito,sans-serif;font-size:13px;color:#12558f}
+#pageDashboard .monthly-trend .office-annual-head span{font-size:11px;color:#61819c;font-weight:700}
+#pageDashboard .monthly-trend .office-annual-list{max-height:300px;overflow-y:auto;scrollbar-width:thin}
+#pageDashboard .monthly-trend .office-annual-row{display:grid;grid-template-columns:minmax(115px,1.2fr) minmax(65px,1fr) auto;align-items:center;gap:10px;width:100%;min-height:37px;padding:7px 5px;background:transparent;border:0;border-bottom:1px solid #e2edf7;color:#245e8c;text-align:left;cursor:pointer}
+#pageDashboard .monthly-trend .office-annual-row:hover{background:#eaf4ff}
+#pageDashboard .monthly-trend .office-annual-row:focus-visible{outline:2px solid #5ca9e7;outline-offset:-2px}
+#pageDashboard .monthly-trend .office-annual-row .office-team-name{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pageDashboard .monthly-trend .office-annual-row b{font-size:11px;white-space:nowrap;text-align:right;color:#124e81}
+#pageDashboard .monthly-trend .office-progress{height:8px;background:#dbe8f5;border-radius:12px;overflow:hidden}
+#pageDashboard .monthly-trend .office-progress i{display:block;height:100%;border-radius:12px;background:linear-gradient(90deg,#1165b0,#2a9ade)}
+#pageDashboard .office-team-breakdown{display:none!important}
+@media(max-width:700px){#pageDashboard .monthly-trend .tl-trend-footer:has(.office-annual-card){grid-template-columns:1fr}#pageDashboard .monthly-trend .office-annual-row{grid-template-columns:minmax(105px,1.2fr) minmax(60px,.6fr) auto;gap:6px}}
 </style>
 </head><body>
 <header><div class="shell topbar"><div class="brand"><div class="mark">MP</div><div><h1>Matriks Pegawai</h1><div class="sub">BPS KABUPATEN BLORA</div></div></div><div class="rightbar"><div class="role-switch role-switch-v7"><button class="btn tiny blue-soft" id="modeView">Lihat (View)</button><button class="btn primary tiny" id="btnLoginEdit">Masuk Edit</button><button class="btn tiny hidden" id="btnLogout">Keluar</button></div><span class="role-pill read" id="rolePill">View</span><span class="user-summary" id="sessionUser">Akses umum</span><button class="btn tiny hidden" id="btnRoster">Kelola Tim</button><button class="btn" id="btnExport">↓ Ekspor perubahan</button><button class="btn" id="btnImport">↑ Impor backup</button><button class="btn warn" id="btnReset">Reset uji coba</button><input type="file" id="importFile" accept=".json,application/json" style="display:none"></div></div></header>
