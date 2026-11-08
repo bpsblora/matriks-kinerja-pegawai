@@ -499,7 +499,7 @@ function saveEmployeeEditor(){
   logChange('Tambah master pegawai',name);
  }
  persistEmployeeMaster();
- if(!isBaseYear&&membershipChanged){yearSetup.staff.confirmed=false;annualEditingStaff=true;storeYearSetup();}
+ if(membershipChanged&&(!isBaseYear||yearSetup.staff?.confirmed)){yearSetup.staff.confirmed=false;annualEditingStaff=true;storeYearSetup();}
  annualEditorFromStage=false;persist();closeEmployeeEditor();renderTeamAdminPage();renderEmployeeMaster();
  if(selectedId){const valid=assignedStaffIds(selectedTeam);chosen=new Set([...chosen].filter(id=>valid.has(id)));renderStaff()}
  toast('Pegawai diperbarui.'+(membershipChanged?' Tetapkan ulang daftar pegawai tahun ini.':''));
