@@ -1,0 +1,52 @@
+name: Publish anonymous Matriks V25 prototype to GitHub Pages
+
+on:
+  push:
+    branches: [setup/firebase-foundation]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages-matriks
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify anonymized prototype and closed database
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path('src/data/reference2026.json').read_text())
+          assert data['meta']['anonymized'] is True
+          assert 'allow read, write: if false;' in Path('firestore.rules').read_text()
+          PY
+          node scripts/verify-prototype.mjs
+      - name: Build for GitHub Pages
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          cp .env.example .env.local
+          GITHUB_PAGES=true npm run build
+          test -f dist/index.html
+          test -f dist/v26/part-017.txt
+          touch dist/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
