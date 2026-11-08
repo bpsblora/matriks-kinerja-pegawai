@@ -31,6 +31,17 @@ function revealWelcome(){
  $("mpSplash").classList.add("is-done");
  $("mpWelcome").classList.add("is-visible");
 }
+// The welcome screen must appear after the logo animation regardless of Firebase readiness.
+let authChecked=false;
+window.setTimeout(()=>{
+ if(!$("mpEntry").hidden)revealWelcome();
+},reducedMotion?0:1850);
+window.setTimeout(()=>{
+ if(!authChecked&&!$("mpEntry").hidden){
+  $("mpError").textContent="Koneksi login belum siap. Muat ulang halaman untuk mencoba lagi.";
+  revealWelcome();
+ }
+},12000);
 function errorText(code){
  if(code==="auth/unauthorized-domain")return "Domain website belum diizinkan di Firebase Authentication.";
  if(code==="auth/popup-blocked")return "Izinkan pop-up browser, kemudian coba lagi.";
@@ -105,15 +116,13 @@ $("mpLogin").addEventListener("click",async()=>{
  finally{button.disabled=false;}
 });
 onAuthStateChanged(auth,async user=>{
+ authChecked=true;
  const run=++runId;
  if(!user){
    $("mpView").hidden=true;$("mpFrame").removeAttribute("srcdoc");
    $("mpEntry").hidden=false;
-   if(initial){
-     initial=false;
-     if(reducedMotion)revealWelcome();
-     else window.setTimeout(()=>{if(run===runId)revealWelcome()},1800);
-   }else revealWelcome();
+   if(initial)initial=false;
+   // The animation timer controls first paint; Firebase must never block the welcome card.
    return;
  }
  try{
@@ -131,4 +140,8 @@ onAuthStateChanged(auth,async user=>{
  }catch(e){
    if(run===runId){$("mpError").textContent=errorText(e.code);revealWelcome();}
  }
+},error=>{
+ authChecked=true;
+ $("mpError").textContent="Login Google belum dapat dimuat. Coba muat ulang halaman.";
+ revealWelcome();
 });
