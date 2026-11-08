@@ -99,14 +99,17 @@ function renderKroOptions(prefer){const codes=teamKroCodes(selectedTeam), groups
  const selected=$('kroSelect').value,k=POK_KROS.find(v=>v.code===selected);
  $('kroInfo').textContent=selected===NO_KRO?'Kegiatan ini belum dipetakan. Pilih kegiatan lalu gunakan Atur KRO.':(k?'':'Belum ada KRO yang ditetapkan. Buka Pembagian KRO.');
 }
-function renderGroups(prefer){renderKroOptions();const kro=$('kroSelect').value||NO_KRO;
+function renderGroups(prefer){taskVisibleLimit=100;renderKroOptions();const kro=$('kroSelect').value||NO_KRO;
  const list=groupList(selectedTeam,$('showInactive').checked).filter(([g])=>resolveGroupKro(selectedTeam,g)===kro);
  const options=list.map(([g,a])=>({value:g,label:g+' ('+a.filter(x=>x.status==='aktif').length+')'}));fillSelect($('groupSelect'),options,prefer??selectedGroup);selectedGroup=$('groupSelect').value||'';$('groupSelect').disabled=!list.length;
  $('groupCount').textContent=list.length+' Kegiatan pada KRO ini';renderTeamRosterHint();$('editGroup').disabled=!selectedGroup;$('archiveGroup').disabled=!selectedGroup;$('assignGroupKro').disabled=!selectedGroup||!canEdit(selectedTeam);renderTaskList(true);applyRolePermissions();}
 
+let taskVisibleLimit=100;
 function renderTaskList(resetIfMissing){const q=$('taskQuery').value.trim().toLocaleLowerCase('id');const group=(groupIndex.get(selectedTeam)||new Map()).get(selectedGroup)||[];const show=$('showInactive').checked;const visible=group.filter(a=>(show||a.status==='aktif')&&(!q||String(a.description).toLocaleLowerCase('id').includes(q)));
 const rowIds=new Set(visible.map(a=>a.id));if(resetIfMissing&&!rowIds.has(selectedId)){selectedId=visible[0]?.id||null;}if(!resetIfMissing&&!rowIds.has(selectedId)&&selectedId)selectedId=visible[0]?.id||null;
-$('taskCount').textContent=visible.length+' Uraian Ditampilkan';$('taskLoad').textContent='';$('taskList').innerHTML=visible.length?visible.map(a=>`<button type="button" class="task ${a.id===selectedId?'active':''} ${a.status!=='aktif'?'inactive':''}" data-task="${esc(a.id)}"><div class="task-title">${esc(a.description)}</div><div class="task-sub">${esc(a.unit||'Tanpa Satuan')} • ${a.standard_hours==null?'Standar belum diisi':nf(a.standard_hours)+' Jam/Unit'}</div></button>`).join(''):'<div class="empty">'+(currentRole==='pegawai'?'Belum ada uraian yang dapat ditampilkan pada pilihan ini.':!selectedGroup?'Tambahkan kegiatan terlebih dahulu.':'Belum ada uraian. Gunakan tombol + Uraian untuk membuat rincian tugas.')+'</div>';
+const selectedIndex=visible.findIndex(a=>a.id===selectedId);if(selectedIndex>=taskVisibleLimit)taskVisibleLimit=Math.ceil((selectedIndex+1)/100)*100;
+$('taskCount').textContent=nf(Math.min(taskVisibleLimit,visible.length))+' dari '+nf(visible.length)+' Uraian Ditampilkan';$('taskLoad').textContent=visible.length>taskVisibleLimit?'Daftar ditampilkan bertahap agar tetap cepat.':'';$('taskList').innerHTML=visible.length?visible.slice(0,taskVisibleLimit).map(a=>`<button type="button" class="task ${a.id===selectedId?'active':''} ${a.status!=='aktif'?'inactive':''}" data-task="${esc(a.id)}"><div class="task-title">${esc(a.description)}</div><div class="task-sub">${esc(a.unit||'Tanpa Satuan')} • ${a.standard_hours==null?'Standar belum diisi':nf(a.standard_hours)+' Jam/Unit'}</div></button>`).join(''):'<div class="empty">'+(currentRole==='pegawai'?'Belum ada uraian yang dapat ditampilkan pada pilihan ini.':!selectedGroup?'Tambahkan kegiatan terlebih dahulu.':'Belum ada uraian. Gunakan tombol + Uraian untuk membuat rincian tugas.')+'</div>';
+if(visible.length>taskVisibleLimit){$('taskList').insertAdjacentHTML('beforeend',`<button type="button" class="btn soft" id="taskLoadMore">Tampilkan ${nf(Math.min(100,visible.length-taskVisibleLimit))} Uraian Berikutnya</button>`);$('taskLoadMore').onclick=()=>{taskVisibleLimit+=100;renderTaskList(false)}}
 $('taskList').querySelectorAll('[data-task]').forEach(b=>b.onclick=()=>{selectedId=b.dataset.task;renderTaskList(false)});renderTaskDetails()}
 function getBaseQty(id,eid,m){return baseMonthly.get(key(id,eid,m))||0}
 function getQty(id,eid,m){const k=key(id,eid,m);return Object.prototype.hasOwnProperty.call(state.allocEdits,k)?Number(state.allocEdits[k])||0:getBaseQty(id,eid,m)}
@@ -493,7 +496,7 @@ function bind(){
 $('teamSelect').onchange=()=>{if(currentRole==='ketua'&&$('teamSelect').value!==roleTeamId){$('teamSelect').value=roleTeamId;toast('Tim kerja mengikuti penugasan Ketua Tim.');return}selectedTeam=$('teamSelect').value;selectedId=null;selectedGroup='';$('taskQuery').value='';renderKroOptions(teamKroCodes(selectedTeam)[0]||NO_KRO);renderGroups()};
 $('kroSelect').onchange=()=>{selectedGroup='';selectedId=null;$('taskQuery').value='';renderGroups()};
 $('groupSelect').onchange=()=>{selectedGroup=$('groupSelect').value;selectedId=null;$('taskQuery').value='';renderTaskList(true)};
-$('taskQuery').oninput=()=>renderTaskList(false);
+$('taskQuery').oninput=()=>{taskVisibleLimit=100;renderTaskList(false)};
 $('showInactive').onchange=()=>renderGroups();
 $('monthSelect').onchange=loadAllocation;
 $('modeSelect').onchange=()=>{updateMode();renderStaff()};
