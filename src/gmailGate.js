@@ -2,8 +2,9 @@ import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from
 import { auth } from "./firebase/client.js";
 
 const approvedUid = import.meta.env.VITE_VIEWER_GOOGLE_UID || "";
+const allowedDomains = (import.meta.env.VITE_ALLOWED_GOOGLE_DOMAINS || "bps.go.id").split(",").map(s=>s.trim().toLowerCase()).filter(Boolean);
 const root = document.querySelector("#app");
-const prototypeParts = Array.from({length:17},(_,i)=>"/v26/part-"+String(i+1).padStart(3,"0")+".txt");
+const prototypeParts = Array.from({length:17},(_,i)=>import.meta.env.BASE_URL+"v26/part-"+String(i+1).padStart(3,"0")+".txt");
 let activeRun = 0;
 let cachedSource = null;
 let loading = null;
@@ -73,7 +74,10 @@ onAuthStateChanged(auth,async user=>{
   try{
     const token=await user.getIdTokenResult();
     if(run!==activeRun)return;
-    if(!approvedUid||user.uid!==approvedUid||token.signInProvider!=="google.com"||token.claims.email_verified!==true){
+    const verifiedEmail=(user.email||"").toLowerCase();
+    const fromBpsDomain=allowedDomains.some(domain=>verifiedEmail.endsWith("@"+domain));
+    const allowed=Boolean((approvedUid&&user.uid===approvedUid)||fromBpsDomain);
+    if(!allowed||token.signInProvider!=="google.com"||token.claims.email_verified!==true){
       await signOut(auth);
       message("Gunakan Gmail BPS Blora yang telah terdaftar untuk mengakses website.");
       return;
