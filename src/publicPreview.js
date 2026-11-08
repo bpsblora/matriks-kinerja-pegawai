@@ -1,5 +1,6 @@
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { auth } from "./firebase/client.js";
+import sitePolishCss from "./sitePolish.css?raw";
 
 // GitHub Pages is a preview. Real roles and shared writes remain disabled.
 const root=document.getElementById("app");
@@ -85,7 +86,7 @@ function addAuthenticatedHeader(html,user){
  @media(max-width:800px){.mp-identity{width:100%}.mp-user{flex:1}}
  </style>`;
  if(!html.includes('<div class="rightbar">'))throw new Error("Header prototipe tidak ditemukan.");
- return html.replace("</head>",styles+"</head>").replace('<div class="rightbar">','<div class="rightbar">'+header);
+ return html.replace("</head>", styles + '<style id="mkp-site-polish">' + sitePolishCss + "</style></head>").replace('<div class="rightbar">','<div class="rightbar">'+header);
 }
 async function openPrototype(user,run){
  try{
