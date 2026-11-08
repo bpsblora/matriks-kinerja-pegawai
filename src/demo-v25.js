@@ -41,7 +41,7 @@ const rootHTML = `
  <section class="access-banner" id="accessBanner"><div class="ab-symbol">◈</div><div><strong>Mode Lihat — Referensi Tahun 2026</strong><p>Desain V25 Terpadu v2.6 · Pegawai anonim · Tidak ada perubahan pada database Firebase.</p></div><span class="access-mini">DEMO 2026</span></section>
  <div class="data-line" aria-label="Ringkasan referensi">
   <label class="year-switch"><span>TAHUN MATRIKS</span><select disabled aria-label="Tahun matriks"><option>2026</option></select></label>
-  <span class="data-year">DATA 2026</span><span><b>1.412</b> uraian sumber</span><span><b>25</b> tim</span><span><b>40</b> pegawai anonim</span><span><b>33</b> KRO</span>
+  <span class="data-year">DATA 2026</span><span><b>1.412</b> Uraian Sumber</span><span><b>25</b> Tim</span><span><b>40</b> Pegawai Anonim</span><span><b>33</b> KRO</span>
  </div>
  <section class="year-state-strip"><div class="year-state-left"><span class="year-led"></span><div><strong>Tahun 2026 — Referensi</strong><p>Mode demonstrasi, belum ada penetapan operasional.</p></div></div><div class="year-state-actions"><span class="badge orange">HANYA LIHAT</span></div></section>
  <section class="v25-workarea" id="v25Workarea"></section>
@@ -94,7 +94,7 @@ function listTeams(teams,limit){
   row.type="button";
   row.append(elt("span","v25-team-monogram",t.id.slice(-2)));
   const n=elt("span","v25-team-name");
-  n.append(elt("strong","",t.name),elt("small","",t.id+" · "+t.memberIds.length+" anggota · "+(t.summary?.activities||0)+" kegiatan sumber"));
+  n.append(elt("strong","",t.name),elt("small","",t.id+" · "+t.memberIds.length+" Anggota · "+(t.summary?.activities||0)+" Kegiatan Sumber"));
   row.append(n,elt("span","v25-team-chevron","›"));
   row.addEventListener("click",()=>{state.page="teams";state.team=t.id;render();});
   list.append(row);
@@ -152,7 +152,7 @@ function renderTeams(){
    out.append(card);
   }
  }
- const listPanel=panel("Daftar Tim Kerja",teams.length+" tim sesuai filter");
+ const listPanel=panel("Daftar Tim Kerja",teams.length+" Tim Sesuai Filter");
  listPanel.append(listTeams(teams));out.append(listPanel);
 }
 function renderKro(){
@@ -190,7 +190,7 @@ function renderInput(){
   const head=elt("div","detail-block");head.append(elt("div","detail-title",a.title),elt("p","muted",(names[a.teamId]||a.teamId)+" · "+a.kroCode));
   right.append(head);
   const values=elt("div","mini-grid v25-four");
-  [["Volume",a.volume+" "+a.unit],["Standar",a.standardMinutes+" menit"],["Kode",a.id],["Mode","Lihat"]].forEach(([l,v])=>{const col=elt("div","item");col.append(elt("span","inline-label",l),elt("div","v",v));values.append(col);});
+  [["Volume",a.volume+" "+a.unit],["Standar",a.standardMinutes+" Menit"],["Kode",a.id],["Mode","Lihat"]].forEach(([l,v])=>{const col=elt("div","item");col.append(elt("span","inline-label",l),elt("div","v",v));values.append(col);});
   right.append(values);
  } else right.append(elt("div","empty","Pilih Tim Kerja, KRO, dan uraian untuk menampilkan rincian."));
  grid.append(left,right);out.append(grid);
@@ -208,14 +208,14 @@ function renderMonitor(){
 function renderStandards(){
  out.append(headerFilters({team:true,search:true}));
  const box=panel("Standar Waktu Kegiatan","Durasi standar berasal dari contoh uraian 2026 dan belum diverifikasi untuk penetapan.");
- box.append(table(["Uraian","Tim","Volume","Durasi Standar"],filteredActivities().map(a=>[a.title,names[a.teamId],a.volume+" "+a.unit,a.standardMinutes+" menit"])));
+ box.append(table(["Uraian","Tim","Volume","Durasi Standar"],filteredActivities().map(a=>[a.title,names[a.teamId],a.volume+" "+a.unit,a.standardMinutes+" Menit"])));
  out.append(box);
 }
 function renderRecon(){
  const box=panel("Rekonsiliasi Referensi 2026","Perbandingan kelengkapan sumber prototipe dan data demo");
  const missing=data.meta.originalActivityCount-data.sampleActivities.length;
  box.append(table(["Komponen","Sumber 2026","Tersedia di Preview","Keterangan"],
- [["Tim Kerja",25,25,"Referensi struktur"],["Pegawai",40,40,"Nama disamarkan"],["KRO",33,33,"Referensi kode"],["Uraian Kegiatan",data.meta.originalActivityCount,data.sampleActivities.length,missing+" rincian belum dimigrasikan"]]));
+ [["Tim Kerja",25,25,"Referensi struktur"],["Pegawai",40,40,"Nama disamarkan"],["KRO",33,33,"Referensi kode"],["Uraian Kegiatan",data.meta.originalActivityCount,data.sampleActivities.length,missing+" Rincian Belum Dimigrasikan"]]));
  out.append(box);
 }
 function renderLocked(title,body){
