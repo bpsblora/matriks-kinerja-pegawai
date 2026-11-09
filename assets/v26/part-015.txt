@@ -761,7 +761,7 @@ function renderYearSetup(){
  $('annualKroState').textContent=kroOk&&!kroEditing?'✓ Ditetapkan':'3. Perlu penetapan';
  const steps=panel.querySelectorAll('.annual-step');
  steps.forEach((step,i)=>{const done=[allReady&&!staffEditing,teamOk&&!teamEditing,kroOk&&!kroEditing][i];const current=i===0?!done:(i===1?allReady&&!staffEditing&&!done:teamOk&&!teamEditing&&!done);const locked=(i===1&&!allReady)||(i===2&&!teamOk);step.classList.toggle('is-done',done);step.classList.toggle('is-current',current);step.classList.toggle('is-locked',locked)});
- $('annualSelectedTeam').textContent='· '+(demoTeams.find(t=>t.id===tid)?.name||'Tim');
+ $('annualSelectedTeam').textContent='· '+activeYear;
  const stageSelect=$('annualStageTeamSelect');if(stageSelect){const next=demoTeams.filter(t=>t.active!==false&&(currentRole!=='ketua'||t.id===roleTeamId));const current=stageSelect.value;stageSelect.innerHTML=next.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');stageSelect.value=tid;stageSelect.disabled=!next.length;}
  $('annualKroTeamName').textContent=demoTeams.find(t=>t.id===tid)?.name||'Tim';
  $('annualKroCount').textContent=nf((demoTeams.find(t=>t.id===tid)?.kroCodes||[]).length)+' KRO dipilih';
@@ -787,8 +787,11 @@ function renderYearSetup(){
  const ro=yearRosterRecord(tid);
  $('annualTeamSummary').textContent=teamComplete?'✓ Ditetapkan · '+(ro.members||[]).length+' Anggota':teamEditing?'Sedang Mengubah Susunan Tim':'';
  $('annualTeamSummary').classList.toggle('is-editing',teamEditing);
- teamStage.classList.toggle('is-confirmed',teamComplete);
- $('annualTeamStatusNote').textContent=teamEditing?'Perubahan belum disimpan. Tetapkan ulang untuk menerapkan susunan; KRO serta riwayat alokasi tetap tersimpan.':teamComplete?'Susunan tim telah ditetapkan. '+progress.ready+' dari '+progress.total+' tim aktif selesai.':!allReady?'Tetapkan Daftar Pegawai terlebih dahulu.':teamEstablishmentIssue(tid)==='Susunan tim belum ditetapkan'?'Ketua Tim mengisi dan menetapkan anggota timnya masing-masing.':'Belum lengkap: '+teamEstablishmentIssue(tid)+'. Periksa ketua dan anggota tim.';
+ teamStage.classList.toggle('is-confirmed',progress.total>0&&progress.pending.length===0);
+ $('annualTeamStatusNote').textContent=!allReady?'Tetapkan Daftar Pegawai terlebih dahulu.':progress.ready+' dari '+progress.total+' Tim Aktif sudah ditetapkan. Pilih tim di bawah untuk memeriksa atau mengubah susunannya.';
+ $('teamAdminSelectedName')?.setAttribute('aria-label','Tim terpilih: '+(demoTeams.find(t=>t.id===tid)?.name||'Tim'));
+ $('annualTeamSummary').textContent=teamComplete?'✓ Ditetapkan · '+(ro.members||[]).length+' Anggota':teamEditing?'Sedang Mengubah':'Belum Ditetapkan';
+ $('annualTeamSummary').classList.toggle('is-pending',!teamComplete&&!teamEditing);
  $('annualCopyRoster').classList.toggle('hidden',teamComplete||isBaseYear);
  // The lower action slot only contains the optional copy action now.
  // Hide the entire slot when it is unavailable to avoid a blank spacer.
