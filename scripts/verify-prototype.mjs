@@ -1000,4 +1000,54 @@ assert(inline.includes("const pendingTeamLabels=teamProgress.pending.map("),
 assert(inline.includes("teamProgress.pending.length||!publishedAllocationCount()?"),
  "Tombol Finalisasi harus memvalidasi semua Tim Aktif serta alokasi");
 
+
+// Team status summary is a compact card; full lists open in a native modal.
+const teamSummaryStart=inline.indexOf("let establishedTeamFilter='ready';");
+const teamSummaryEnd=inline.indexOf("/* Daftar Tim tahunan:",teamSummaryStart);
+assert(teamSummaryStart>=0&&teamSummaryEnd>teamSummaryStart,
+ "Ringkasan Penetapan Tim dan filter status tidak ditemukan");
+const teamSummaryCode=inline.slice(teamSummaryStart,teamSummaryEnd);
+for(const token of [
+ "function establishedTeamSnapshot(){",
+ "function ensureEstablishedTeamDialog(){",
+ "function renderEstablishedTeamDialog(){",
+ "function openEstablishedTeamDialog(filter='ready',trigger=null){",
+ "function renderEstablishedTeams(){",
+ "dialog=document.createElement('dialog');",
+ "dialog.id='establishedTeamDialog';",
+ "dialog.setAttribute('aria-labelledby','establishedTeamDialogTitle');",
+ "dialog.showModal();",
+ "dialog.addEventListener('close'",
+ "if(back?.isConnected)back.focus({preventScroll:true});",
+ "data-team-summary-filter=",
+ "data-team-summary-dialog-filter=",
+ "aria-haspopup=\"dialog\"",
+ "id=\"teamSummaryDialogList\"",
+ "el.onclick=event=>",
+ "el.onkeydown=event=>",
+ "openEstablishedTeamDialog(btn.dataset.teamSummaryFilter,btn);",
+ "establishedTeamFilter=btn.dataset.teamSummaryDialogFilter;",
+ "if(!roleCanManageTeam(tid))",
+ "teamEstablishmentIssue(t.id)",
+ "data-team-summary-edit="
+])assert(teamSummaryCode.includes(token),"Pop-up status Penetapan Tim belum benar: "+token);
+const compactBody=teamSummaryCode.slice(teamSummaryCode.indexOf("function renderEstablishedTeams(){"));
+assert(!compactBody.includes("team-summary-ready")&&!compactBody.includes("team-summary-pending-list"),
+ "Daftar detail tidak boleh tetap tampil di bawah kartu ringkasan");
+const popupBody=teamSummaryCode.slice(teamSummaryCode.indexOf("function renderEstablishedTeamDialog(){"),
+ teamSummaryCode.indexOf("function openEstablishedTeamDialog("));
+assert(popupBody.includes("team-summary-ready")&&popupBody.includes("team-summary-pending-list"),
+ "Pop-up wajib memuat daftar Tim Ditetapkan dan Tim Belum Lengkap");
+assert(popupBody.includes("Seluruh tim aktif sudah ditetapkan"),
+ "Status kosong tetap harus bisa dibuka dan menunjukkan keterangan");
+for(const rule of [
+ "#pageTeams #establishedTeamSummary.team-summary-card{",
+ ".team-establishment-dialog{",
+ ".team-establishment-dialog::backdrop{",
+ ".team-establishment-dialog .team-establishment-scroll{",
+ ".team-establishment-dialog .team-summary-ready{",
+ ".team-establishment-dialog .team-summary-pending-list{",
+ ".team-establishment-dialog .team-establishment-close:focus-visible"
+])assert(cssPolish.includes(rule),"Desain pop-up Ringkasan Penetapan Tim tidak lengkap: "+rule);
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
