@@ -454,36 +454,153 @@ async function saveMoveModal(){
 
 let currentTrendMonth=1;
 const trendSeriesSelection={allTeams:null,allEmployees:null};
-let trendOwnerTeam='',trendActivityKey='';
-/* Filter by the activity owner, never the organizational membership of
-   employees. Contributions from outside the owner team remain included. */
-function trendWorkloadMonth(month,ownerTeam='',activityKey=''){
+let trendOwnerTeams=null,trendActivityKeys=null,trendPickerOpen='';
+const trendActivityId=(teamId,name)=>JSON.stringify([String(teamId),String(name)]);
+/* Activity ownership determines which team's workload receives the hours.
+   Assigned employees may belong to any team. Composite activity keys ensure
+   identical activity names under different teams are never conflated. */
+function trendAvailableActivities(){
+ const byKey=new Map();
+ for(const item of activities){
+  const tid=String(item.team_id),name=String(groupName(item)||'').trim();
+  if(!name||(trendOwnerTeams instanceof Set&&!trendOwnerTeams.has(tid)))continue;
+  const key=trendActivityId(tid,name);
+  if(!byKey.has(key))byKey.set(key,{key,tid,name,team:teamMap.get(tid)?.name||BASE.teams.find(t=>String(t.id)===tid)?.name||tid});
+ }
+ return [...byKey.values()].sort((a,b)=>a.team.localeCompare(b.team,'id')||a.name.localeCompare(b.name,'id'));
+}
+function trendWorkloadMonth(month,ownerTeams=null,activityKeys=null){
  const result=periodAgg(String(month),''),totals=new Map(),teamTotals=new Map();
  for(const [key,hours] of result.details){
   const split=key.lastIndexOf('|'),activityId=key.slice(0,split),employeeId=key.slice(split+1);
   const activity=byId.get(activityId)||baseActivity.get(activityId);
   if(!activity)continue;
-  if(ownerTeam&&String(activity.team_id)!==String(ownerTeam))continue;
-  if(activityKey&&groupName(activity)!==activityKey)continue;
+  const teamId=String(activity.team_id),activityName=groupName(activity);
+  if(ownerTeams instanceof Set?!ownerTeams.has(teamId):ownerTeams&&teamId!==String(ownerTeams))continue;
+  if(activityKeys instanceof Set?!activityKeys.has(trendActivityId(teamId,activityName)):activityKeys&&activityName!==activityKeys)continue;
   totals.set(employeeId,(totals.get(employeeId)||0)+hours);
-  const teamId=String(activity.team_id);
   teamTotals.set(teamId,(teamTotals.get(teamId)||0)+hours);
  }
  return {totals,teamTotals};
 }
+function updateTrendPickerLabels(){
+ const teamCount=trendOwnerTeams instanceof Set?trendOwnerTeams.size:BASE.teams.length;
+ const activityRows=trendAvailableActivities(),activityCount=trendActivityKeys instanceof Set?trendActivityKeys.size:activityRows.length;
+ const selectedTeam=teamCount===1?BASE.teams.find(t=>trendOwnerTeams?.has(String(t.id)))?.name:'';
+ const selectedActivity=activityCount===1?activityRows.find(row=>trendActivityKeys?.has(row.key))?.name:'';
+ $('trendOwnerTeam').textContent=trendOwnerTeams===null?'Seluruh Tim Pemilik':selectedTeam||teamCount+' Tim Dipilih';
+ $('trendActivityFilter').textContent=trendActivityKeys===null?'Seluruh Kegiatan':selectedActivity||activityCount+' Kegiatan Dipilih';
+ $('trendTeamCount').textContent=trendOwnerTeams===null?'Seluruh '+BASE.teams.length+' Tim':teamCount+' Tim Dipilih';
+ $('trendActivityCount').textContent=trendActivityKeys===null?'Seluruh '+activityRows.length+' Kegiatan':activityCount+' Kegiatan Dipilih';
+ $('trendActivityFilter').disabled=teamCount===0||activityRows.length===0;
+ if(teamCount===0||activityRows.length===0)closeTrendPickers();
+}
+function closeTrendPickers(){
+ trendPickerOpen='';
+ for(const [kind,buttonId,popId] of [['team','trendOwnerTeam','trendTeamPopover'],['activity','trendActivityFilter','trendActivityPopover']]){
+  $(popId).classList.add('hidden');
+  $(buttonId).setAttribute('aria-expanded','false');
+ }
+}
+function renderTrendPickerOptions(kind){
+ const isTeam=kind==='team',list=$(isTeam?'trendTeamChoices':'trendActivityChoices');
+ const query=$(isTeam?'trendTeamSearch':'trendActivitySearch').value.trim().toLocaleLowerCase('id');
+ if(isTeam){
+  const choices=BASE.teams.filter(t=>!query||t.name.toLocaleLowerCase('id').includes(query));
+  list.innerHTML=choices.map(t=>{
+   const id=String(t.id),checked=trendOwnerTeams===null||trendOwnerTeams.has(id);
+   return '<label class="trend-picker-choice"><input type="checkbox" data-trend-owner="'+esc(id)+'" '+(checked?'checked':'')+'><span>'+esc(t.name)+'</span></label>';
+  }).join('')||'<p class="trend-picker-empty">Tidak ada tim yang cocok.</p>';
+ }else{
+  const choices=trendAvailableActivities().filter(x=>!query||(x.team+' '+x.name).toLocaleLowerCase('id').includes(query));
+  list.innerHTML=choices.map(row=>{
+   const checked=trendActivityKeys===null||trendActivityKeys.has(row.key);
+   return '<label class="trend-picker-choice"><input type="checkbox" data-trend-activity="'+esc(row.key)+'" '+(checked?'checked':'')+'><span>'+esc(row.name)+'<small>'+esc(row.team)+'</small></span></label>';
+  }).join('')||'<p class="trend-picker-empty">Tidak ada kegiatan pada tim terpilih.</p>';
+ }
+}
+function openTrendPicker(kind){
+ if(trendPickerOpen===kind){closeTrendPickers();return}
+ closeTrendPickers();
+ if(kind==='activity'&&$('trendActivityFilter').disabled)return;
+ trendPickerOpen=kind;
+ const popId=kind==='team'?'trendTeamPopover':'trendActivityPopover';
+ const buttonId=kind==='team'?'trendOwnerTeam':'trendActivityFilter';
+ const searchId=kind==='team'?'trendTeamSearch':'trendActivitySearch';
+ $(popId).classList.remove('hidden');
+ $(buttonId).setAttribute('aria-expanded','true');
+ $(searchId).value='';
+ renderTrendPickerOptions(kind);
+ $(searchId).focus({preventScroll:true});
+}
+function applyTrendFilterChange(kind){
+ if(kind==='team'){
+  trendActivityKeys=null; // options must always reflect the selected owner teams
+  if(!trendOwnerTeams||trendOwnerTeams.size===BASE.teams.length)trendOwnerTeams=null;
+ }else{
+  const available=trendAvailableActivities();
+  if(!trendActivityKeys||trendActivityKeys.size===available.length)trendActivityKeys=null;
+ }
+ trendSeriesSelection.allTeams=null;trendSeriesSelection.allEmployees=null;
+ updateTrendPickerLabels();
+ renderTrendPickerOptions(kind);
+ renderTrend();
+}
+function initTrendPickers(){
+ $('trendOwnerTeam').onclick=()=>openTrendPicker('team');
+ $('trendActivityFilter').onclick=()=>openTrendPicker('activity');
+ $('trendTeamSearch').oninput=()=>renderTrendPickerOptions('team');
+ $('trendActivitySearch').oninput=()=>renderTrendPickerOptions('activity');
+ $('trendTeamChoices').onchange=event=>{
+  const input=event.target.closest('input[data-trend-owner]');
+  if(!input)return;
+  const id=input.dataset.trendOwner;
+  const next=trendOwnerTeams===null?new Set(BASE.teams.map(t=>String(t.id))):new Set(trendOwnerTeams);
+  if(input.checked)next.add(id);else next.delete(id);
+  trendOwnerTeams=next;
+  applyTrendFilterChange('team');
+ };
+ $('trendActivityChoices').onchange=event=>{
+  const input=event.target.closest('input[data-trend-activity]');
+  if(!input)return;
+  const id=input.dataset.trendActivity;
+  const all=trendAvailableActivities().map(row=>row.key);
+  const next=trendActivityKeys===null?new Set(all):new Set(trendActivityKeys);
+  if(input.checked)next.add(id);else next.delete(id);
+  trendActivityKeys=next;
+  applyTrendFilterChange('activity');
+ };
+ $('trendTeamAll').onclick=()=>{trendOwnerTeams=null;applyTrendFilterChange('team')};
+ $('trendTeamNone').onclick=()=>{trendOwnerTeams=new Set();applyTrendFilterChange('team')};
+ $('trendActivityAll').onclick=()=>{trendActivityKeys=null;applyTrendFilterChange('activity')};
+ $('trendActivityNone').onclick=()=>{trendActivityKeys=new Set();applyTrendFilterChange('activity')};
+ $('trendTeamContinue').onclick=()=>{
+  if((trendOwnerTeams instanceof Set&&trendOwnerTeams.size===0)||!trendAvailableActivities().length){
+   closeTrendPickers();return;
+  }
+  openTrendPicker('activity');
+ };
+ $('trendActivityDone').onclick=()=>closeTrendPickers();
+ document.querySelectorAll('[data-trend-popup-close]').forEach(btn=>btn.onclick=()=>closeTrendPickers());
+ document.addEventListener('pointerdown',event=>{
+  if(trendPickerOpen&&!event.target.closest('#trendTeamFilterWrap,#trendActivityFilterWrap'))closeTrendPickers();
+ });
+ document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&trendPickerOpen){closeTrendPickers();$('trendOwnerTeam').focus({preventScroll:true})}
+ });
+}
 function renderTrendActivityFilters(scope){
  const visible=scope==='allTeams'||scope==='allEmployees';
- const ownerWrap=$('trendTeamFilterWrap'),activityWrap=$('trendActivityFilterWrap');
- ownerWrap.classList.toggle('hidden',!visible);
- activityWrap.classList.toggle('hidden',!visible);
- if(!visible)return;
- const ownerOptions=[{value:'',label:'Seluruh Tim Pemilik'},...BASE.teams.map(t=>({value:String(t.id),label:t.name}))];
- if(trendOwnerTeam&&!ownerOptions.some(t=>t.value===trendOwnerTeam))trendOwnerTeam='';
- fillSelect($('trendOwnerTeam'),ownerOptions,trendOwnerTeam);
- const available=[...new Set(activities.filter(a=>!trendOwnerTeam||String(a.team_id)===trendOwnerTeam)
-   .map(a=>groupName(a)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'id'));
- if(trendActivityKey&&!available.includes(trendActivityKey))trendActivityKey='';
- fillSelect($('trendActivityFilter'),[{value:'',label:'Seluruh Kegiatan'},...available.map(name=>({value:name,label:name}))],trendActivityKey);
+ $('trendTeamFilterWrap').classList.toggle('hidden',!visible);
+ $('trendActivityFilterWrap').classList.toggle('hidden',!visible);
+ if(!visible)closeTrendPickers();
+ const validTeams=new Set(BASE.teams.map(t=>String(t.id)));
+ if(trendOwnerTeams instanceof Set)trendOwnerTeams=new Set([...trendOwnerTeams].filter(id=>validTeams.has(id)));
+ if(trendActivityKeys instanceof Set){
+  const validActivities=new Set(trendAvailableActivities().map(x=>x.key));
+  trendActivityKeys=new Set([...trendActivityKeys].filter(id=>validActivities.has(id)));
+ }
+ updateTrendPickerLabels();
 }
 function trendSeriesColor(index){
  const palette=['#0c65b4','#12a3ae','#6a6edc','#e9982c','#3b9560','#bb629b'];
