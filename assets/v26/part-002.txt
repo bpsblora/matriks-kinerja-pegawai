@@ -641,14 +641,17 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
  <div class="team-admin-grid" id="teamAdminGrid">
    <section class="team-admin-card team-admin-list">
     <div class="section-top"><div><h3>Daftar Tim</h3><p id="teamAdminAccess"></p></div><button class="btn primary tiny" id="teamAdminNew">+ Tim</button></div>
-    <div class="field"><label>Tim kerja</label><select id="teamAdminSelect"></select></div>
+    <div class="team-directory-toolbar"><label for="teamAdminSearch">Cari Tim Kerja</label><input type="search" id="teamAdminSearch" placeholder="Cari nama tim..." autocomplete="off" aria-controls="teamAdminDirectory"></div>
+    <div id="teamAdminDirectoryCount" class="team-directory-count" aria-live="polite">Daftar Tim Tahun Berjalan</div>
+    <div id="teamAdminDirectory" class="team-directory-list" role="group" aria-label="Daftar tim kerja untuk tahun berjalan"></div>
+    <select id="teamAdminSelect" class="hidden" hidden aria-label="Tim yang sedang dipilih"></select>
     <div class="team-admin-kpis">
      <div class="quickbox"><span>Jumlah Tim</span><b id="teamAdminCount">0</b></div>
      <div class="quickbox"><span>Anggota</span><b id="teamAdminMemberCount">0</b></div>
      <div class="quickbox hidden" aria-hidden="true"><span>KRO terhubung</span><b id="teamAdminKroCount">0</b></div>
     </div>
-    <div class="team-admin-actions"><button class="btn soft" id="teamAdminGoInput">Kelola Kegiatan Tim</button><button class="btn warn" id="teamAdminDelete">Hapus Tim</button></div>
-    <div class="notice" id="teamAdminMeta">Hubungan KRO–Tim adalah hasil identifikasi awal, bukan keputusan penugasan resmi.</div>
+    <div class="team-admin-actions"><button class="btn soft" id="teamAdminGoInput">Kelola Kegiatan Tim Terpilih</button><button class="btn warn hidden" hidden id="teamAdminDelete">Hapus Tim</button></div>
+    <div class="notice" id="teamAdminMeta">Tim yang sudah memiliki riwayat kegiatan atau telah ditetapkan tidak dapat dihapus agar alokasi tetap terjaga.</div>
    </section>
    <section class="team-admin-card">
     <div class="section-top"><div><h3>Rincian Tim</h3><p id="teamAdminScope"></p></div></div>
