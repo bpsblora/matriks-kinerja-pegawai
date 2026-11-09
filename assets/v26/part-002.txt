@@ -639,19 +639,41 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
  </section>
  <div class="monitor-hero team-hero"><div><div class="hero-eyebrow">PENETAPAN KEANGGOTAAN TIM</div><h2>Kelola Tim & Pegawai</h2><p>Pengaturan anggota dan KRO di sini menentukan pilihan penugasan pada Input Alokasi.</p></div><div class="hero-symbol">♧</div></div>
  <div class="team-admin-grid" id="teamAdminGrid">
-   <section class="team-admin-card team-admin-list">
-    <div class="section-top"><div><h3>01 · Pilih Tim</h3><p id="teamAdminAccess">Pilih tim kerja sebelum menetapkan ketua dan anggota.</p></div></div>
-    <div class="team-directory-toolbar"><label for="teamAdminSearch">Cari Tim Kerja</label><input type="search" id="teamAdminSearch" placeholder="Cari nama tim..." autocomplete="off" aria-controls="teamAdminDirectory"><button type="button" class="btn primary team-directory-add" id="teamAdminNew">+ Tambah Tim</button><div class="team-directory-status"><label for="teamAdminStatus">Status Tim</label><select id="teamAdminStatus" aria-label="Filter status tim"><option value="active">Aktif</option><option value="inactive">Nonaktif</option><option value="all">Semua</option></select></div></div>
-    <div id="teamAdminDirectoryCount" class="team-directory-count" aria-live="polite">Daftar Tim Tahun Berjalan</div>
-    <div id="teamAdminDirectory" class="team-directory-list" role="group" aria-label="Daftar tim kerja untuk tahun berjalan"></div>
-    <select id="teamAdminSelect" class="hidden" hidden aria-label="Tim yang sedang dipilih"></select>
-    <div class="team-admin-kpis">
-     <div class="quickbox"><span>Jumlah Tim</span><b id="teamAdminCount">0</b></div>
-     <div class="quickbox"><span>Anggota</span><b id="teamAdminMemberCount">0</b></div>
-     <div class="quickbox hidden" aria-hidden="true"><span>KRO terhubung</span><b id="teamAdminKroCount">0</b></div>
+   <section class="team-admin-card team-admin-list team-picker-compact">
+    <div class="section-top"><div><h3>01 · Pilih Tim</h3><p id="teamAdminAccess">Pilih tim untuk menetapkan ketua dan anggota.</p></div></div>
+    <div class="team-picker-current">
+     <small>Tim Terpilih</small>
+     <strong id="teamPickerCurrentName">Pilih Tim Kerja</strong>
+     <span id="teamPickerCurrentMeta">Pilih tim untuk melihat dan mengelola susunannya.</span>
     </div>
+    <button type="button" id="teamPickerOpen" class="btn primary team-picker-open" aria-haspopup="dialog" aria-controls="teamPickerDialog"><span><strong>Pilih / Kelola Tim</strong><small>Buka Daftar Tim Tahun Berjalan</small></span><span aria-hidden="true">›</span></button>
+    <div class="team-admin-kpis">
+     <div class="quickbox"><span>Jumlah Tim Aktif</span><b id="teamAdminCount">0</b></div>
+     <div class="quickbox"><span>Anggota Tim Terpilih</span><b id="teamAdminMemberCount">0</b></div>
+     <div class="quickbox hidden" aria-hidden="true"><span>KRO Terhubung</span><b id="teamAdminKroCount">0</b></div>
+    </div>
+    <div class="notice team-picker-note" id="teamAdminMeta">Tim dengan riwayat kegiatan dapat dinonaktifkan tanpa menghapus alokasinya.</div>
+    <dialog id="teamPickerDialog" class="team-picker-dialog" aria-labelledby="teamPickerDialogTitle">
+     <div class="team-picker-dialog-shell">
+      <div class="team-picker-dialog-head">
+       <div><span class="team-picker-eyebrow">PENGELOLAAN TIM · <span id="teamPickerYear">2026</span></span><h3 id="teamPickerDialogTitle">Pilih Tim Kerja</h3><p>Pilih tim untuk melanjutkan ke pengaturan Ketua dan Anggota. Edit dan status tim dapat dikelola di sini.</p></div>
+       <button type="button" class="team-picker-close" id="teamPickerClose" aria-label="Tutup Pilihan Tim">×</button>
+      </div>
+      <div class="team-picker-dialog-tools">
+       <div class="team-directory-toolbar">
+        <label for="teamAdminSearch">Cari Tim Kerja</label>
+        <input type="search" id="teamAdminSearch" placeholder="Cari nama tim..." autocomplete="off" aria-controls="teamAdminDirectory">
+       </div>
+       <div class="team-directory-status"><label for="teamAdminStatus">Status Tim</label><select id="teamAdminStatus" aria-label="Filter Status Tim"><option value="active">Aktif</option><option value="inactive">Nonaktif</option><option value="all">Semua</option></select></div>
+       <button type="button" class="btn primary team-directory-add" id="teamAdminNew">+ Tambah Tim</button>
+      </div>
+      <div id="teamAdminDirectoryCount" class="team-directory-count" aria-live="polite">Daftar Tim Tahun Berjalan</div>
+      <div id="teamAdminDirectory" class="team-directory-list" role="group" aria-label="Daftar Tim Kerja Tahun Berjalan"></div>
+      <div class="team-picker-dialog-foot"><span>Klik nama tim untuk memilihnya. Tim nonaktif tidak tersedia untuk penugasan baru.</span><button type="button" class="btn soft" id="teamPickerDone">Tutup</button></div>
+     </div>
+    </dialog>
+    <select id="teamAdminSelect" class="hidden" hidden aria-label="Tim yang sedang dipilih"></select>
     <div class="team-admin-actions"><button class="btn warn hidden" hidden id="teamAdminDelete">Hapus Tim</button></div>
-    <div class="notice" id="teamAdminMeta">Tim yang memiliki riwayat dapat dinonaktifkan agar tidak dipilih untuk penugasan baru. Riwayat alokasi tetap tersimpan.</div>
    </section>
    <section class="team-admin-card">
     <div class="section-top team-roster-heading"><div class="team-roster-title"><h3>02 · Ketua dan Anggota Tim Terpilih</h3><p id="teamAdminScope"></p></div><div class="team-roster-head-tools"><span class="team-focus-name" id="teamAdminSelectedName">Pilih Tim</span><span id="annualTeamSummary" class="annual-team-state hidden"></span><span id="annualTeamHeadAction"></span></div></div>
