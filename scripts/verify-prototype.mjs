@@ -565,4 +565,26 @@ assert(printCode.includes("Dicetak pada ${new Date().toLocaleString('id-ID')}"),
 assert(!printCode.includes("prototipe '+activeYear+'"),
   "Laporan cetak masih menampilkan teks tahun yang tidak dievaluasi");
 
+
+/* Checklist dropdown audit: rows must not inherit the normal field input's
+   43–44px minimum height. Selection should not jump back to the list top. */
+for(const rule of [
+ "grid-template-columns:18px minmax(0,1fr)!important;",
+ "min-height:16px!important;",
+ "padding:0!important;",
+ "align-items:center!important;",
+ "min-height:37px!important;",
+ "scrollbar-gutter:stable;",
+ ".trend-picker-list > label.trend-picker-choice > span",
+ ".trend-picker-list > label.trend-picker-choice.trend-picker-all"
+]){
+ assert(cssPolish.includes(rule),"Daftar checkbox Tim/Kegiatan belum rapi: "+rule);
+}
+const popupFnStart=inline.indexOf("function renderTrendPickerOptions(kind){");
+const popupFnEnd=inline.indexOf("function openTrendPicker(kind){",popupFnStart);
+assert(popupFnStart>=0&&popupFnEnd>popupFnStart,"Renderer checkbox Tim/Kegiatan tidak ditemukan");
+const popupRenderCode=inline.slice(popupFnStart,popupFnEnd);
+assert(popupRenderCode.includes("const scrollTop=list.scrollTop;")&&popupRenderCode.includes("list.scrollTop=scrollTop;"),
+ "Daftar checkbox meloncat ke awal setelah mengubah pilihan");
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
