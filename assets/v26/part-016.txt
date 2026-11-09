@@ -201,7 +201,7 @@ function teamHasAllocationHistory(tid){
    }catch(e){snapshot=null}
   }
   if(!snapshot)continue;
-  const rows=(year===2026?seedActivities:[]).concat(Array.isArray(snapshot.added)?snapshot.added:[]);
+  const rows=(year===2026?seedActivities:[]).concat(Array.isArray(snapshot.added)?snapshot.added:[],year===activeYear?activities:[]);
   const ownedIds=new Set(rows.filter(a=>String(a.team_id)===teamId).map(a=>String(a.id)));
   // Use IDs rather than names: team and activity names may change each year.
   if([...Object.keys(snapshot.allocEdits||{}),...Object.keys(snapshot.workflowPlans||{})]
