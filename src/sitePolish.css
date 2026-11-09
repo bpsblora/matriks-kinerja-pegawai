@@ -1193,3 +1193,150 @@
   max-height:min(50dvh,420px)!important;
  }
 }
+
+/* Filter Tren: pop-up multi-checkbox Tim Pemilik → Kegiatan terikat tim. */
+#pageDashboard .monthly-trend{overflow:visible!important}
+#pageDashboard .tl-trend-filters{position:relative;overflow:visible!important;z-index:15}
+#pageDashboard .tl-trend-filters .trend-filter-field{
+ position:relative;
+ overflow:visible;
+}
+#pageDashboard .tl-trend-filters .trend-picker-trigger{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:10px;
+ text-align:left;
+ cursor:pointer;
+ border:1px solid #b8d7ed;
+ border-radius:12px;
+ background:linear-gradient(130deg,#fff,#f8fcff);
+ color:#154d7b;
+ box-shadow:0 3px 12px rgba(15,97,163,.07);
+ transition:background .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+#pageDashboard .tl-trend-filters .trend-picker-trigger::after{
+ content:"▾";
+ flex:none;
+ color:#2572ad;
+ font-size:15px;
+ transition:transform .2s;
+}
+#pageDashboard .tl-trend-filters .trend-picker-trigger[aria-expanded="true"]{
+ border-color:#4398dd;
+ background:#ecf7ff;
+ box-shadow:0 0 0 3px #d6ebff;
+}
+#pageDashboard .tl-trend-filters .trend-picker-trigger[aria-expanded="true"]::after{
+ transform:rotate(180deg)
+}
+#pageDashboard .tl-trend-filters .trend-picker-trigger:disabled{opacity:.6;cursor:not-allowed}
+#pageDashboard .trend-picker-popover{
+ box-sizing:border-box;
+ position:absolute;
+ z-index:90;
+ top:calc(100% + 8px);
+ left:0;
+ width:min(425px,calc(100vw - 36px));
+ max-width:none;
+ display:flex;
+ flex-direction:column;
+ overflow:hidden;
+ border:1px solid #bfd9ed;
+ border-radius:17px;
+ background:#fff;
+ box-shadow:0 20px 44px rgba(10,60,110,.21);
+ animation:trend-popup-in .17s ease-out both;
+}
+#pageDashboard #trendActivityPopover{left:auto;right:0}
+#pageDashboard .trend-picker-popover.hidden{display:none!important}
+#pageDashboard .trend-picker-head{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ padding:12px 14px;
+ background:linear-gradient(110deg,#eaf5ff,#f8fbff);
+ border-bottom:1px solid #d9eaf7;
+}
+#pageDashboard .trend-picker-head strong{font-size:13px;font-weight:900;color:#124e82}
+#pageDashboard .trend-picker-close{
+ display:grid;place-items:center;min-width:29px;min-height:29px;
+ border:1px solid #d1e4f5;border-radius:9px;background:#fff;
+ color:#32678f;font-size:19px;font-weight:900
+}
+#pageDashboard .trend-picker-body{min-width:0;padding:11px 12px 5px}
+#pageDashboard .trend-picker-body input[type="search"]{
+ box-sizing:border-box;width:100%;min-height:38px;padding:9px 11px;
+ border:1px solid #bdd8eb;border-radius:10px;background:#fff;
+ color:#174d7b;font:750 12px Nunito,Arial,sans-serif;
+}
+#pageDashboard .trend-picker-actions{display:flex;gap:8px;margin:9px 0}
+#pageDashboard .trend-picker-actions button{
+ flex:1;min-height:33px;padding:7px 9px;
+ border:1px solid #c7ddf0;border-radius:9px;
+ background:#f0f7ff;color:#185e97;
+ font:850 11px Nunito,Arial,sans-serif;
+}
+#pageDashboard .trend-picker-actions button:hover{background:#dcedfc;border-color:#96c5e9}
+#pageDashboard .trend-picker-list{
+ max-height:min(43dvh,300px);
+ overflow-y:auto;
+ overscroll-behavior:contain;
+ scrollbar-width:thin;
+ scrollbar-color:#afcde4 #f0f6fc;
+ padding:2px;
+ display:grid;
+ gap:4px;
+}
+#pageDashboard .tl-trend-filters .trend-picker-choice{
+ display:flex;align-items:flex-start;gap:10px;
+ min-height:38px;padding:9px 10px;
+ border:1px solid transparent;border-radius:9px;
+ background:#fff;
+ color:#214f76;
+ font:750 12px/1.4 Nunito,Arial,sans-serif;
+ cursor:pointer;
+}
+#pageDashboard .trend-picker-choice:hover{border-color:#d1e6f7;background:#f3faff}
+#pageDashboard .trend-picker-choice:has(input:checked){
+ background:#eaf5ff;border-color:#d2e9fc;color:#114f85
+}
+#pageDashboard .trend-picker-choice input{
+ width:16px;height:16px;flex:none;margin:0;
+ accent-color:#1974bf;cursor:pointer
+}
+#pageDashboard .trend-picker-choice span{min-width:0;overflow-wrap:anywhere}
+#pageDashboard .trend-picker-choice small{
+ display:block;margin-top:3px;font-size:10.5px;
+ color:#69849c;font-weight:700;
+}
+#pageDashboard .trend-picker-empty{padding:14px 9px;color:#69849c;font-size:12px;margin:0}
+#pageDashboard .trend-picker-footer{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:9px;padding:10px 13px;
+ border-top:1px solid #e3edf6;
+ color:#4e7594;font-weight:800;font-size:11px;
+}
+#pageDashboard .trend-picker-footer button{
+ flex:none;max-width:65%;
+ padding:9px 12px;border:0;border-radius:10px;
+ background:linear-gradient(115deg,#176db9,#11558f);
+ box-shadow:0 4px 12px #1266a82e;
+ color:#fff;font:900 11px Nunito,Arial,sans-serif;
+}
+#pageDashboard .trend-picker-close:focus-visible,
+#pageDashboard .trend-picker-choice input:focus-visible,
+#pageDashboard .trend-picker-footer button:focus-visible{
+ outline:3px solid #8ac4f1;outline-offset:2px
+}
+@keyframes trend-popup-in{
+ from{opacity:0;transform:translateY(-5px)}
+ to{opacity:1;transform:translateY(0)}
+}
+@media(max-width:650px){
+ #pageDashboard #trendActivityPopover{left:0;right:auto}
+ #pageDashboard .trend-picker-popover{width:min(100%,calc(100vw - 36px));min-width:min(310px,calc(100vw - 36px))}
+ #pageDashboard .trend-picker-list{max-height:min(40dvh,270px)}
+}
+@media(prefers-reduced-motion:reduce){
+ #pageDashboard .trend-picker-popover{animation:none}
+ #pageDashboard .tl-trend-filters .trend-picker-trigger{transition:none}
+}
