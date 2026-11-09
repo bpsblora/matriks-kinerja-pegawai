@@ -3875,3 +3875,17 @@
   width:100%;
  }
 }
+
+/* Tim picker: establishment status is independent of activity existence. */
+#pageTeams .team-picker-dialog .team-directory-row.is-ready:not(.is-selected){
+ border-left:3px solid #57ab89;
+}
+#pageTeams .team-picker-dialog .team-directory-row.is-pending:not(.is-selected){
+ border-left:3px solid #d8a052;
+}
+#pageTeams .team-picker-dialog .team-directory-row.is-ready .team-directory-copy small{
+ color:#30785f;
+}
+#pageTeams .team-picker-dialog .team-directory-row.is-pending .team-directory-copy small{
+ color:#946526;
+}
