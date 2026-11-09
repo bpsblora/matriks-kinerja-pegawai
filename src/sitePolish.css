@@ -359,8 +359,8 @@
  box-sizing:border-box;
  min-width:0;
  min-height:0!important;
- height:clamp(520px,72dvh,740px);
- max-height:740px;
+ height:auto;
+ max-height:none;
  display:flex;
  flex-direction:column;
  align-self:stretch!important;
@@ -1115,51 +1115,55 @@
 }
 
 
-/* Balanced paired monitoring cards after task list moved to a popup.
-   Preserve equal heights, but remove the obsolete 740px desktop ceiling
-   that left a large blank region under the employee detail button. */
+/* Desktop: two companion cards share the SAME grid-row height.
+   Let the taller card determine the row height; never hardcode a 560/740px
+   panel. The left list alone scrolls; the right detail CTA sits at the bottom
+   without turning its one-button wrapper into a huge scroll area. */
 @media(min-width:1241px){
+ #pageDashboard .monitor-main-grid{
+  align-items:stretch!important;
+  grid-auto-rows:auto!important;
+ }
  #pageDashboard .monitor-main-grid > :is(.chart-panel,.person-panel){
-  height:clamp(470px,54dvh,560px)!important;
-  max-height:560px!important
+  box-sizing:border-box;
+  display:flex!important;
+  flex-direction:column!important;
+  align-self:stretch!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:hidden;
  }
  #pageDashboard .monitor-main-grid #barRows{
-  flex:1 1 0;
-  min-height:0;
+  flex:0 1 auto!important;
+  min-height:0!important;
+  max-height:min(54dvh,440px)!important;
   overflow-y:auto!important;
+  overflow-x:hidden!important;
  }
  #pageDashboard .monitor-main-grid .person-panel #personDetails{
   flex:0 0 auto!important;
   height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin-top:auto!important;
+  padding-top:10px;
   overflow:visible!important;
  }
-}
-
-
-/* Audit lanjutan: hilangkan tinggi paksa pada pasangan grafik/detail.
-   Kartu mengikuti konten, daftar pegawai tetap bergulir tanpa membuat
-   kartu rincian memanjang dengan ruang kosong yang tidak bermakna. */
-@media(min-width:1241px){
- #pageDashboard .monitor-main-grid{
-  align-items:start!important;
-  grid-auto-rows:minmax(0,auto)!important;
+ #pageDashboard .monitor-main-grid .person-panel #personSummary{
+  flex:0 1 auto!important;
  }
+}
+/* Smaller layouts remain content-driven; stacked cards should never
+   inherit a tall desktop row or an empty forced-height spacer. */
+@media(max-width:1240px){
  #pageDashboard .monitor-main-grid > :is(.chart-panel,.person-panel){
-  height:auto!important; /* natural panel height */
+  height:auto!important;
   max-height:none!important;
   min-height:0!important;
-  align-self:start!important;
- }
- #pageDashboard .monitor-main-grid #barRows{
-  flex:0 1 auto!important;
-  max-height:min(54dvh,440px)!important;
-  overflow-y:auto!important;
- }
- #pageDashboard .monitor-main-grid .person-panel #personDetails{
-  flex:0 0 auto!important;
-  margin-top:10px!important;
  }
 }
+
 #pageDashboard .person-panel .person-metrics{
  grid-template-columns:repeat(2,minmax(0,1fr));
  gap:8px;
