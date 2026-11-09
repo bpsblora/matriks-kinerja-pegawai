@@ -1228,4 +1228,22 @@ for(const token of [
  "@media(max-width:720px){"
 ])assert(cssPolish.includes(token),"Desain pop-up lebar/tampilan mobile Pilih Tim belum lengkap: "+token);
 
+// Team picker status must use the same validation as the annual approval.
+const pickerStatusFrom=inline.indexOf("function renderTeamDirectory(){");
+const pickerStatusTo=inline.indexOf("function selectTeamFromDirectory(",pickerStatusFrom);
+assert(pickerStatusFrom>=0&&pickerStatusTo>pickerStatusFrom,"Daftar Tim tidak ditemukan");
+const pickerStatusCode=inline.slice(pickerStatusFrom,pickerStatusTo);
+for(const token of [
+ "const teamIssue=inactive?'':teamEstablishmentIssue(t.id);",
+ "teamIssue?'Belum Ditetapkan':'Sudah Ditetapkan'",
+ "const activityLabel=hasActivities?'Memiliki Kegiatan':'Belum Ada Kegiatan';",
+ "esc(stateLabel)+' · '+esc(activityLabel)",
+ "is-pending",
+ "is-ready",
+ "completion=annualTeamCompletion()",
+ "nf(completion.pending.length)+' Belum Ditetapkan'"
+])assert(pickerStatusCode.includes(token),"Status penetapan Tim tidak konsisten: "+token);
+assert(cssPolish.includes(".team-directory-row.is-pending:not(.is-selected)"),
+ "Tim belum ditetapkan harus terlihat di pemilih Tim");
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
