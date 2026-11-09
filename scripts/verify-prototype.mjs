@@ -923,7 +923,8 @@ const leaderSelect={value:'',options:[],disabled:false};
 const leaderControls={
  teamAdminLeader:leaderSelect,
  teamAdminSelect:{value:'T1'},
- teamAdminLeaderHint:{textContent:''}
+ teamAdminLeaderHint:{textContent:''},
+ teamAdminMemberCount:{textContent:''}
 };
 const leadCtx={
  $:id=>leaderControls[id],
