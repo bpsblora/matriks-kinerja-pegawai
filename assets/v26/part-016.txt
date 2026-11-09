@@ -259,8 +259,10 @@ function renderEstablishedTeamDialog(){
   if($('annualStageTeamSelect'))$('annualStageTeamSelect').value=tid;
   if(!isBaseYear)annualEditingTeamId=tid;
   renderTeamAdminPage();
-  const stage=$('annualTeamStage')||$('teamAdminGrid');
-  stage?.scrollIntoView({behavior:'smooth',block:'start'});
+  const rosterCard=$('teamAdminGrid')?.querySelector('.team-admin-card:not(.team-admin-list)');
+  const narrow=typeof window!=='undefined'&&window.matchMedia?.('(max-width:1050px)').matches;
+  const target=narrow?rosterCard:($('annualTeamStage')||rosterCard);
+  target?.scrollIntoView({behavior:'smooth',block:'start'});
  });
 }
 function openEstablishedTeamDialog(filter='ready',trigger=null){
