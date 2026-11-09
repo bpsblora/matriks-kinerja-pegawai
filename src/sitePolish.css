@@ -2306,3 +2306,206 @@
  #pageTeams .team-focus-name{max-width:55%}
  #pageTeams .team-overview-heading{align-items:flex-start;flex-wrap:wrap}
 }
+
+/* Penyederhanaan penetapan tahunan: satu kartu untuk status dan aksi.
+   Klik kepala kartu daftar pegawai untuk membuka daftar dan mengubah data,
+   tanpa baris hijau terpisah atau daftar pegawai ganda di bagian bawah. */
+#pageTeams .employee-master-panel[hidden],
+#pageTeams #annualStaffComplete[hidden]{display:none!important}
+#pageTeams #annualSetupPanel .annual-staff-unified{
+ margin:10px 0 14px;
+ border:1px solid #c8dfef;
+ border-radius:14px;
+ overflow:hidden;
+ background:#fff;
+}
+#pageTeams #annualSetupPanel .annual-staff-unified>summary{
+ box-sizing:border-box;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:14px;
+ min-height:78px;
+ padding:15px 17px!important;
+ list-style:none;
+ cursor:pointer;
+}
+#pageTeams #annualSetupPanel .annual-staff-unified>summary::-webkit-details-marker{display:none}
+#pageTeams #annualSetupPanel .annual-staff-unified>summary:focus-visible{
+ outline:3px solid #9cc8e9;
+ outline-offset:-3px;
+}
+#pageTeams #annualSetupPanel .annual-staff-unified.is-confirmed{
+ background:#eaf7f0;
+ border-color:#bee1ce;
+}
+#pageTeams #annualSetupPanel .annual-staff-unified.is-confirmed>summary{
+ background:linear-gradient(105deg,#eaf7f0,#f8fdfa);
+}
+#pageTeams #annualSetupPanel .annual-staff-unified.is-editing{
+ border-color:#82b7e7;
+ box-shadow:0 0 0 3px #eaf5ff;
+}
+#pageTeams .annual-staff-title{
+ display:flex;
+ flex:1 1 auto;
+ min-width:0;
+ flex-direction:column;
+ gap:5px;
+}
+#pageTeams .annual-staff-title>strong{
+ color:#115184;
+ font-size:15px;
+ font-weight:900;
+ line-height:1.4;
+}
+#pageTeams .annual-staff-unified.is-confirmed .annual-staff-title>strong{color:#176443}
+#pageTeams .annual-staff-title #annualStaffDescription{
+ display:block;
+ margin:0;
+ font-size:11.5px;
+ font-weight:750;
+ line-height:1.45;
+ color:#617f9b;
+ overflow-wrap:anywhere;
+}
+#pageTeams .annual-staff-unified.is-confirmed #annualStaffDescription{color:#26714e}
+#pageTeams .annual-staff-right{
+ display:flex;
+ align-items:center;
+ justify-content:flex-end;
+ flex-wrap:wrap;
+ gap:8px;
+ flex:0 1 auto;
+}
+#pageTeams .annual-staff-right .annual-count{
+ flex:none;
+ font-size:11px;
+ line-height:1.4;
+ font-variant-numeric:tabular-nums;
+ padding:7px 10px;
+ background:#e2f0ff;
+ color:#135d9a;
+}
+#pageTeams .annual-staff-unified.is-confirmed .annual-count{
+ background:#d6efdf;
+ color:#166342;
+}
+#pageTeams .annual-staff-action{
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ border:1px solid #c3dff3;
+ background:#fff;
+ border-radius:10px;
+ padding:9px 11px;
+ color:#17609e;
+ font-size:11.5px;
+ font-weight:900;
+ line-height:1.4;
+ text-align:center;
+ white-space:nowrap;
+ box-shadow:0 3px 9px #175e9b11;
+}
+#pageTeams .annual-staff-unified.is-confirmed .annual-staff-action{
+ border-color:#b1d8c0;
+ color:#1b7049;
+ background:#fff;
+}
+#pageTeams .annual-staff-unified[open] .annual-staff-action{
+ background:#e7f3ff;
+ border-color:#aacfe9;
+}
+#pageTeams #annualSetupPanel .annual-staff-unified .annual-chooser-body{
+ background:#fff;
+ border-top:1px solid #d9e9f5;
+ padding:14px 16px 16px;
+}
+#pageTeams #annualTeamStage{
+ padding:0!important;
+ overflow:hidden;
+ background:#fff;
+ border-color:#cddfec;
+}
+#pageTeams #annualTeamStage>.annual-stage-head{
+ padding:15px 17px;
+ margin:0;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:10px;
+ border-bottom:1px solid #e0ebf4;
+}
+#pageTeams #annualTeamStage.is-confirmed>.annual-stage-head{
+ background:linear-gradient(110deg,#eaf7f0,#f7fcf8);
+ border-bottom-color:#d3e9dc;
+}
+#pageTeams #annualTeamStage>.annual-stage-head>div:first-child{min-width:0}
+#pageTeams #annualTeamStage>.annual-stage-head strong{
+ display:block;
+ font-size:15px;
+ line-height:1.4;
+ font-weight:900;
+}
+#pageTeams #annualTeamStage.is-confirmed>.annual-stage-head strong{color:#176343}
+#pageTeams #annualTeamStage>.annual-stage-head p{
+ margin:5px 0 0;
+ font-size:11px;
+ line-height:1.45;
+}
+#pageTeams .annual-team-head-right{
+ display:flex;
+ align-items:center;
+ flex-wrap:wrap;
+ gap:8px;
+ justify-content:flex-end;
+}
+#pageTeams #annualTeamSummary.annual-team-state{
+ display:inline-flex;
+ align-items:center;
+ flex:0 1 auto;
+ margin:0;
+ padding:7px 10px;
+ border-radius:9px;
+ border:1px solid #bee1ce;
+ background:#dff2e7;
+ color:#146440;
+ font-size:11px;
+ line-height:1.35;
+ font-weight:900;
+}
+#pageTeams #annualTeamSummary.annual-team-state.is-editing{
+ background:#e8f3ff;
+ border-color:#b9d8f2;
+ color:#195b94;
+}
+#pageTeams #annualTeamSummary.annual-team-state.hidden{display:none!important}
+#pageTeams #annualTeamHeadAction .btn{
+ min-height:35px;
+ padding:8px 11px;
+ border:1px solid #b9d4e9;
+ border-radius:9px;
+ background:#fff;
+ color:#155e9b;
+ font-size:11px;
+ font-weight:900;
+ white-space:normal;
+}
+#pageTeams #annualTeamGridSlot{padding:13px 14px 17px}
+#pageTeams #annualTeamGridSlot .team-admin-grid{margin-top:0}
+#pageTeams #annualTeamStage .team-admin-grid.is-complete{display:grid}
+#pageTeams .team-roster-action-slot .annual-team-actions{border-top:0}
+#pageTeams #annualCancelTeam{border-color:#d2dfeb;background:#fff}
+#pageTeams #teamAdminLeader:disabled,#pageTeams #teamAdminMemberSearch:disabled{
+ background:#f3f7fa;
+ color:#748b9d;
+}
+#pageTeams #teamAdminMembers label:has(input:disabled){cursor:default;opacity:.74}
+@media(max-width:740px){
+ #pageTeams #annualSetupPanel .annual-staff-unified>summary{flex-direction:column;align-items:stretch}
+ #pageTeams .annual-staff-right{justify-content:space-between}
+ #pageTeams .annual-staff-action{white-space:normal}
+ #pageTeams #annualTeamStage>.annual-stage-head{align-items:flex-start;flex-direction:column}
+ #pageTeams .annual-team-head-right{width:100%;justify-content:space-between}
+ #pageTeams #annualTeamGridSlot{padding:11px}
+}
