@@ -832,4 +832,73 @@ assert(workflowCode.includes("goInput.disabled=!active||!ready||!kroReady||!canW
 assert(workflowCode.includes("const activeTasks=activities.filter(")&&workflowCode.includes("groupName(a)"),
  "Ringkasan Kegiatan harus berasal dari kepemilikan kegiatan, bukan keanggotaan");
 
+
+// Unified staff/team cards and safe amendment rules, November 2026.
+const staffCardStart=html.indexOf('<details id="annualStaffChooser"');
+const staffCompleteStart=html.indexOf('id="annualStaffComplete"');
+const teamStageStart=html.indexOf('id="annualTeamStage"');
+const teamStageEnd=html.indexOf('id="annualKroStage"',teamStageStart);
+assert(staffCardStart>=0&&staffCompleteStart>staffCardStart&&teamStageStart>staffCompleteStart,
+ "Kartu Daftar Pegawai dan Susunan Tim hilang");
+const staffCardMarkup=html.slice(staffCardStart,staffCompleteStart);
+assert(staffCardMarkup.includes('annual-staff-unified')&&staffCardMarkup.includes('id="annualStaffActionLabel"'),
+ "Status dan tombol Daftar Pegawai wajib berada di satu kartu yang bisa dibuka");
+assert(html.includes('id="annualStaffComplete" class="annual-step-complete hidden" hidden aria-hidden="true"'),
+ "Ringkasan hijau Daftar Pegawai lama tidak boleh tampil kedua kalinya");
+assert(html.includes('class="panel employee-master-panel" hidden aria-hidden="true"'),
+ "Daftar Pegawai ganda di bawah Kelola Tim harus disembunyikan tanpa memutus editor pegawai");
+assert(html.includes('id="employeeScreen"')&&html.includes('id="annualStaffList"'),
+ "Editor dan pemilihan pegawai tahunan tetap harus tersedia");
+const teamStageMarkup=html.slice(teamStageStart,teamStageEnd);
+assert(teamStageMarkup.includes('id="annualTeamSummary" class="annual-team-state hidden"')&&
+ teamStageMarkup.includes('id="annualTeamHeadAction"'),
+ "Status Tim dan aksi Ubah Anggota harus menyatu dengan kepala kartu Tim");
+assert(teamStageMarkup.includes('id="annualCancelTeam"'),
+ "Mode Ubah Tim memerlukan Batal untuk membuang draf");
+const stageRenderStart=inline.indexOf("function renderYearSetup(){");
+const stageRenderEnd=inline.indexOf("function confirmStaffYear(){",stageRenderStart);
+const renderYearCode=inline.slice(stageRenderStart,stageRenderEnd);
+assert(renderYearCode.includes("chooser.classList.toggle('is-confirmed'"),
+ "Daftar Pegawai harus berubah menjadi satu kartu hijau ketika sudah ditetapkan");
+assert(renderYearCode.includes("teamStage.classList.toggle('is-confirmed'"),
+ "Susunan Tim juga harus memiliki status hijau dalam kartu yang sama");
+assert(renderYearCode.includes("const rosterLocked=teamComplete||!writable||!allReady||!canTeam;")&&
+ renderYearCode.includes("$('annualCancelTeam').classList.toggle('hidden'"),
+ "Susunan Tim yang sudah ditetapkan tidak boleh tersunting diam-diam sebelum mode Ubah");
+assert(inline.includes("$('annualStaffChooser').addEventListener('toggle'"),
+ "Klik kartu Daftar Pegawai harus membuka daftar yang dapat diperiksa/diubah");
+assert(inline.includes("$('annualCancelTeam').addEventListener('click'"),
+ "Batalkan edit tim harus mengembalikan keadaan tersimpan");
+assert(inline.includes("if(String(previous)!==String(tid)&&annualEditingTeamId===previous)"),
+ "Perubahan anggota yang belum disimpan harus dibatalkan jelas ketika berganti tim");
+const confirmTeamStart=inline.indexOf("function confirmTeamYear(){");
+const confirmTeamEnd=inline.indexOf("function confirmKroYear(){",confirmTeamStart);
+const confirmTeamCode=inline.slice(confirmTeamStart,confirmTeamEnd);
+assert(!confirmTeamCode.includes("delete yearSetup.kros[tid]"),
+ "Mengubah anggota tidak boleh menghapus penetapan KRO tim");
+const confirmStaffStart=inline.indexOf("function confirmStaffYear(){");
+const confirmStaffEnd=inline.indexOf("function copyPreviousRoster(){",confirmStaffStart);
+const confirmStaffCode=inline.slice(confirmStaffStart,confirmStaffEnd);
+assert(!confirmStaffCode.includes("delete yearSetup.kros[tid]"),
+ "Mengubah daftar pegawai tidak boleh menghapus KRO tanpa perubahan kepemilikan KRO");
+const saveTeamStart=inline.indexOf("function saveTeamAdmin(){");
+const saveTeamEnd=inline.indexOf("function renameTeamFromDirectory(",saveTeamStart);
+const saveTeamCode=inline.slice(saveTeamStart,saveTeamEnd);
+assert(saveTeamCode.includes("if(rosterChanged){delete yearSetup.teams[tid];")&&
+ saveTeamCode.includes("if(!equalIds(oldKro,team.kroCodes)){delete yearSetup.kros[tid];"),
+ "Perubahan susunan menuntut penetapan ulang, tetapi perubahan KRO saja yang membatalkan penetapan KRO");
+const teamWorkflowStart=inline.indexOf("function renderTeamWorkflow(){");
+const teamWorkflowEnd=inline.indexOf("function renderTeamAdminPage(){",teamWorkflowStart);
+const teamWorkflowCode=inline.slice(teamWorkflowStart,teamWorkflowEnd);
+assert(teamWorkflowCode.includes("const ready=confirmed&&staffReady()&&!editing&&!draftChanged;"),
+ "Tombol lanjutan KRO/Alokasi wajib terkunci saat revisi anggota belum ditetapkan");
+for(const token of [
+ "#pageTeams #annualSetupPanel .annual-staff-unified.is-confirmed{",
+ "#pageTeams .annual-staff-action{",
+ "#pageTeams #annualTeamStage.is-confirmed>.annual-stage-head{",
+ "#pageTeams .annual-team-head-right{",
+ "#pageTeams .employee-master-panel[hidden],",
+ "#pageTeams #annualTeamStage .team-admin-grid.is-complete{display:grid}"
+])assert(cssPolish.includes(token),"Tampilan kartu gabungan Daftar Pegawai/Tim belum lengkap: "+token);
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
