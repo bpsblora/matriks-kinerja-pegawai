@@ -573,6 +573,39 @@ assert(personCode.includes("const auditMarkup=isBaseYear?"),
   "Audit acuan 2026 tidak boleh ditampilkan sebagai perbandingan pada tahun berikutnya");
 assert(personCode.includes("${auditMarkup}</div>"),
   "Ringkasan pegawai belum memakai audit sesuai tahun aktif");
+
+/* The right-hand employee card must show actual activities and task titles,
+   not a large empty spacer above the only action button. */
+for(const token of [
+ "const featuredGroups=groups.slice(0,5);",
+ "person-work-preview-heading",
+ "person-work-preview-team",
+ "person-work-preview-activity",
+ "person-work-preview-tasks",
+ "person-work-preview-hours",
+ "g.items.slice(0,2)",
+ "g.hours/total*100",
+ "person-work-preview-more",
+ "openPersonWorkDialog({"
+]){
+ assert(personCode.includes(token),"Ringkasan kegiatan/uraian pegawai hilang: "+token);
+}
+assert(personCode.indexOf('person-work-preview')<personCode.indexOf('id="openPersonWorkDialog"'),
+ "Tombol detail seharusnya berada setelah daftar ringkasan pekerjaan");
+for(const token of [
+ "#pageDashboard .monitor-main-grid .person-panel #personDetails{",
+ "display:flex!important;",
+ "flex-direction:column!important;",
+ ".person-work-preview-list{",
+ "overflow-y:auto;",
+ ".person-work-preview-row{",
+ ".person-work-preview-hours{",
+ ".person-panel .person-work-trigger{",
+ "min-height:65px!important;"
+]){
+ assert(cssPolish.includes(token),"Tampilan detail pegawai belum diperluas: "+token);
+}
+
 const printStart=inline.indexOf("function printMonitoringPDF(){");
 const printEnd=inline.indexOf("function exportCSV(){",printStart);
 assert(printStart>=0&&printEnd>printStart,"Cetak laporan monitoring tidak ditemukan");
