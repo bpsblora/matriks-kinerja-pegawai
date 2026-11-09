@@ -1559,241 +1559,212 @@
  }
 }
 
-/* Rincian Pegawai: ruang kartu dipakai untuk kegiatan dan uraian nyata,
-   bukan ruang kosong di atas satu tombol. Daftar tetap mengikuti filter. */
+
+/* Detail Pegawai v2: satu kartu tindakan besar, bukan dua daftar berulang.
+   Ringkasan menonjolkan jumlah Tim, Kegiatan dan Uraian; semua detail
+   pekerjaan dibaca lewat pop-up yang benar-benar dapat digulir. */
 #pageDashboard .monitor-main-grid .person-panel #personDetails{
  box-sizing:border-box;
  display:flex!important;
  flex-direction:column!important;
- gap:10px;
  flex:1 1 auto!important;
- min-height:0!important;
+ min-width:0!important;
+ min-height:145px!important;
  height:auto!important;
  max-height:none!important;
- margin-top:11px!important;
+ margin:11px 0 0!important;
  padding:0!important;
- overflow:hidden!important;
+ overflow:visible!important;
 }
-#pageDashboard .person-work-preview{
+#pageDashboard .person-panel .person-work-trigger-large{
  box-sizing:border-box;
- display:flex;
- flex-direction:column;
- flex:1 1 auto;
- min-height:0;
+ display:flex!important;
+ flex:1 1 auto!important;
+ align-items:center!important;
+ justify-content:space-between!important;
+ gap:15px;
+ width:100%;
+ min-height:156px!important;
+ margin:0!important;
+ padding:18px 21px!important;
+ text-align:left;
+ border-radius:15px;
+ background:linear-gradient(125deg,#156ab2 0%,#0d558f 100%);
+}
+#pageDashboard .person-panel .person-work-trigger-large>.person-work-trigger-content{
+ display:flex!important;
+ flex-direction:column!important;
+ gap:7px;
  min-width:0;
- border:1px solid #d3e7f7;
- border-radius:14px;
- background:linear-gradient(160deg,#f5faff,#edf6ff);
- padding:12px;
- overflow:hidden;
+ flex:1 1 0;
+ align-items:flex-start;
+ justify-content:center;
 }
-#pageDashboard .person-work-preview-heading{
- display:flex;align-items:center;justify-content:space-between;
- gap:9px;flex:0 0 auto;
- padding:0 1px 9px;
-}
-#pageDashboard .person-work-preview-heading>div{min-width:0}
-#pageDashboard .person-work-preview-heading h4{
- margin:0;
- color:#11548b;
- font-size:13px;
- line-height:1.35;
+#pageDashboard .person-work-trigger-eyebrow{
+ display:block;
+ font-size:10px;
  font-weight:900;
+ color:#bce3ff;
+ line-height:1.4;
+ letter-spacing:.045em;
 }
-#pageDashboard .person-work-preview-heading p{
- margin:3px 0 0;
- color:#64839d;
+#pageDashboard .person-panel .person-work-trigger-large strong{
+ display:block;
+ margin:0;
+ color:#fff;
+ font-size:clamp(15px,1.35vw,20px);
+ font-weight:900;
+ line-height:1.3;
+}
+#pageDashboard .person-work-trigger-description{
+ color:#e2efff;
+ font-weight:700;
+ font-size:11px;
+ line-height:1.45;
+}
+#pageDashboard .person-work-trigger-metrics{
+ display:flex;
+ flex-wrap:wrap;
+ align-items:center;
+ gap:7px;
+ margin:3px 0 2px;
+}
+#pageDashboard .person-work-trigger-metrics>span{
+ display:flex;
+ align-items:baseline;
+ gap:5px;
+ padding:7px 11px;
+ color:#f5fbff;
+ font:800 11px/1.3 Nunito,Arial,sans-serif;
+ border-radius:10px;
+ background:rgba(255,255,255,.16);
+ border:1px solid rgba(255,255,255,.28);
+ white-space:nowrap;
+}
+#pageDashboard .person-work-trigger-metrics b{
+ color:#fff;
+ font-weight:950;
+ font-size:17px;
+ font-variant-numeric:tabular-nums;
+}
+#pageDashboard .person-work-trigger-note{
+ display:block;
+ font-weight:650;
+ color:#d4eaff;
  font-size:10.5px;
  line-height:1.4;
 }
-#pageDashboard .person-work-preview-total{
- box-sizing:border-box;
- flex:0 0 auto;
- max-width:42%;
- padding:6px 9px;
- background:#e0effd;
- border:1px solid #badbf3;
- border-radius:9px;
- color:#12639f;
- font-size:11px;
- line-height:1.25;
- font-weight:900;
- text-align:center;
- font-variant-numeric:tabular-nums;
-}
-#pageDashboard .person-work-preview-list{
- box-sizing:border-box;
- flex:1 1 auto;
- min-height:0;
- display:flex;
- flex-direction:column;
- gap:6px;
- overflow-y:auto;
- overflow-x:hidden;
- padding:2px 3px 2px 0;
- overscroll-behavior:contain;
- scrollbar-width:thin;
- scrollbar-color:#a7cee9 #edf5fc;
-}
-#pageDashboard .person-work-preview-row{
- box-sizing:border-box;
- display:grid;
- grid-template-columns:25px minmax(0,1fr) auto;
- gap:9px;
- align-items:start;
- padding:9px 10px;
- min-width:0;
- border:1px solid #dfeaf5;
- border-radius:10px;
- background:#fff;
-}
-#pageDashboard .person-work-preview-rank{
+#pageDashboard .person-panel .person-work-trigger-large .person-work-arrow{
  display:grid;
  place-items:center;
- width:23px;height:23px;
- border-radius:8px;
- background:#e5f2ff;
- color:#1765a1;
- font-size:11px;
- font-weight:900;
+ flex:0 0 34px;
+ width:34px;
+ height:34px;
+ border:1px solid rgba(255,255,255,.36);
+ border-radius:11px;
+ background:rgba(255,255,255,.14);
+ color:#fff;
+ font-size:26px;
 }
-#pageDashboard .person-work-preview-main{min-width:0}
-#pageDashboard .person-work-preview-team{
- display:block;
- font-size:10px;
- color:#5d7f9c;
- font-weight:800;
- line-height:1.35;
-}
-#pageDashboard .person-work-preview-activity{
- display:block;
- margin:2px 0 4px;
- font-size:12px;
- color:#144d7c;
- font-weight:900;
- line-height:1.35;
- white-space:normal;
- overflow-wrap:anywhere;
-}
-#pageDashboard .person-work-preview-tasks{
- display:flex;
- flex-direction:column;
- gap:2px;
- color:#617f98;
- font-size:10.5px;
- line-height:1.35;
- min-width:0;
-}
-#pageDashboard .person-work-preview-tasks>span{
- display:block;
- overflow-wrap:anywhere;
-}
-#pageDashboard .person-work-preview-tasks>span::before{
- content:"• ";
- color:#3b99cc;
- font-weight:900;
-}
-#pageDashboard .person-work-preview-tasks>small{
- font-size:10px;
- color:#386f9c;
- font-weight:800;
-}
-#pageDashboard .person-work-preview-hours{
- display:flex;
- flex-direction:column;
- gap:3px;
- align-items:flex-end;
- min-width:70px;
- max-width:115px;
- font-variant-numeric:tabular-nums;
-}
-#pageDashboard .person-work-preview-hours>strong{
- display:block;
- padding:5px 7px;
- border:1px solid #cce3f7;
- border-radius:8px;
- background:#e9f5ff;
- color:#0c5792;
- font-size:11px;
- font-weight:900;
- text-align:right;
- white-space:normal;
-}
-#pageDashboard .person-work-preview-hours>small{
- display:block;
- text-align:right;
- color:#758da2;
- font-size:10px;
- font-weight:750;
-}
-#pageDashboard .person-work-preview-more{
- flex:0 0 auto;
- margin:7px 0 0;
- font-size:10px;
- line-height:1.4;
- color:#517e9f;
- font-weight:750;
-}
-#pageDashboard .person-work-preview-empty{
- margin:0;
- padding:15px 10px;
- color:#6b8498;
- font-size:12px;
- line-height:1.5;
-}
-#pageDashboard .person-panel .person-work-trigger{
- box-sizing:border-box;
- display:flex;
- flex:0 0 auto!important;
- width:100%;
- min-height:65px!important;
- margin:0!important;
- padding:12px 14px!important;
- border-radius:12px;
-}
-#pageDashboard .person-panel .person-work-trigger strong{font-size:13px;line-height:1.35}
-#pageDashboard .person-panel .person-work-trigger small{font-size:10.5px}
-@media(min-width:1241px){
- #pageDashboard .monitor-main-grid .person-panel #personDetails{
-  flex:1 1 0!important;
-  min-height:145px!important;
-  margin-top:10px!important;
- }
- #pageDashboard .person-work-preview{
-  min-height:0!important;
- }
+#pageDashboard .person-panel .person-work-trigger-large:disabled{
+ background:#e1eaf2;
+ border-color:#c7d9e8;
+ color:#728da5;
 }
 @media(max-width:1240px){
  #pageDashboard .monitor-main-grid .person-panel #personDetails{
   flex:0 0 auto!important;
   min-height:0!important;
-  overflow:visible!important;
  }
- #pageDashboard .person-work-preview{
-  flex:0 0 auto;
-  min-height:0;
- }
- #pageDashboard .person-work-preview-list{
-  flex:0 1 auto;
-  max-height:340px;
+ #pageDashboard .person-panel .person-work-trigger-large{
+  flex:0 0 auto!important;
  }
 }
-@media(max-width:540px){
- #pageDashboard .person-work-preview{padding:9px}
- #pageDashboard .person-work-preview-row{
-  grid-template-columns:22px minmax(0,1fr);
-  gap:7px;
-  padding:9px 8px;
+@media(max-width:560px){
+ #pageDashboard .person-panel .person-work-trigger-large{
+  padding:15px 13px!important;
+  min-height:160px!important;
  }
- #pageDashboard .person-work-preview-hours{
-  grid-column:2;
-  flex-direction:row;
-  align-items:center;
-  flex-wrap:wrap;
-  min-width:0;
-  max-width:none;
+ #pageDashboard .person-work-trigger-metrics{gap:5px}
+ #pageDashboard .person-work-trigger-metrics>span{padding:6px 7px;font-size:10px}
+ #pageDashboard .person-work-trigger-metrics b{font-size:14px}
+ #pageDashboard .person-panel .person-work-trigger-large .person-work-arrow{
+  flex-basis:27px;width:27px;height:27px;
  }
- #pageDashboard .person-work-preview-hours>small{text-align:left}
- #pageDashboard .person-work-preview-heading h4{font-size:12px}
- #pageDashboard .person-work-preview-total{font-size:10px}
+}
+/* Fix list collapse inside a tall modal: grid auto tracks had compressed
+   13 groups into thin lines, clipping each group's actual work items.
+   Normal document flow gives each activity its natural height. */
+.person-work-dialog[open]{
+ display:block!important;
+ height:min(88dvh,820px)!important;
+ max-height:88dvh!important;
+ overflow:hidden!important;
+}
+.person-work-dialog-shell{
+ display:flex!important;
+ flex-direction:column!important;
+ box-sizing:border-box;
+ height:100%!important;
+ max-height:none!important;
+ min-height:0!important;
+ overflow:hidden!important;
+}
+.person-work-dialog-head,.person-work-dialog-stats,.person-work-dialog-footer{
+ flex:0 0 auto!important;
+}
+.person-work-dialog-stats{
+ grid-template-columns:repeat(4,minmax(0,1fr))!important;
+}
+.person-work-dialog-scroll{
+ box-sizing:border-box;
+ display:block!important;
+ flex:1 1 auto!important;
+ min-height:0!important;
+ height:auto!important;
+ overflow-y:auto!important;
+ overflow-x:hidden!important;
+}
+.person-work-dialog-scroll>.person-work-group{
+ display:block!important;
+ box-sizing:border-box;
+ height:auto!important;
+ min-height:0!important;
+ max-height:none!important;
+ overflow:visible!important;
+ margin:0 0 12px!important;
+}
+.person-work-dialog-scroll>.person-work-group:last-child{
+ margin-bottom:0!important;
+}
+.person-work-dialog-scroll .person-work-group-head{
+ display:flex!important;
+ min-height:0!important;
+ height:auto!important;
+ align-items:flex-start;
+}
+.person-work-dialog-scroll .person-work-items{
+ display:block!important;
+ height:auto!important;
+ min-height:0!important;
+ overflow:visible!important;
+}
+.person-work-dialog-scroll .person-work-item{
+ display:flex!important;
+ min-height:0!important;
+ height:auto!important;
+}
+@media(max-width:720px){
+ .person-work-dialog[open]{
+  height:92dvh!important;
+  max-height:92dvh!important;
+ }
+ .person-work-dialog-stats{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:6px;
+ }
+ .person-work-dialog-scroll .person-work-item{flex-wrap:wrap}
+ .person-work-dialog-scroll .person-work-item>strong{
+  white-space:normal;
+ }
 }
