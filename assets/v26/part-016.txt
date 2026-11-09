@@ -398,7 +398,6 @@ function renderTeamAdminPage(){
  $('teamAdminScope').textContent=isCentral?'Ketua Tim menetapkan anggotanya per tim. Admin/Kepala memeriksa seluruh penetapan sebelum persetujuan akhir.':'Anda bertanggung jawab menetapkan anggota tim sendiri. Ketua yang ditunjuk harus ikut sebagai anggota.';
  $('teamAdminKroNote').textContent=activeYear===2026?'Kegiatan tanpa KRO dapat ditata kembali di Input Alokasi.':'Setiap KRO yang dipilih wajib memiliki sedikitnya satu kegiatan aktif pada tahun ini.';
  $('teamAdminMeta').textContent=teamDeletionReason(tid)?'Tidak dapat dihapus: '+teamDeletionReason(tid)+'. Gunakan Nonaktifkan agar riwayat tetap tersimpan.':'Tim ini kosong, belum memiliki alokasi dan dapat dihapus. Pastikan penetapan tim sudah sesuai.';
- renderEmployeeMaster();
  renderKroAudit();renderYearSetup();renderEstablishedTeams();renderTeamDirectory();renderTeamWorkflow();
 }
 function drawWorkingMembers(){
@@ -626,8 +625,7 @@ function setupRoster(){
  $('teamKroMapQuery').oninput=renderKroMap;
  $('teamAdminSave').onclick=saveTeamAdmin;
  $('kroAuditRefresh').onclick=()=>{renderKroAudit();toast('Pemeriksaan KRO dan kegiatan diperbarui.')};
- $('empSearch').oninput=renderEmployeeMaster;$('empStatus').onchange=renderEmployeeMaster;$('empType').onchange=renderEmployeeMaster;
- $('empAdd').onclick=()=>openEmployeeEditor();$('empClose').onclick=closeEmployeeEditor;$('employeeScreen').onclick=e=>{if(e.target===$('employeeScreen'))closeEmployeeEditor()};$('employeeForm').onsubmit=e=>{e.preventDefault();saveEmployeeEditor()};
+ $('empClose').onclick=closeEmployeeEditor;$('employeeScreen').onclick=e=>{if(e.target===$('employeeScreen'))closeEmployeeEditor()};$('employeeForm').onsubmit=e=>{e.preventDefault();saveEmployeeEditor()};
  $('teamAdminNew').onclick=createTeamAdmin;
  $('teamAdminDelete').onclick=deleteTeamAdmin;
  $('teamAdminGoKro').onclick=()=>{
