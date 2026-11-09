@@ -242,10 +242,55 @@ assert.equal(trendData.teamTotals.get("T1"),20,"Beban tim harus memasukkan selur
 assert.equal(trendData.teamTotals.has("T2"),false,"Beban kegiatan tim lain harus dikecualikan");
 assert(inline.includes("renderTrendActivityFilters(scope)"),"Filter berjenjang belum terhubung pada grafik");
 assert(inline.includes("all.filter(e=>e.total>0).slice(0,6)"),"Pilihan seri awal tidak otomatis mengikuti beban terbesar");
-assert(inline.includes("trendSeriesSelection.allEmployees=null;renderTrend()"),"Perubahan filter tidak memicu urutan pegawai baru");
+assert(inline.includes("function applyTrendFilterChange(kind){"),"Perubahan checkbox Tim/Kegiatan belum mengubah grafik");
+assert(inline.includes("trendSeriesSelection.allTeams=null;trendSeriesSelection.allEmployees=null;"),"Perubahan filter tidak mengurutkan ulang seri");
+assert(inline.includes("initTrendPickers();"),"Pop-up checkbox belum aktif pada inisialisasi");
 assert(inline.includes("trendSeriesSelection.allTeams=null;trendSeriesSelection.allEmployees=null"),"Perubahan filter tidak memicu urutan tim dan pegawai");
 assert(!inline.includes("trendSelectedTeams"),"Logika daftar keanggotaan tim lama harus dilepas");
 assert(cssPolish.includes("#pageDashboard .tl-trend-filters #trendActivityFilterWrap"),"Tata letak Kegiatan belum disesuaikan");
+
+assert(html.includes('id="trendTeamPopover"'),"Pop-up checkbox Tim Pemilik belum dibuat");
+assert(html.includes('id="trendActivityPopover"'),"Pop-up checkbox Kegiatan belum dibuat");
+assert(html.includes('id="trendTeamChoices"'),"Checkbox multi-Tim belum tersedia");
+assert(html.includes('id="trendActivityChoices"'),"Checkbox multi-Kegiatan belum tersedia");
+assert(!html.includes('<select id="trendOwnerTeam"'),"Filter Tim masih dropdown tunggal");
+assert(!html.includes('<select id="trendActivityFilter"'),"Filter Kegiatan masih dropdown tunggal");
+assert(inline.includes("trendOwnerTeams=next;"),"Pilihan beberapa Tim belum tersimpan");
+assert(inline.includes("trendActivityKeys=next;"),"Pilihan beberapa Kegiatan belum tersimpan");
+assert(inline.includes("trendActivityKeys=null; // options must always reflect the selected owner teams"),"Perubahan Tim harus mereset Kegiatan untuk menjaga filter berjenjang");
+assert(inline.includes("openTrendPicker('activity');"),"Pemilihan Tim belum bisa dilanjutkan ke pop-up Kegiatan");
+assert(inline.includes("trendAvailableActivities().filter("),"Pilihan Kegiatan belum mengikuti Tim yang dicentang");
+assert(cssPolish.includes(".trend-picker-popover{"),"Pop-up checkbox belum didesain");
+assert(cssPolish.includes(".trend-picker-list{"),"Daftar checkbox yang panjang belum dapat digulir");
+
+// Verify multi-team aggregation and activity identity with identical names
+// in two teams. Include employees who belong to a different owner team.
+const fullTrendStart=inline.indexOf("const trendActivityId=");
+const fullTrendEnd=inline.indexOf("function renderTrendActivityFilters(",fullTrendStart);
+assert(fullTrendStart>=0&&fullTrendEnd>fullTrendStart,"Model multi-team/activity tidak ditemukan");
+const multiFixture={
+  periodAgg:()=>({details:new Map([
+    ["A1|E1",8],["A1|E2",12],["A2|E2",7],["A3|E1",6]
+  ])}),
+  byId:new Map([
+    ["A1",{team_id:"T1",group:"SHKK"}],
+    ["A2",{team_id:"T2",group:"SHKK"}],
+    ["A3",{team_id:"T1",group:"SHP"}]
+  ]),
+  baseActivity:new Map(),groupName:a=>a.group
+};
+const trendFunctions=inline.slice(fullTrendStart,fullTrendEnd);
+const multiTeam=vm.runInNewContext(trendFunctions+";trendWorkloadMonth(1,new Set(['T1','T2']),new Set([JSON.stringify(['T1','SHKK']),JSON.stringify(['T2','SHKK'])]))",multiFixture);
+assert.equal(multiTeam.totals.get("E1"),8,"Multi-Tim gagal membaca pegawai pertama");
+assert.equal(multiTeam.totals.get("E2"),19,"Pegawai lintas tim atau kelompok senama tidak terhitung");
+assert.equal(multiTeam.teamTotals.get("T1"),20,"Beban Tim pemilik pertama tidak sesuai");
+assert.equal(multiTeam.teamTotals.get("T2"),7,"Beban Tim pemilik kedua tidak sesuai");
+const onlySecond=vm.runInNewContext(trendFunctions+";trendWorkloadMonth(1,new Set(['T1','T2']),new Set([JSON.stringify(['T2','SHKK'])]))",multiFixture);
+assert.equal(onlySecond.totals.get("E1")||0,0,"Kegiatan senama dari Tim lain tidak boleh terikut");
+assert.equal(onlySecond.totals.get("E2"),7,"Kegiatan pada Tim kedua harus tetap ada");
+const noTeams=vm.runInNewContext(trendFunctions+";trendWorkloadMonth(1,new Set(),null)",multiFixture);
+assert.equal(noTeams.totals.size,0,"Kosongkan Tim harus menghasilkan grafik tanpa data");
+
 
 // Historical 2026 must expose the same staff -> team establishment workflow
 // as subsequent years without overwriting its source allocations.
