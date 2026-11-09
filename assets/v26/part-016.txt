@@ -248,12 +248,12 @@ function renderTeamAdminPage(){
  $('teamAdminLeaderHint').textContent=ro.leaderName?'Sumber daftar tim 2026; perubahan hanya dapat dilakukan Admin/Kepala.':'';
  adminMemberWorking=new Set(ro.members||[]);$('teamAdminMemberSearch').value='';drawWorkingMembers();
  selectedKroCodes=new Set(team.kroCodes||[]);$('teamAdminKroQuery').value='';$('kroListYear').textContent=String(activeYear);$('teamMapYear').textContent=String(activeYear);$('teamKroMapBadge').textContent=nf(POK_KROS.length)+' KRO';$('teamMapSourceInfo').textContent=activeYear>=2027?'Pemetaan sebelumnya hanya rekomendasi; daftar KRO '+activeYear+' perlu dikonfirmasi.':'Pemetaan 2026 menjadi acuan penyusunan tahun berikutnya.';renderKroChecks();renderKroMap();
- $('teamAdminCount').textContent=nf(demoTeams.length);$('teamAdminMemberCount').textContent=nf(adminMemberWorking.size);$('teamAdminKroCount').textContent=nf(selectedKroCodes.size);
+ $('teamAdminCount').textContent=nf(activeTeamList().length);$('teamAdminMemberCount').textContent=nf(adminMemberWorking.size);$('teamAdminKroCount').textContent=nf(selectedKroCodes.size);
  $('teamAdminDelete').disabled=!isCentral||activities.some(a=>a.team_id===tid);
  $('teamAdminAccess').textContent=isCentral?'':'Hak kelola terbatas pada tim sendiri.';
- $('teamAdminScope').textContent=isCentral?'Tim yang sudah memiliki kegiatan tidak dapat dihapus.':'Nama dan ketua tim ditetapkan Admin/Kepala BPS; keanggotaan diatur di sini.';
+ $('teamAdminScope').textContent=isCentral?'Ubah nama, ketua, dan anggota tanpa menghapus alokasi historis.':'Nama dan ketua tim ditetapkan Admin/Kepala BPS; keanggotaan diatur di sini.';
  $('teamAdminKroNote').textContent=activeYear===2026?'Kegiatan tanpa KRO dapat ditata kembali di Input Alokasi.':'Setiap KRO yang dipilih wajib memiliki sedikitnya satu kegiatan aktif pada tahun ini.';
- $('teamAdminMeta').textContent='Tim dengan kegiatan atau penetapan tersimpan tidak dapat dihapus. Edit nama dan anggota pada Rincian Tim di samping.';
+ $('teamAdminMeta').textContent='Nonaktifkan tim dengan riwayat agar tidak muncul untuk penugasan baru; kegiatan dan alokasi sebelumnya tetap tersimpan.';
  renderEmployeeMaster();
  renderKroAudit();renderYearSetup();renderEstablishedTeams();renderTeamDirectory();
 }
@@ -290,23 +290,33 @@ function saveTeamAdmin(){
  persist();rebuild();syncAllTeamSelectors();if(currentRole==='ketua')selectedTeam=roleTeamId;if($('teamSelect'))$('teamSelect').value=selectedTeam;
  renderKroOptions(teamKroCodes(selectedTeam)[0]||NO_KRO);renderGroups();renderYearUI();renderTeamAdminPage();renderTeamRosterHint();if(selectedId)renderStaff();toast('Tim diperbarui. Pilihan pegawai pada Input Alokasi otomatis mengikuti anggota aktif tim ini.');
 }
-async function renameTeamFromDirectory(tid){
+function renameTeamFromDirectory(tid){
  if(!(currentRole==='admin'||currentRole==='kepala')||yearInfo().status==='closed')return toast('Pengubahan nama tim tidak tersedia pada periode ini.');
- const team=demoTeams.find(t=>String(t.id)===String(tid));if(!team)return;
- const response=await uiPrompt('Ubah nama tim kerja:',team.name,'Edit Nama Tim');
- if(response===null||response===undefined)return;
- const name=String(response).trim();
- if(!name)return toast('Nama tim wajib diisi.');
+ const team=demoTeams.find(t=>String(t.id)===String(tid));
+ if(!team)return;
+ editingTeamNameId=String(tid);
+ renderTeamDirectory();
+ const input=$('teamRenameInput');
+ if(input){input.focus({preventScroll:true});input.select();}
+}
+function commitTeamDirectoryRename(tid){
+ if(!(currentRole==='admin'||currentRole==='kepala')||yearInfo().status==='closed')return toast('Pengubahan nama tim tidak tersedia.');
+ const team=demoTeams.find(t=>String(t.id)===String(tid)),input=$('teamRenameInput');
+ if(!team||!input||String(input.dataset.teamRenameValue)!==String(tid))return;
+ const name=input.value.trim();
+ if(!name){input.focus();return toast('Nama tim wajib diisi.');}
  if(demoTeams.some(t=>String(t.id)!==String(tid)&&t.name.toLocaleLowerCase('id')===name.toLocaleLowerCase('id')))return toast('Nama tim sudah digunakan.');
- if(name===team.name)return;
- const previous=team.name;
- team.name=name;
- for(const a of BASE.activities.filter(a=>String(a.team_id)===String(tid)))state.activityEdits[a.id]={...(state.activityEdits[a.id]||{}),team:name};
- for(const a of state.added.filter(a=>String(a.team_id)===String(tid)))a.team=name;
- saveTeamStore();persist();rebuild();syncAllTeamSelectors();
- $('teamAdminSelect').value=tid;
- logChange('Ubah nama tim',previous+' → '+name);
- renderTeamAdminPage();renderYearUI();toast('Nama tim telah diperbarui. Kegiatan dan alokasi tetap terkait pada ID tim yang sama.');
+ if(name!==team.name){
+  const previous=team.name;
+  team.name=name;
+  for(const a of BASE.activities.filter(a=>String(a.team_id)===String(tid)))state.activityEdits[a.id]={...(state.activityEdits[a.id]||{}),team:name};
+  for(const a of state.added.filter(a=>String(a.team_id)===String(tid)))a.team=name;
+  saveTeamStore();persist();rebuild();syncAllTeamSelectors();
+  logChange('Ubah nama tim',previous+' → '+name);
+ }
+ editingTeamNameId=null;
+ renderTeamAdminPage();renderYearUI();
+ toast('Nama tim tersimpan. Kegiatan dan alokasi tetap terkait pada ID tim yang sama.');
 }
 async function createTeamAdmin(){
  if(!(currentRole==='admin'||currentRole==='kepala')||yearInfo().status==='closed')return toast('Tambah tim hanya dapat dilakukan Admin/Kepala pada tahun yang terbuka.');
@@ -327,17 +337,42 @@ async function deleteTeamAdmin(requestedId=null){
  if(!(currentRole==='admin'||currentRole==='kepala'))return;
  const id=typeof requestedId==='string'?requestedId:$('teamAdminSelect').value;
  const team=demoTeams.find(t=>String(t.id)===String(id));if(!team)return;
+ if(yearInfo().status==='closed')return toast('Tahun tertutup. Buka draf tahun untuk mengelola tim.');
+ const inactive=team.active===false;
+ if(inactive){
+  if(!await uiConfirm('Aktifkan kembali tim '+team.name+' untuk tahun '+activeYear+'?','Aktifkan Tim Kerja'))return;
+  team.active=true;
+  saveTeamStore();persist();syncAllTeamSelectors();
+  $('teamAdminStatus').value='active';$('teamAdminSearch').value='';
+  $('teamAdminSelect').value=id;
+  logChange('Aktifkan kembali tim',team.name+' · '+activeYear);
+  renderTeamAdminPage();renderYearUI();toast('Tim kembali aktif dan dapat dipilih untuk kegiatan baru.');
+  return;
+ }
+ if(activeTeamList().length<=1)return toast('Minimal satu tim aktif harus tetap tersedia.');
  const reason=teamDeletionReason(id);
+ if(reason==='Memiliki riwayat kegiatan'||reason==='Susunan Tim atau KRO sudah ditetapkan'){
+  if(!await uiConfirm('Nonaktifkan tim '+team.name+' dari daftar kerja '+activeYear+'? Data anggota, kegiatan, KRO, dan alokasi sebelumnya tidak akan dihapus. Tim bisa diaktifkan kembali lewat filter Nonaktif.','Nonaktifkan Tim Kerja',true))return;
+  if(team.active===false||activeTeamList().length<=1)return;
+  team.active=false;
+  saveTeamStore();persist();syncAllTeamSelectors();
+  const fallback=activeTeamList()[0]?.id||'';
+  if(String(selectedTeam)===String(id)){selectedTeam=fallback;selectedGroup='';selectedId=null;}
+  $('teamAdminSelect').value=fallback;
+  logChange('Nonaktifkan tim kerja',team.name+' · '+activeYear);
+  renderTeamAdminPage();renderYearUI();toast('Tim dinonaktifkan. Riwayat alokasi tetap tersedia.');
+  return;
+ }
  if(reason)return toast('Tim '+team.name+' tidak dapat dihapus: '+reason+'.');
- if(!await uiConfirm('Hapus tim '+team.name+' dari daftar tahun '+activeYear+'? Tim tanpa kegiatan atau penetapan saja yang dapat dihapus.','Hapus Tim Kerja',true))return;
- if(teamDeletionReason(id))return toast('Tim sudah memiliki ketergantungan dan tidak dapat dihapus.');
- const fallback=demoTeams.find(t=>String(t.id)!==String(id))?.id||'';
+ if(!await uiConfirm('Hapus tim kosong '+team.name+' dari daftar tahun '+activeYear+'?','Hapus Tim Tanpa Riwayat',true))return;
+ if(teamDeletionReason(id))return toast('Tim sudah memiliki ketergantungan; penghapusan dibatalkan.');
+ const fallback=activeTeamList().find(t=>String(t.id)!==String(id))?.id||'';
  demoTeams=demoTeams.filter(t=>String(t.id)!==String(id));delete demoRoster[id];
  saveTeamStore();try{localStorage.setItem(ROSTER_KEY,JSON.stringify(demoRoster))}catch(e){}
  syncAllTeamSelectors();$('teamAdminSelect').value=fallback;
  if(String(selectedTeam)===String(id)){selectedTeam=fallback;selectedGroup='';selectedId=null;}
  logChange('Hapus tim kerja',team.name+' · '+activeYear);persist();
- renderTeamAdminPage();renderYearUI();toast('Tim tanpa riwayat telah dihapus dari daftar '+activeYear+'.');
+ renderTeamAdminPage();renderYearUI();toast('Tim kosong telah dihapus dari daftar '+activeYear+'.');
 }
 function roleActor(){return ({admin:'Admin',kepala:'Kepala BPS',ketua:'Ketua Tim',pegawai:'Pegawai · View'})[currentRole]+(currentRole==='ketua'?' · '+(teamMap.get(roleTeamId)?.name||''):'')}
 function canEdit(teamId){return currentRole==='admin'||currentRole==='kepala'||(currentRole==='ketua'&&teamId===roleTeamId)}
@@ -421,6 +456,7 @@ function setupRoster(){
  $('btnRoster').onclick=()=>{if(!(currentRole==='admin'||currentRole==='kepala'))return;setPage('teams');};
  $('teamAdminSelect').onchange=renderTeamAdminPage;
  $('teamAdminSearch').oninput=renderTeamDirectory;
+ $('teamAdminStatus').onchange=renderTeamDirectory;
  $('teamAdminMemberSearch').oninput=drawWorkingMembers;
  $('teamAdminKroQuery').oninput=renderKroChecks;
  $('applyKroRecommendations').onclick=()=>{const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
