@@ -2561,3 +2561,142 @@
  cursor:not-allowed;
  box-shadow:none;
 }
+
+/* Ringkasan penetapan: dua angka status kini tombol filter interaktif.
+   Daftar di bawah hanya menampilkan satu status, tanpa menduplikasi tim. */
+#pageTeams #establishedTeamSummary .team-status-count{
+ display:flex;
+ flex-wrap:wrap;
+ align-items:center;
+ gap:9px;
+ margin:12px 0 15px;
+}
+#pageTeams #establishedTeamSummary .team-status-count .team-status-filter{
+ box-sizing:border-box;
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ gap:6px;
+ min-height:39px;
+ padding:9px 13px;
+ margin:0;
+ border:1px solid #d1e3f3;
+ border-radius:11px;
+ background:#eaf3fb;
+ color:#265d88;
+ font:850 12px/1.35 Nunito,Arial,sans-serif;
+ cursor:pointer;
+ transition:background .16s,border-color .16s,box-shadow .16s,transform .16s;
+}
+#pageTeams #establishedTeamSummary .team-status-count .team-status-filter:hover{
+ background:#deeffe;
+ border-color:#96c5e9;
+}
+#pageTeams #establishedTeamSummary .team-status-count .team-status-filter.is-active{
+ background:#dceeff;
+ color:#105b99;
+ border-color:#7cb5e6;
+ box-shadow:0 0 0 2px rgba(41,128,204,.12);
+ font-weight:950;
+}
+#pageTeams #establishedTeamSummary .team-status-count .team-status-filter[data-team-summary-filter="pending"].is-active{
+ background:#fff2d9;
+ color:#8e611b;
+ border-color:#edcb83;
+ box-shadow:0 0 0 2px rgba(192,137,36,.10);
+}
+#pageTeams #establishedTeamSummary .team-status-count .team-status-filter:focus-visible{
+ outline:3px solid #70b7ef;
+ outline-offset:2px;
+}
+#pageTeams #establishedTeamSummary .team-summary-view[hidden]{
+ display:none!important;
+}
+#pageTeams #establishedTeamSummary .team-summary-view{
+ min-width:0;
+ animation:team-summary-filter-in .15s ease both;
+}
+#pageTeams #establishedTeamSummary .team-summary-ready{
+ max-height:min(54dvh,460px);
+ overflow-y:auto;
+ overflow-x:hidden;
+ padding:2px 6px 3px 1px;
+ align-items:start;
+ scrollbar-width:thin;
+ scrollbar-color:#aecce3 #f4f8fc;
+}
+#pageTeams #establishedTeamSummary .team-summary-pending-list{
+ display:flex;
+ flex-direction:column;
+ gap:7px;
+ max-height:min(54dvh,460px);
+ overflow-y:auto;
+ overflow-x:hidden;
+ padding:2px 6px 3px 1px;
+ scrollbar-width:thin;
+ scrollbar-color:#aecce3 #f4f8fc;
+}
+#pageTeams #establishedTeamSummary .team-summary-pending-row{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:12px;
+ min-width:0;
+ padding:12px 13px;
+ border:1px solid #e4d8bf;
+ border-radius:11px;
+ background:#fffdf9;
+}
+#pageTeams #establishedTeamSummary .team-summary-pending-row>div{
+ display:flex;
+ flex-direction:column;
+ gap:5px;
+ min-width:0;
+}
+#pageTeams #establishedTeamSummary .team-summary-pending-row strong{
+ color:#6d541f;
+ font-size:12px;
+ line-height:1.4;
+ overflow-wrap:anywhere;
+}
+#pageTeams #establishedTeamSummary .team-summary-pending-row small{
+ color:#917548;
+ font-size:11px;
+ line-height:1.45;
+ overflow-wrap:anywhere;
+}
+#pageTeams #establishedTeamSummary .team-summary-pending-row .btn{
+ flex:0 0 auto;
+}
+#pageTeams #establishedTeamSummary .team-summary-complete{
+ padding:13px 15px;
+ border:1px solid #bce1ce;
+ border-radius:11px;
+ background:#ebf8f0;
+ color:#1f714c;
+ font-weight:800;
+}
+@keyframes team-summary-filter-in{
+ from{opacity:.6;transform:translateY(3px)}
+ to{opacity:1;transform:translateY(0)}
+}
+@media(max-width:620px){
+ #pageTeams #establishedTeamSummary .team-status-count{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+ #pageTeams #establishedTeamSummary .team-status-count .team-status-filter{
+  min-width:0;
+  padding:9px 7px;
+  white-space:normal;
+  text-align:center;
+  font-size:11px;
+ }
+ #pageTeams #establishedTeamSummary .team-summary-pending-row{
+  align-items:flex-start;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #pageTeams #establishedTeamSummary .team-summary-view{animation:none}
+ #pageTeams #establishedTeamSummary .team-status-count .team-status-filter{transition:none}
+}
