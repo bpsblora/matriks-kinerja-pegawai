@@ -493,7 +493,7 @@ function updateTrendPickerLabels(){
  $('trendTeamCount').textContent=trendOwnerTeams===null?'Seluruh '+BASE.teams.length+' Tim':teamCount+' Tim Dipilih';
  $('trendActivityCount').textContent=trendActivityKeys===null?'Seluruh '+activityRows.length+' Kegiatan':activityCount+' Kegiatan Dipilih';
  $('trendActivityFilter').disabled=teamCount===0||activityRows.length===0;
- if(teamCount===0||activityRows.length===0)closeTrendPickers();
+ if((teamCount===0||activityRows.length===0)&&trendPickerOpen==='activity')closeTrendPickers();
 }
 function closeTrendPickers(){
  trendPickerOpen='';
@@ -638,12 +638,12 @@ function renderTrend(){
  });
  const compareEmployees=scope==='allEmployees';
  renderTrendActivityFilters(scope);
- const teamFilter=scope==='office'?'':trendOwnerTeam,activityFilter=scope==='office'?'':trendActivityKey;
+ const teamFilter=scope==='office'?null:trendOwnerTeams,activityFilter=scope==='office'?null:trendActivityKeys;
  const perMonth=months.map((_,i)=>trendWorkloadMonth(i+1,teamFilter,activityFilter));
  let candidates=[];
  if(scope==='office'){candidates=[{id:'office',label:'Total Kantor',vals:perMonth.map(d=>BASE.employees.filter(e=>e.type==='pegawai').reduce((s,e)=>s+(d.totals.get(e.id)||0),0))}];}
  else if(scope==='allEmployees'){candidates=BASE.employees.filter(e=>e.type==='pegawai').map(e=>({id:e.id,label:e.full_name,vals:perMonth.map(d=>d.totals.get(e.id)||0)}));}
- else if(scope==='allTeams'){candidates=BASE.teams.filter(t=>!teamFilter||String(t.id)===teamFilter).map(t=>({id:t.id,label:t.name,vals:perMonth.map(d=>d.teamTotals.get(String(t.id))||0)}));}
+ else if(scope==='allTeams'){candidates=BASE.teams.filter(t=>!(teamFilter instanceof Set)||teamFilter.has(String(t.id))).map(t=>({id:t.id,label:t.name,vals:perMonth.map(d=>d.teamTotals.get(String(t.id))||0)}));}
  // Annual team totals belong in the ranking card when comparing the whole office.
  const oldAnnualPanel=$('officeTeamBreakdown');
  if(oldAnnualPanel)oldAnnualPanel.remove();
@@ -779,8 +779,7 @@ function setupV5(){setupRoles();setupTimeline();fillSelect($('stdGroup'),[{value
   
  if($('stdAdd'))$('stdAdd').onclick=()=>openStandardModal();$('stdGroup').onchange=renderStandards;$('stdStatus').onchange=renderStandards;$('stdQuery').oninput=renderStandards;
  $('gotoStandards').onclick=()=>setPage('standards');fillSelect($('trendYear'),[{value:String(activeYear),label:String(activeYear)}],String(activeYear));$('trendScope').value='office';$('trendScope').onchange=renderTrend;
- $('trendOwnerTeam').onchange=()=>{trendOwnerTeam=$('trendOwnerTeam').value;trendActivityKey='';trendSeriesSelection.allTeams=null;trendSeriesSelection.allEmployees=null;renderTrend()};
- $('trendActivityFilter').onchange=()=>{trendActivityKey=$('trendActivityFilter').value;trendSeriesSelection.allTeams=null;trendSeriesSelection.allEmployees=null;renderTrend()};
+ initTrendPickers();
  document.querySelectorAll('[data-trend-scope]').forEach(button=>button.onclick=()=>{
   $('trendScope').value=button.dataset.trendScope;
   renderTrend();
