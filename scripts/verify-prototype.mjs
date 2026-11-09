@@ -280,15 +280,15 @@ const multiFixture={
   baseActivity:new Map(),groupName:a=>a.group
 };
 const trendFunctions=inline.slice(fullTrendStart,fullTrendEnd);
-const multiTeam=vm.runInNewContext(trendFunctions+";trendWorkloadMonth(1,new Set(['T1','T2']),new Set([JSON.stringify(['T1','SHKK']),JSON.stringify(['T2','SHKK'])]))",multiFixture);
+const multiTeam=vm.runInNewContext(trendFunctions+";trendWorkloadMonth(1,new Set(['T1','T2']),new Set([JSON.stringify(['T1','SHKK']),JSON.stringify(['T2','SHKK'])]))",{...multiFixture});
 assert.equal(multiTeam.totals.get("E1"),8,"Multi-Tim gagal membaca pegawai pertama");
 assert.equal(multiTeam.totals.get("E2"),19,"Pegawai lintas tim atau kelompok senama tidak terhitung");
 assert.equal(multiTeam.teamTotals.get("T1"),20,"Beban Tim pemilik pertama tidak sesuai");
 assert.equal(multiTeam.teamTotals.get("T2"),7,"Beban Tim pemilik kedua tidak sesuai");
-const onlySecond=vm.runInNewContext(trendFunctions+";trendWorkloadMonth(1,new Set(['T1','T2']),new Set([JSON.stringify(['T2','SHKK'])]))",multiFixture);
+const onlySecond=vm.runInNewContext(trendFunctions+";trendWorkloadMonth(1,new Set(['T1','T2']),new Set([JSON.stringify(['T2','SHKK'])]))",{...multiFixture});
 assert.equal(onlySecond.totals.get("E1")||0,0,"Kegiatan senama dari Tim lain tidak boleh terikut");
 assert.equal(onlySecond.totals.get("E2"),7,"Kegiatan pada Tim kedua harus tetap ada");
-const noTeams=vm.runInNewContext(trendFunctions+";trendWorkloadMonth(1,new Set(),null)",multiFixture);
+const noTeams=vm.runInNewContext(trendFunctions+";trendWorkloadMonth(1,new Set(),null)",{...multiFixture});
 assert.equal(noTeams.totals.size,0,"Kosongkan Tim harus menghasilkan grafik tanpa data");
 
 
