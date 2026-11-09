@@ -785,9 +785,11 @@ function renderYearSetup(){
  $('annualTeamGridSlot').classList.toggle('is-complete',teamComplete);
  $('annualTeamSummary').classList.toggle('hidden',!teamComplete&&!teamEditing);
  const ro=yearRosterRecord(tid);
- $('annualTeamSummary').textContent=teamComplete?'✓ Ditetapkan · '+(ro.members||[]).length+' Anggota':teamEditing?'Sedang Mengubah Susunan Tim':'';
+ // Summary of the selected team is displayed alongside the selected-team heading.
  $('annualTeamSummary').classList.toggle('is-editing',teamEditing);
  teamStage.classList.toggle('is-confirmed',progress.total>0&&progress.pending.length===0);
+ $('teamAdminGrid')?.querySelector('.team-roster-heading')?.classList.toggle('is-confirmed',teamComplete);
+ $('teamAdminGrid')?.querySelector('.team-roster-heading')?.classList.toggle('is-editing',teamEditing);
  $('annualTeamStatusNote').textContent=!allReady?'Tetapkan Daftar Pegawai terlebih dahulu.':progress.ready+' dari '+progress.total+' Tim Aktif sudah ditetapkan. Pilih tim di bawah untuk memeriksa atau mengubah susunannya.';
  $('teamAdminSelectedName')?.setAttribute('aria-label','Tim terpilih: '+(demoTeams.find(t=>t.id===tid)?.name||'Tim'));
  $('annualTeamSummary').textContent=teamComplete?'✓ Ditetapkan · '+(ro.members||[]).length+' Anggota':teamEditing?'Sedang Mengubah':'Belum Ditetapkan';
