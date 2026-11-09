@@ -388,7 +388,7 @@ assert(modalCode.includes('person-work-dialog-scroll'),"Daftar panjang tetap dig
 assert(html.includes('id="staffOnlyTeam"')&&!html.includes('id="staffOnlyTeam" checked hidden'),"Filter keanggotaan tim masih mengunci pegawai");
 assert(html.includes('Anggota Tim Saja'),"Filter opsional anggota tim belum tersedia");
 const eligibleStart=inline.indexOf("function allocationEligibleEmployees(){");
-const eligibleEnd=inline.indexOf("function renderEmployeeMaster(){",eligibleStart);
+const eligibleEnd=inline.indexOf("let editingEmployeeId=null;",eligibleStart);
 assert(eligibleStart>=0&&eligibleEnd>eligibleStart,"Pemilihan pegawai aktif lintas tim belum tersedia");
 const activeEmployees=vm.runInNewContext(inline.slice(eligibleStart,eligibleEnd)+";allocationEligibleEmployees().map(e=>e.id).join(',')",{
  BASE:{employees:[
@@ -845,8 +845,18 @@ assert(staffCardMarkup.includes('annual-staff-unified')&&staffCardMarkup.include
  "Status dan tombol Daftar Pegawai wajib berada di satu kartu yang bisa dibuka");
 assert(html.includes('id="annualStaffComplete" class="annual-step-complete hidden" hidden aria-hidden="true"'),
  "Ringkasan hijau Daftar Pegawai lama tidak boleh tampil kedua kalinya");
-assert(html.includes('class="panel employee-master-panel" hidden aria-hidden="true"'),
- "Daftar Pegawai ganda di bawah Kelola Tim harus disembunyikan tanpa memutus editor pegawai");
+assert(!html.includes('class="panel employee-master-panel"'),
+ "Panel Daftar Pegawai duplikat harus dihapus sepenuhnya, bukan sekadar disembunyikan");
+assert(!html.includes('id="employeeMasterList"')&&!html.includes('id="empSearch"')&&!html.includes('id="empStatus"')&&!html.includes('id="empType"')&&!html.includes('id="empAdd"'),
+ "Kontrol Daftar Pegawai lama masih tertinggal dan menimbulkan duplikasi");
+assert(!inline.includes('function renderEmployeeMaster()')&&!inline.includes("renderEmployeeMaster();"),
+ "Renderer Daftar Pegawai duplikat masih dipanggil di JavaScript");
+assert(!inline.includes("$('empSearch')")&&!inline.includes("$('empAdd')"),
+ "Handler Daftar Pegawai lama masih mengakses elemen yang telah dihapus");
+assert(inline.includes("$('annualAddStaff').addEventListener('click'")&&
+ inline.includes("host.querySelectorAll('[data-annual-edit]')")&&
+ inline.includes("openEmployeeEditor(el.dataset.annualEdit)"),
+ "Tambah dan Edit Pegawai di pop-up Daftar Pegawai tahunan harus tetap berfungsi");
 assert(html.includes('id="employeeScreen"')&&html.includes('id="annualStaffList"'),
  "Editor dan pemilihan pegawai tahunan tetap harus tersedia");
 const teamStageMarkup=html.slice(teamStageStart,teamStageEnd);
