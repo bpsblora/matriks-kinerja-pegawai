@@ -540,10 +540,29 @@ assert(dashboardRender.split("<article><small>").length===5,"Dashboard harus tet
 
 // Audit lanjutan 9 November: kartu monitoring tidak boleh menyisakan
 // tinggi paksa, laporan cetak harus menggunakan tahun dan periode aktual.
-assert(cssPolish.includes("height:auto!important; /* natural panel height */"),
-  "Kartu grafik dan detail masih dibatasi tinggi tetap");
-assert(cssPolish.includes("max-height:min(54dvh,440px)!important"),
-  "Daftar perbandingan pegawai harus bergulir dengan tinggi terbatas");
+// Companion cards must use grid stretch, not independently sized content
+// and not a fixed height that creates a giant blank detail panel.
+const pairStart=cssPolish.indexOf("/* Desktop: two companion cards share the SAME grid-row height.");
+const pairEnd=cssPolish.indexOf("#pageDashboard .person-panel .person-metrics{",pairStart);
+assert(pairStart>=0&&pairEnd>pairStart,"Aturan tinggi seimbang kartu tidak ditemukan");
+const pairCss=cssPolish.slice(pairStart,pairEnd);
+for(const rule of [
+  "align-items:stretch!important;",
+  "align-self:stretch!important;",
+  "height:auto!important;",
+  "grid-auto-rows:auto!important;",
+  "max-height:none!important;",
+  "max-height:min(54dvh,440px)!important;",
+  "margin-top:auto!important;",
+  "overflow-y:auto!important;"
+]) assert(pairCss.includes(rule),"Dua kartu monitoring belum setara: "+rule);
+assert(!pairCss.includes("height:clamp("),"Tinggi tetap kartu dapat menghasilkan ruang kosong berlebihan");
+assert(!pairCss.includes("align-items:start!important"),"Kartu berdampingan masih disejajarkan ke atas saja");
+assert(!cssPolish.includes("height:clamp(470px,54dvh,560px)"),
+  "Aturan tinggi 560px lama masih bertentangan");
+assert(cssPolish.includes("#pageDashboard .person-panel .person-work-trigger"),
+  "Tombol rincian pegawai harus tetap tersedia");
+
 assert(html.includes('id="barMetricTitle">Jam Kerja</span>'),
   "Label indikator grafik belum konsisten Kapital Awal Kata");
 const personStart=inline.indexOf("function renderPerson(");
