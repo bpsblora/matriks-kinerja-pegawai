@@ -177,10 +177,11 @@ function establishedTeamSnapshot(){
  const list=demoTeams.filter(t=>t.active!==false).map(t=>{
   const ro=demoRoster[t.id]||{members:[]};
   const ids=(ro.members||[]).filter(id=>BASE.employees.some(e=>e.id===id));
-  const complete=!!(ro.leaderId&&ids.length)&&(isBaseYear?
-   !!(yearSetup.teams[t.id]&&yearSetup.teams[t.id].leaderId===ro.leaderId&&equalIds(yearSetup.teams[t.id].members,ro.members)):
-   yearTeamReady(t.id));
-  return {t,ro,ids,complete,reason:complete?'':teamEstablishmentIssue(t.id)};
+  // Use the exact same validation as the Susunan Tim green header and
+  // Finalisasi; avoid 25/25 here while annual approval says 4/25.
+  const reason=teamEstablishmentIssue(t.id);
+  const complete=reason==='';
+  return {t,ro,ids,complete,reason};
  });
  return {list,ready:list.filter(x=>x.complete),missing:list.filter(x=>!x.complete),employeeName};
 }
