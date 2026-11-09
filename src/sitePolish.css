@@ -3477,3 +3477,401 @@
   font-size:14px;
  }
 }
+
+/* Pemilihan Tim 2026+: tampil ringkas di halaman dan daftar yang luas di dialog.
+   Daftar tim berisi tombol pilihan besar, sementara Edit/Nonaktifkan berdiri
+   sendiri dan tetap menghormati izin serta histori alokasi. */
+#pageTeams #annualTeamGridSlot .team-admin-grid{
+ grid-template-columns:minmax(235px,.6fr) minmax(0,1.4fr)!important;
+ gap:14px!important;
+}
+#pageTeams .team-picker-compact{
+ display:flex!important;
+ flex-direction:column!important;
+ align-items:stretch!important;
+ gap:13px!important;
+ height:max-content;
+ min-width:0;
+}
+#pageTeams .team-picker-compact>.section-top{
+ margin:0!important;
+}
+#pageTeams .team-picker-compact>.section-top h3{
+ font-size:15px!important;
+}
+#pageTeams .team-picker-compact>.section-top p{
+ font-size:11px;
+ line-height:1.45;
+ margin:4px 0 0;
+}
+#pageTeams .team-picker-current{
+ box-sizing:border-box;
+ display:flex;
+ flex-direction:column;
+ gap:7px;
+ padding:14px;
+ min-width:0;
+ border:1px solid #c4dcf1;
+ border-radius:12px;
+ background:linear-gradient(125deg,#f1f8ff,#fff);
+}
+#pageTeams .team-picker-current>small{
+ display:block;
+ color:#6484a0;
+ font-size:10.5px;
+ font-weight:900;
+}
+#pageTeams .team-picker-current>strong{
+ display:block;
+ color:#155b95;
+ font-size:clamp(15px,1.4vw,19px);
+ font-weight:950;
+ line-height:1.35;
+ overflow-wrap:anywhere;
+}
+#pageTeams .team-picker-current>span{
+ color:#6084a1;
+ font-size:11px;
+ line-height:1.5;
+ font-weight:750;
+}
+#pageTeams .team-picker-compact>.team-picker-open{
+ box-sizing:border-box;
+ display:flex!important;
+ justify-content:space-between;
+ align-items:center;
+ gap:14px;
+ width:100%;
+ min-height:67px;
+ padding:13px 17px!important;
+ border-radius:13px;
+ text-align:left;
+ background:linear-gradient(115deg,#1177bd,#0b5c9c)!important;
+ border-color:#1269ac!important;
+ box-shadow:0 6px 16px rgba(14,92,157,.14);
+ cursor:pointer;
+}
+#pageTeams .team-picker-open>span:first-child{
+ display:flex;
+ flex-direction:column;
+ gap:4px;
+ min-width:0;
+}
+#pageTeams .team-picker-open strong{
+ display:block;
+ color:#fff;
+ font-size:14px;
+ font-weight:900;
+ line-height:1.35;
+}
+#pageTeams .team-picker-open small{
+ display:block;
+ color:#d9efff;
+ font-size:10.5px;
+ font-weight:700;
+}
+#pageTeams .team-picker-open>span:last-child{
+ display:grid;
+ place-items:center;
+ flex:0 0 33px;
+ width:33px;
+ height:33px;
+ border:1px solid rgba(255,255,255,.33);
+ border-radius:10px;
+ background:rgba(255,255,255,.13);
+ color:#fff;
+ font-size:26px;
+}
+#pageTeams .team-picker-open:focus-visible{
+ outline:3px solid #8ccefb;
+ outline-offset:2px;
+}
+#pageTeams .team-picker-compact>.team-admin-kpis{
+ margin:0!important;
+ gap:9px;
+}
+#pageTeams .team-picker-compact>.team-admin-kpis>.quickbox{
+ min-width:0;
+ padding:11px 12px;
+}
+#pageTeams .team-picker-compact>.team-picker-note{
+ margin:0;
+ font-size:10.5px;
+ line-height:1.45;
+ color:#71859a;
+}
+#pageTeams .team-picker-dialog{
+ position:fixed;
+ inset:0;
+ display:none;
+ box-sizing:border-box;
+ width:min(1000px,calc(100vw - 28px));
+ height:min(83dvh,790px);
+ max-height:90dvh;
+ max-width:none;
+ padding:0;
+ margin:auto;
+ border:1px solid #c7ddeb;
+ border-radius:19px;
+ background:#fff;
+ color:#1a527c;
+ box-shadow:0 28px 90px rgba(12,43,74,.32);
+ overflow:hidden;
+}
+#pageTeams .team-picker-dialog[open]{
+ display:block!important;
+}
+#pageTeams .team-picker-dialog::backdrop{
+ background:rgba(11,38,68,.50);
+ backdrop-filter:blur(2px);
+}
+#pageTeams .team-picker-dialog-shell{
+ display:flex;
+ flex-direction:column;
+ box-sizing:border-box;
+ width:100%;
+ height:100%;
+ min-height:0;
+}
+#pageTeams .team-picker-dialog-head{
+ display:flex;
+ justify-content:space-between;
+ align-items:flex-start;
+ gap:16px;
+ flex:0 0 auto;
+ padding:18px 21px 16px;
+ border-bottom:1px solid #deebf5;
+ background:linear-gradient(120deg,#f3f9ff,#fff);
+}
+#pageTeams .team-picker-dialog-head>div{
+ min-width:0;
+}
+#pageTeams .team-picker-eyebrow{
+ display:block;
+ margin:0 0 5px;
+ color:#367da9;
+ font-size:10px;
+ font-weight:900;
+ letter-spacing:.06em;
+}
+#pageTeams .team-picker-dialog-head h3{
+ margin:0;
+ color:#124e7b;
+ font-size:21px;
+ line-height:1.32;
+ font-weight:950;
+}
+#pageTeams .team-picker-dialog-head p{
+ margin:6px 0 0;
+ color:#6286a1;
+ font-size:11.5px;
+ line-height:1.45;
+}
+#pageTeams .team-picker-close{
+ display:grid;
+ place-items:center;
+ flex:0 0 35px;
+ width:35px;
+ height:35px;
+ padding:0;
+ border:1px solid #c5dcee;
+ border-radius:10px;
+ background:#fff;
+ color:#246493;
+ font-size:24px;
+ line-height:1;
+ cursor:pointer;
+}
+#pageTeams .team-picker-dialog-tools{
+ display:grid;
+ grid-template-columns:minmax(0,1fr) 175px 155px;
+ gap:13px;
+ align-items:end;
+ flex:0 0 auto;
+ padding:13px 21px 10px;
+ background:#fff;
+}
+#pageTeams .team-picker-dialog .team-directory-toolbar{
+ display:flex;
+ flex-direction:column;
+ gap:5px;
+ min-width:0;
+}
+#pageTeams .team-picker-dialog .team-directory-toolbar label,
+#pageTeams .team-picker-dialog .team-directory-status label{
+ font-size:11px;
+ color:#30688f;
+ font-weight:900;
+}
+#pageTeams .team-picker-dialog .team-directory-toolbar input{
+ width:100%;
+ min-height:41px;
+}
+#pageTeams .team-picker-dialog .team-directory-status{
+ display:flex;
+ flex-direction:column;
+ align-items:stretch;
+ justify-content:flex-end;
+ gap:5px;
+ padding:0;
+ border:0;
+ margin:0;
+}
+#pageTeams .team-picker-dialog .team-directory-status select{
+ width:100%;
+ min-height:41px;
+ border-radius:10px;
+ background:#fff;
+}
+#pageTeams .team-picker-dialog .team-directory-add{
+ width:100%;
+ min-height:41px;
+ margin:0;
+ padding:9px!important;
+ border-radius:10px;
+ font-size:11px;
+}
+#pageTeams .team-picker-dialog #teamAdminDirectoryCount{
+ padding:4px 21px 10px;
+ font-size:11px;
+ font-weight:850;
+ flex:0 0 auto;
+}
+#pageTeams .team-picker-dialog #teamAdminDirectory.team-directory-list{
+ box-sizing:border-box;
+ display:grid!important;
+ grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ grid-auto-rows:minmax(73px,auto);
+ align-content:start;
+ align-items:start;
+ column-gap:10px!important;
+ row-gap:9px!important;
+ flex:1 1 auto;
+ min-height:0;
+ max-height:none!important;
+ height:auto!important;
+ overflow-y:auto;
+ overflow-x:hidden;
+ padding:0 21px 18px;
+ scrollbar-width:thin;
+ scrollbar-color:#a2c5e2 #f1f7fc;
+ scrollbar-gutter:stable;
+}
+#pageTeams .team-picker-dialog .team-directory-row{
+ display:flex;
+ min-height:72px;
+ align-items:center;
+ gap:8px;
+ padding:9px 10px;
+ border-radius:12px;
+}
+#pageTeams .team-picker-dialog .team-directory-pick{
+ min-height:50px;
+ padding:5px;
+ gap:9px;
+}
+#pageTeams .team-picker-dialog .team-directory-symbol{
+ flex:0 0 23px;
+ width:23px;
+ height:23px;
+}
+#pageTeams .team-picker-dialog .team-directory-copy strong{
+ font-size:12.5px;
+}
+#pageTeams .team-picker-dialog .team-directory-actions{
+ flex:0 0 auto;
+ gap:5px;
+}
+#pageTeams .team-picker-dialog .team-directory-action{
+ min-height:33px;
+ padding:7px 9px;
+ font-size:10.5px;
+}
+#pageTeams .team-picker-dialog .team-directory-inline-edit{
+ width:100%;
+ padding:4px;
+}
+#pageTeams .team-picker-dialog .team-directory-empty{
+ grid-column:1/-1;
+}
+#pageTeams .team-picker-dialog-foot{
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ gap:15px;
+ flex:0 0 auto;
+ padding:11px 21px;
+ border-top:1px solid #e2edf6;
+ background:#f8fbff;
+}
+#pageTeams .team-picker-dialog-foot>span{
+ color:#6384a1;
+ font-size:10.5px;
+ line-height:1.5;
+}
+#pageTeams .team-picker-dialog-foot>.btn{
+ min-height:35px;
+ font-size:11px;
+}
+#pageTeams .team-picker-dialog button:focus-visible,
+#pageTeams .team-picker-dialog input:focus-visible,
+#pageTeams .team-picker-dialog select:focus-visible{
+ outline:3px solid #85bff0;
+ outline-offset:2px;
+}
+@media(max-width:1050px){
+ #pageTeams #annualTeamGridSlot .team-admin-grid{
+  grid-template-columns:minmax(0,1fr)!important;
+ }
+ #pageTeams .team-picker-compact>.team-admin-kpis{
+  max-width:600px;
+ }
+}
+@media(max-width:720px){
+ #pageTeams .team-picker-dialog{
+  width:calc(100vw - 16px);
+  height:min(90dvh,900px);
+  max-height:92dvh;
+  border-radius:14px;
+ }
+ #pageTeams .team-picker-dialog-head{
+  padding:14px 15px 12px;
+ }
+ #pageTeams .team-picker-dialog-head h3{
+  font-size:18px;
+ }
+ #pageTeams .team-picker-dialog-tools{
+  grid-template-columns:minmax(0,1fr) 135px;
+  gap:9px;
+  padding:11px 15px 9px;
+ }
+ #pageTeams .team-picker-dialog-tools>.team-directory-toolbar{
+  grid-column:1/-1;
+ }
+ #pageTeams .team-picker-dialog #teamAdminDirectoryCount{
+  padding:4px 15px 8px;
+ }
+ #pageTeams .team-picker-dialog #teamAdminDirectory.team-directory-list{
+  grid-template-columns:1fr!important;
+  padding:0 15px 13px;
+ }
+ #pageTeams .team-picker-dialog-foot{
+  padding:10px 15px;
+ }
+}
+@media(max-width:450px){
+ #pageTeams .team-picker-dialog .team-directory-row{
+  flex-wrap:wrap;
+ }
+ #pageTeams .team-picker-dialog .team-directory-actions{
+  flex:0 0 100%;
+  justify-content:flex-end;
+  margin-left:0;
+ }
+ #pageTeams .team-picker-dialog-foot>span{
+  display:none;
+ }
+ #pageTeams .team-picker-dialog-foot>.btn{
+  width:100%;
+ }
+}
