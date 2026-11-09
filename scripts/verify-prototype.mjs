@@ -1159,4 +1159,73 @@ for(const cssRule of [
  "@media(max-width:1050px){"
 ])assert(cssPolish.includes(cssRule),"Pemisahan visual seluruh tim vs tim terpilih belum lengkap: "+cssRule);
 
+
+// Picker modal replaces the 25-row inline team list; original controls,
+// selection, role restrictions and management actions remain functional.
+const teamPanelStart=html.indexOf('class="team-admin-card team-admin-list team-picker-compact"');
+const teamPanelEnd=html.indexOf('class="section-top team-roster-heading"',teamPanelStart);
+assert(teamPanelStart>=0&&teamPanelEnd>teamPanelStart,
+ "Panel pemilih Tim dan panel Ketua/Anggota harus tetap berurutan");
+const pickerPanel=html.slice(teamPanelStart,teamPanelEnd);
+for(const token of [
+ 'id="teamPickerCurrentName"',
+ 'id="teamPickerCurrentMeta"',
+ 'id="teamPickerOpen"',
+ 'id="teamPickerDialog"',
+ 'id="teamPickerDialogTitle"',
+ 'id="teamPickerClose"',
+ 'id="teamPickerDone"',
+ 'id="teamPickerYear"',
+ 'id="teamAdminDirectory"',
+ 'id="teamAdminSearch"',
+ 'id="teamAdminStatus"',
+ 'id="teamAdminNew"',
+ 'id="teamAdminSelect"',
+ 'id="teamAdminCount"',
+ 'id="teamAdminMemberCount"'
+])assert(pickerPanel.includes(token),"Pop-up Pilih Tim kehilangan elemen: "+token);
+assert(pickerPanel.indexOf('id="teamPickerOpen"')<pickerPanel.indexOf('id="teamPickerDialog"'),
+ "Tombol pilih tim harus ada di kartu ringkas, bukan di dalam pop-up");
+assert(pickerPanel.indexOf('id="teamAdminNew"')<pickerPanel.indexOf('id="teamAdminStatus"'),
+ "Tambah Tim harus mendahului filter Aktif/Nonaktif");
+assert((html.match(/id="teamPickerDialog"/g)||[]).length===1,
+ "Pop-up Pilih Tim tidak boleh terduplikasi");
+const teamModalStart=inline.indexOf("function renderTeamPickerSummary(){");
+const teamModalEnd=inline.indexOf("function renderTeamDirectory(){",teamModalStart);
+assert(teamModalStart>=0&&teamModalEnd>teamModalStart,
+ "Fungsi pembukaan dan ringkasan Tim tidak ditemukan");
+const modalFns=inline.slice(teamModalStart,teamModalEnd);
+for(const token of [
+ "function openTeamPickerDialog(){",
+ "function closeTeamPickerDialog(){",
+ "dialog.showModal();",
+ "dialog.close();",
+ "$('teamPickerCurrentName').textContent",
+ "$('teamPickerCurrentMeta').textContent",
+ "renderTeamDirectory();",
+ "$('teamAdminSearch').focus({preventScroll:true});"
+])assert(modalFns.includes(token),"Aksi pop-up pemilih Tim belum terhubung: "+token);
+assert(inline.includes("$('teamPickerOpen').onclick=openTeamPickerDialog;")&&
+ inline.includes("$('teamPickerClose').onclick=closeTeamPickerDialog;")&&
+ inline.includes("$('teamPickerDone').onclick=closeTeamPickerDialog;"),
+ "Tombol Buka/Tutup pemilih Tim tidak tersambung");
+assert(inline.includes("closeTeamPickerDialog();\n renderTeamAdminPage();"),
+ "Memilih Tim harus menutup pop-up dan memperbarui Ketua/Anggota");
+assert(inline.includes("await deleteTeamAdmin(tid);\n  openTeamPickerDialog();"),
+ "Konfirmasi Nonaktif/Hapus harus bisa terlihat dan pop-up kembali terbuka");
+assert(inline.includes("await createTeamAdmin();\n  if(demoTeams.length===before)openTeamPickerDialog();"),
+ "Konfirmasi Tambah Tim harus tidak tertutup dialog native");
+assert(inline.includes("renderTeamDirectory();renderTeamWorkflow();renderTeamPickerSummary();"),
+ "Ringkasan tim terpilih tidak memperbarui setelah pilihan berubah");
+for(const token of [
+ "#pageTeams .team-picker-compact{",
+ "#pageTeams .team-picker-compact>.team-picker-open{",
+ "#pageTeams .team-picker-dialog{",
+ "#pageTeams .team-picker-dialog[open]{",
+ "#pageTeams .team-picker-dialog::backdrop{",
+ "#pageTeams .team-picker-dialog #teamAdminDirectory.team-directory-list{",
+ "grid-template-columns:repeat(2,minmax(0,1fr))!important;",
+ "@media(max-width:720px){"
+])assert(cssPolish.includes(token),"Desain pop-up lebar/tampilan mobile Pilih Tim belum lengkap: "+token);
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
