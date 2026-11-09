@@ -1241,7 +1241,7 @@ for(const token of [
  "is-pending",
  "is-ready",
  "completion=annualTeamCompletion()",
- "nf(completion.pending.length)+' Belum Ditetapkan'"
+ "nf(completion.pending.length)+' Belum Ditetapkan"
 ])assert(pickerStatusCode.includes(token),"Status penetapan Tim tidak konsisten: "+token);
 assert(cssPolish.includes(".team-directory-row.is-pending:not(.is-selected)"),
  "Tim belum ditetapkan harus terlihat di pemilih Tim");
