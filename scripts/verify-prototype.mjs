@@ -813,9 +813,10 @@ for(const token of [
  "$('teamAdminLeader').onchange=onTeamLeaderChanged;", 
  "drawWorkingMembers();renderYearSetup();renderTeamWorkflow()", 
  "$('teamAdminGoKro').onclick=()=>",
- "$('teamAdminGoInput').onclick=()=>",
- "if(!yearSetup.teams?.[tid]||!staffReady())",
- "if(!isBaseYear&&!allowYearTask(tid))return;"
+ "$('teamAdminGoInput').onclick=event=>",
+ "const issue=teamActivityAccessIssue(tid);",
+ "if(issue){openTeamActivityDialog(tid,'',event.currentTarget);return;}",
+ "openTeamActivityInInput(tid);"
 ])assert(inline.includes(token),"Alur penetapan tidak tersambung: "+token);
 for(const token of [
  "#pageTeams #annualTeamStage .annual-stage-select{display:none!important}",
@@ -829,11 +830,68 @@ const workflowStart=inline.indexOf("function renderTeamWorkflow(){");
 const workflowEnd=inline.indexOf("function renderTeamAdminPage(){",workflowStart);
 assert(workflowStart>=0&&workflowEnd>workflowStart,"Renderer alur Kelola Tim tidak ditemukan");
 const workflowCode=inline.slice(workflowStart,workflowEnd);
-assert(workflowCode.includes("goInput.disabled=!active||!ready||!kroReady||!canWrite;"),
- "Input Alokasi harus menunggu susunan tim dan KRO yang berlaku");
+assert(workflowCode.includes("goInput.disabled=false;")&&workflowCode.includes("goInput.classList.toggle('is-locked',!!issue);")&&
+ workflowCode.includes("goInput.textContent=issue?'Lihat Persyaratan Pengelolaan →':'Kelola Kegiatan dan Alokasi →';"),
+ "Tombol ringkasan wajib tetap dapat diklik untuk menjelaskan syarat, bukan membeku tanpa umpan balik");
 assert(workflowCode.includes("const activeTasks=activities.filter(")&&workflowCode.includes("groupName(a)"),
  "Ringkasan Kegiatan harus berasal dari kepemilikan kegiatan, bukan keanggotaan");
 
+
+// Active activity chips open a read-only dialog even before annual approval.
+// Opening Input Alokasi still checks role, staff, team, KRO and year status.
+const activityOverviewStart=inline.indexOf("let teamActivityDialogTeam=");
+const activityOverviewEnd=inline.indexOf("function renderTeamWorkflow(){",activityOverviewStart);
+assert(activityOverviewStart>=0&&activityOverviewEnd>activityOverviewStart,
+ "Rincian kegiatan interaktif tidak tersedia");
+const activityOverviewCode=inline.slice(activityOverviewStart,activityOverviewEnd);
+for(const token of [
+ "function teamActivityAccessIssue(tid){",
+ "function openTeamActivityInInput(tid,group=''){",
+ "const issue=teamActivityAccessIssue(tid);",
+ "if(issue){toast(issue);return false;}",
+ "renderKroOptions(group?resolveGroupKro(tid,group):",
+ "renderGroups(group||undefined);",
+ "return setPage('input');",
+ "function ensureTeamActivityDialog(){",
+ "dialog=document.createElement('dialog');",
+ "dialog.id='teamActivityDialog';",
+ "dialog.showModal();",
+ "teamActivityDialogReturnFocus=trigger||document.activeElement;",
+ "function renderTeamActivityDialog(){",
+ "a.status==='aktif'",
+ "function openTeamActivityDialog(tid,group='',trigger=null){",
+ "teamActivityDialogManage"
+])assert(activityOverviewCode.includes(token),"Rincian kegiatan tidak terhubung: "+token);
+for(const token of [
+ "data-team-overview-group=",
+ "data-team-overview-all",
+ "btn.onclick=()=>openTeamActivityDialog(tid,btn.dataset.teamOverviewGroup,btn)",
+ "openTeamActivityDialog(tid,'',event.currentTarget)",
+ "Kegiatan aktif milik Tim",
+ "const issue=teamActivityAccessIssue(tid);"
+])assert(workflowCode.includes(token),"Kartu kegiatan belum berfungsi: "+token);
+assert(cssPolish.includes("#pageTeams #annualTeamGridSlot .team-admin-grid > .team-admin-card{")&&
+ cssPolish.includes("max-height:none!important;")&&
+ cssPolish.includes(".team-activity-dialog::backdrop{")&&
+ cssPolish.includes("#pageTeams .team-overview-chip:hover{"),
+ "Perbaikan gulir kartu dan desain pop-up kegiatan belum lengkap");
+const gateSource=activityOverviewCode.slice(
+ activityOverviewCode.indexOf("function teamActivityAccessIssue(tid){"),
+ activityOverviewCode.indexOf("function openTeamActivityInInput(")
+);
+const gateBase={
+ demoTeams:[{id:'T1',active:true}],roleCanManageTeam:()=>true,
+ yearInfo:()=>({status:'draft'}),staffReady:()=>true,
+ teamEstablishmentIssue:()=>'',isBaseYear:false,yearKroReady:()=>true,
+ stageAccess:()=>true,stageBlockReason:()=>'',activeYear:2027
+};
+const gateTest=overrides=>vm.runInNewContext(gateSource+";teamActivityAccessIssue('T1')",{...gateBase,...overrides});
+assert.equal(gateTest({}),'',"Tim aktif yang sudah lengkap harus dapat membuka Input Alokasi");
+assert.match(gateTest({staffReady:()=>false}),/Daftar Pegawai/,"Pegawai belum ditetapkan tidak boleh diedit");
+assert.match(gateTest({teamEstablishmentIssue:()=> 'Ketua belum dipilih'}),/Ketua/,"Ketua tidak lengkap wajib diblokir");
+assert.match(gateTest({yearKroReady:()=>false}),/KRO/,"KRO belum ditetapkan wajib diblokir");
+assert.match(gateTest({roleCanManageTeam:()=>false}),/hak/,"Pengguna tanpa izin tidak boleh mengelola tim");
+assert.match(gateTest({yearInfo:()=>({status:'closed'})}),/ditutup/,"Tahun tertutup tidak boleh disunting");
 
 // Unified staff/team cards and safe amendment rules, November 2026.
 const staffCardStart=html.indexOf('<details id="annualStaffChooser"');
