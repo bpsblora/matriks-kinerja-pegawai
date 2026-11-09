@@ -782,4 +782,54 @@ assert(!inline.includes("async function renameTeamFromDirectory("),
 assert(inline.includes("const name=input.value.trim();"),
  "Simpan ubah nama tim harus memakai nilai input dari baris");
 
+
+// Guided team setup: selecting a team and establishing its roster must
+// precede annual KRO assignment and activity allocation.
+const teamChoose=html.indexOf('<h3>01 · Pilih Tim</h3>');
+const teamRoster=html.indexOf('<h3>02 · Ketua dan Anggota Tim</h3>');
+const teamKro=html.indexOf('id="teamKroStep"');
+const teamActivity=html.indexOf('id="teamOverviewHeading"');
+const teamActivityAction=html.indexOf('id="teamAdminGoInput"');
+assert(teamChoose>=0&&teamChoose<teamRoster&&teamRoster<teamKro&&teamKro<teamActivity&&teamActivity<teamActivityAction,
+ "Kelola Tim belum berurutan: Pilih Tim → Ketua/Anggota → KRO → Kegiatan");
+for(const token of [
+ 'id="teamRosterActionSlot"',
+ 'id="teamRosterGuide"',
+ 'id="teamAdminSelectedName"',
+ 'id="teamOverviewList"',
+ 'id="teamAdminGoKro"',
+ 'id="teamNextHint"',
+ 'id="teamAdminName" type="hidden"'
+])assert(html.includes(token),"Elemen alur Kelola Tim hilang: "+token);
+assert((html.match(/id="teamAdminGoInput"/g)||[]).length===1,
+ "Tombol kelola kegiatan tidak boleh muncul ganda atau mendahului penetapan tim");
+for(const token of [
+ "function renderTeamWorkflow(){",
+ "renderEstablishedTeams();renderTeamDirectory();renderTeamWorkflow();",
+ "const actions=page.querySelector('#annualTeamStage > .annual-team-actions');",
+ "$('teamRosterActionSlot').appendChild(actions);",
+ "$('teamAdminLeader').onchange=renderTeamWorkflow;",
+ "drawWorkingMembers();renderTeamWorkflow()",
+ "$('teamAdminGoKro').onclick=()=>",
+ "$('teamAdminGoInput').onclick=()=>",
+ "if(!yearSetup.teams?.[tid]||!staffReady())",
+ "if(!isBaseYear&&!allowYearTask(tid))return;"
+])assert(inline.includes(token),"Alur penetapan tidak tersambung: "+token);
+for(const token of [
+ "#pageTeams #annualTeamStage .annual-stage-select{display:none!important}",
+ "#pageTeams .team-roster-action-slot{",
+ "#pageTeams .team-activity-overview{",
+ "#pageTeams .team-overview-chip{",
+ "#pageTeams .team-activity-open:disabled,",
+ "#pageTeams #annualTeamGridSlot .team-admin-grid{"
+])assert(cssPolish.includes(token),"Desain tahapan Kelola Tim belum selesai: "+token);
+const workflowStart=inline.indexOf("function renderTeamWorkflow(){");
+const workflowEnd=inline.indexOf("function renderTeamAdminPage(){",workflowStart);
+assert(workflowStart>=0&&workflowEnd>workflowStart,"Renderer alur Kelola Tim tidak ditemukan");
+const workflowCode=inline.slice(workflowStart,workflowEnd);
+assert(workflowCode.includes("goInput.disabled=!active||!ready||!kroReady||!canWrite;"),
+ "Input Alokasi harus menunggu susunan tim dan KRO yang berlaku");
+assert(workflowCode.includes("const activeTasks=activities.filter(")&&workflowCode.includes("groupName(a)"),
+ "Ringkasan Kegiatan harus berasal dari kepemilikan kegiatan, bukan keanggotaan");
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
