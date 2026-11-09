@@ -1340,3 +1340,21 @@
  #pageDashboard .trend-picker-popover{animation:none}
  #pageDashboard .tl-trend-filters .trend-picker-trigger{transition:none}
 }
+
+/* Pilihan Seluruh Tim/Kegiatan menjadi opsi eksplisit: centang satu nama
+   langsung mempersempit filter, tanpa perlu menghapus 25 centang dahulu. */
+#pageDashboard .tl-trend-filters .trend-picker-choice.trend-picker-all{
+ position:sticky;top:0;z-index:2;
+ background:#e5f2ff;
+ border:1px solid #c8e2f6;
+ color:#104c81;
+ font-weight:900;
+ margin-bottom:3px;
+}
+#pageDashboard .tl-trend-filters #trendTeamFilterWrap .trend-picker-choice,
+#pageDashboard .tl-trend-filters #trendActivityFilterWrap .trend-picker-choice{
+ font:750 12px/1.4 Nunito,Arial,sans-serif;
+}
+#pageDashboard .tl-trend-filters :is(#trendTeamFilterWrap,#trendActivityFilterWrap) .trend-picker-choice.trend-picker-all{
+ font-weight:900;
+}
