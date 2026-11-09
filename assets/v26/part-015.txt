@@ -707,7 +707,7 @@ function refreshStageNav(){
 
 function yearRosterRecord(tid){return demoRoster[tid]||{leaderId:'',members:[]}}
 function equalIds(a,b){return [...new Set(a||[])].sort().join('|')===[...new Set(b||[])].sort().join('|')}
-function yearTeamReady(tid){if(isBaseYear)return true;const record=yearSetup.teams[tid],ro=yearRosterRecord(tid);return staffReady()&&!!record&&ro.leaderId===record.leaderId&&equalIds(record.members,ro.members)}
+function yearTeamReady(tid){if(isBaseYear)return true;return teamEstablishmentIssue(tid)===''}
 /* Persetujuan tahunan mencakup SELURUH tim aktif, bukan hanya tim
    berkegiatan. Ketua wajib merupakan anggota dan semua identitas yang
    ditetapkan harus berasal dari Daftar Pegawai tahun berjalan. */
@@ -756,7 +756,7 @@ function renderYearSetup(){
  const tid=currentRole==='ketua'?roleTeamId:($('teamAdminSelect')?.value||demoTeams[0]?.id);
  const allReady=isBaseYear?!!(yearSetup.staff?.confirmed&&yearSetup.staff.ids?.length):staffReady();
  const roNow=yearRosterRecord(tid),stageTeam=yearSetup.teams[tid];
- const teamOk=isBaseYear?!!(allReady&&stageTeam&&stageTeam.leaderId===roNow.leaderId&&equalIds(stageTeam.members,roNow.members)):yearTeamReady(tid);
+ const teamOk=allReady&&teamEstablishmentIssue(tid)==='';
  const kroOk=isBaseYear?true:yearKroReady(tid),staffEditing=annualEditingStaff,teamEditing=annualEditingTeamId===tid,kroEditing=annualEditingKroId===tid;
  const prevReady=predecessorHasData(),canCentral=currentRole==='admin'||currentRole==='kepala',canTeam=roleCanManageTeam(tid),writable=yearInfo().status!=='closed';
  $('annualSetupTitle').textContent='Penetapan Pegawai dan Tim '+activeYear;
@@ -797,7 +797,7 @@ function renderYearSetup(){
  $('annualTeamSummary').textContent=teamComplete?'✓ Ditetapkan · '+(ro.members||[]).length+' Anggota':teamEditing?'Sedang Mengubah Susunan Tim':'';
  $('annualTeamSummary').classList.toggle('is-editing',teamEditing);
  teamStage.classList.toggle('is-confirmed',teamComplete);
- $('annualTeamStatusNote').textContent=teamEditing?'Perubahan belum disimpan. Tetapkan ulang susunan untuk menerapkannya. Riwayat alokasi dan KRO tetap tersimpan.':teamComplete?'Susunan tim telah ditetapkan. Klik Ubah Susunan Tim untuk merevisi anggota kapan saja.':!allReady?'Tetapkan Daftar Pegawai terlebih dahulu.':'Pilih ketua dan anggota, kemudian Tetapkan Susunan Tim.';
+ $('annualTeamStatusNote').textContent=teamEditing?'Perubahan belum disimpan. Tetapkan ulang untuk menerapkan susunan; KRO serta riwayat alokasi tetap tersimpan.':teamComplete?'Susunan tim telah ditetapkan. '+progress.ready+' dari '+progress.total+' tim aktif selesai.':!allReady?'Tetapkan Daftar Pegawai terlebih dahulu.':teamEstablishmentIssue(tid)==='Susunan tim belum ditetapkan'?'Ketua Tim mengisi dan menetapkan anggota timnya masing-masing.':'Belum lengkap: '+teamEstablishmentIssue(tid)+'. Periksa ketua dan anggota tim.';
  $('annualCopyRoster').classList.toggle('hidden',teamComplete||isBaseYear);
  $('annualConfirmTeam').classList.toggle('hidden',teamComplete);
  $('annualConfirmTeam').disabled=!allReady||!canTeam||!writable;
