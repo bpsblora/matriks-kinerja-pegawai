@@ -601,7 +601,7 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
   <section class="panel chart-panel">
    <div class="section-top"><div><h3>Perbandingan Beban Pegawai</h3><p id="monitorChartSubtitle">Pilih nama pegawai untuk melihat rincian pekerjaan dan jamnya.</p></div><span class="badge" id="monitorNum">—</span></div>
    <div class="chart-legend"><span><i class="legend-dot blue"></i> Alokasi jam</span><span><i class="legend-dot amber"></i> Mendekati kapasitas</span><span><i class="legend-dot red"></i> Melebihi kapasitas</span><span class="help" id="monitorNote"></span></div>
-   <div class="barhead"><span>Pegawai</span><span>Visualisasi</span><span id="barMetricTitle">Jam kerja</span><span>Jam/Hari</span><span>Kapasitas</span></div>
+   <div class="barhead"><span>Pegawai</span><span>Visualisasi</span><span id="barMetricTitle">Jam Kerja</span><span>Jam/Hari</span><span>Kapasitas</span></div>
    <div class="barrows" id="barRows"></div>
   </section>
   <aside class="panel person-panel">
