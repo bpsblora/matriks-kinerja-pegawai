@@ -808,8 +808,8 @@ for(const token of [
  "renderEstablishedTeams();renderTeamDirectory();renderTeamWorkflow();",
  "const actions=page.querySelector('#annualTeamStage > .annual-team-actions');",
  "$('teamRosterActionSlot').appendChild(actions);",
- "$('teamAdminLeader').onchange=renderTeamWorkflow;",
- "drawWorkingMembers();renderTeamWorkflow()",
+ "$('teamAdminLeader').onchange=onTeamLeaderChanged;", 
+ "drawWorkingMembers();renderYearSetup();renderTeamWorkflow()", 
  "$('teamAdminGoKro').onclick=()=>",
  "$('teamAdminGoInput').onclick=()=>",
  "if(!yearSetup.teams?.[tid]||!staffReady())",
@@ -900,5 +900,93 @@ for(const token of [
  "#pageTeams .employee-master-panel[hidden],",
  "#pageTeams #annualTeamStage .team-admin-grid.is-complete{display:grid}"
 ])assert(cssPolish.includes(token),"Tampilan kartu gabungan Daftar Pegawai/Tim belum lengkap: "+token);
+
+
+// Per-team establishment, bidirectional leader/member validation, and
+// all-active-team approval; test the status model with two disjoint teams.
+const leaderHelperStart=inline.indexOf("function eligibleAnnualTeamEmployees(){");
+const leaderHelperEnd=inline.indexOf("function renderTeamAdminPage(){",leaderHelperStart);
+assert(leaderHelperStart>=0&&leaderHelperEnd>leaderHelperStart,
+ "Sinkronisasi Ketua dan Anggota Tim tidak ditemukan");
+const leaderHelper=inline.slice(leaderHelperStart,leaderHelperEnd);
+for(const token of [
+ "memberIds.size?eligible.filter(e=>memberIds.has(e.id)):eligible",
+ "if(chosen&&chosen!=='external'&&!adminMemberWorking.has(chosen))adminMemberWorking.add(chosen);",
+ "syncLeaderWithMembers();",
+ "drawWorkingMembers();"
+])assert(leaderHelper.includes(token),"Pilihan Ketua dan Anggota belum saling terhubung: "+token);
+assert(inline.includes("if(!adminMemberWorking.has(leaderId))return toast("),
+ "Ketua wajib tercentang ketika melakukan penetapan susunan");
+assert(inline.includes("if(currentRole==='ketua'&&id===demoRoster[tid]?.leaderId)"),
+ "Ketua tidak boleh mengeluarkan dirinya dari keanggotaan tim yang ditetapkan");
+const leaderSelect={value:'',options:[],disabled:false};
+const leaderControls={
+ teamAdminLeader:leaderSelect,
+ teamAdminSelect:{value:'T1'},
+ teamAdminLeaderHint:{textContent:''}
+};
+const leadCtx={
+ $:id=>leaderControls[id],
+ currentRole:'admin',roleTeamId:'T1',
+ demoRoster:{T1:{leaderId:'',members:[]}},
+ yearSetup:{staff:{confirmed:true,ids:['E1','E2','E3']}},
+ BASE:{employees:[{id:'E1',type:'pegawai',active:true,full_name:'A'},{id:'E2',type:'pegawai',active:true,full_name:'B'},{id:'E3',type:'pegawai',active:true,full_name:'C'}]},
+ adminMemberWorking:new Set(),
+ fillSelect:(node,options,value)=>{node.options=options;node.value=value},
+ drawWorkingMembers:()=>{},
+ nf:n=>String(n),renderYearSetup:()=>{},renderTeamWorkflow:()=>{}
+};
+vm.runInNewContext(leaderHelper+";syncLeaderWithMembers()",leadCtx);
+assert.deepEqual(leaderSelect.options.map(o=>o.value),['','E1','E2','E3'],
+ "Sebelum ada centang, pilihan Ketua harus menampilkan seluruh Pegawai Tahunan");
+leaderSelect.value='E2';
+vm.runInNewContext(leaderHelper+";onTeamLeaderChanged()",leadCtx);
+assert(leadCtx.adminMemberWorking.has('E2'),
+ "Memilih Ketua lebih dahulu harus otomatis mencentang dirinya pada Anggota");
+leadCtx.adminMemberWorking.add('E3');
+vm.runInNewContext(leaderHelper+";syncLeaderWithMembers()",leadCtx);
+assert.deepEqual(leaderSelect.options.map(o=>o.value),['','E2','E3'],
+ "Sesudah mencentang anggota, pilihan Ketua hanya boleh dari anggota tercentang");
+const teamValidationStart=inline.indexOf("function teamEstablishmentIssue(tid){");
+const teamValidationEnd=inline.indexOf("function yearKroReady(tid){",teamValidationStart);
+assert(teamValidationStart>=0&&teamValidationEnd>teamValidationStart,
+ "Pemeriksaan lengkap seluruh Tim Aktif tidak ditemukan");
+const teamValidationCode=inline.slice(teamValidationStart,teamValidationEnd);
+const establishCase=(opts={})=>{
+ const setup={staff:{confirmed:true,ids:['E1','E2','E3']},teams:{T1:{leaderId:'E1',members:['E1','E2']}}};
+ const roster={T1:{leaderId:'E1',members:['E1','E2']},T2:{leaderId:'E3',members:['E3']}};
+ const ctx={
+  demoTeams:opts.teams||[{id:'T1',name:'Satu',active:true},{id:'T2',name:'Dua',active:true}],
+  yearSetup:opts.setup||setup,
+  yearRosterRecord:id=>(opts.roster||roster)[id]||{members:[],leaderId:''},
+  equalIds:(a,b)=>[...new Set(a||[])].sort().join('|')===[...new Set(b||[])].sort().join('|')
+ };
+ return vm.runInNewContext(teamValidationCode+";annualTeamCompletion()",ctx);
+};
+const incomplete=establishCase();
+assert.equal(incomplete.total,2,"Persetujuan harus memeriksa SEMUA Tim Aktif");
+assert.equal(incomplete.ready,1,"Penetapan satu tim saja tidak cukup untuk persetujuan");
+assert.equal(incomplete.pending[0].name,'Dua',"Nama Tim yang belum menetapkan wajib muncul");
+const readyCase=establishCase({setup:{staff:{confirmed:true,ids:['E1','E2','E3']},teams:{
+ T1:{leaderId:'E1',members:['E1','E2']},T2:{leaderId:'E3',members:['E3']}}}});
+assert.equal(readyCase.ready,2,"Seluruh Tim lengkap harus lolos pemeriksaan");
+assert.equal(readyCase.pending.length,0,"Tidak boleh ada Tim menghambat persetujuan bila semua lengkap");
+const mismatch=establishCase({roster:{T1:{leaderId:'E1',members:['E2']},T2:{leaderId:'E3',members:['E3']}}});
+assert.equal(mismatch.ready,0,"Ketua yang tidak dicentang sebagai Anggota tidak boleh dianggap ditetapkan");
+const inactiveCase=establishCase({teams:[{id:'T1',name:'Satu',active:true},{id:'T2',name:'Dua',active:false}]});
+assert.equal(inactiveCase.total,1,"Tim Nonaktif tidak menghambat persetujuan tahunan");
+const approveAt=inline.indexOf("async function approveAnnual(){");
+const approveBody=inline.slice(approveAt,inline.indexOf("function refreshYearLabels()",approveAt));
+assert(approveBody.includes("const teams=annualTeamCompletion();")&&approveBody.includes("if(teams.pending.length)"),
+ "Admin/Kepala tidak boleh menyetujui sebelum semua Tim Aktif selesai");
+assert(approveBody.includes("if(annualTeamCompletion().pending.length)"),
+ "Penetapan Tim harus dicek ulang pada saat persetujuan akhir");
+assert(inline.includes("const teamProgress=annualTeamCompletion();")&&
+ inline.includes("teamProgress.pending.length===0"),
+ "Tombol persetujuan di dashboard harus terkunci bila ada tim belum ditetapkan");
+assert(inline.includes("const pendingTeamLabels=teamProgress.pending.map("),
+ "Finalisasi harus menunjukkan daftar tim penghambat persetujuan");
+assert(inline.includes("teamProgress.pending.length||!publishedAllocationCount()?"),
+ "Tombol Finalisasi harus memvalidasi semua Tim Aktif serta alokasi");
 
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
