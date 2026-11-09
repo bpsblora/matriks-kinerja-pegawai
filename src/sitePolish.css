@@ -2509,3 +2509,55 @@
  #pageTeams .annual-team-head-right{width:100%;justify-content:space-between}
  #pageTeams #annualTeamGridSlot{padding:11px}
 }
+
+/* Finalisasi: daftar Tim Aktif yang masih menghambat persetujuan akhir. */
+#pageFinal .final-team-readiness{
+ box-sizing:border-box;
+ padding:13px 15px;
+ margin:14px 0 12px;
+ border:1px solid #c8e0f1;
+ border-radius:12px;
+ background:#eef8f3;
+ color:#176448;
+ font-size:12px;
+ font-weight:850;
+ line-height:1.5;
+}
+#pageFinal .final-team-readiness:has(strong){
+ border-color:#efdbaf;
+ background:#fff9ed;
+ color:#8c5b17;
+}
+#pageFinal .final-team-readiness>strong{
+ display:block;
+ font-size:12px;
+ margin-bottom:9px;
+}
+#pageFinal .final-team-readiness>div{
+ display:flex;
+ flex-wrap:wrap;
+ align-items:flex-start;
+ gap:6px;
+ max-height:148px;
+ overflow-y:auto;
+ scrollbar-width:thin;
+}
+#pageFinal .final-team-readiness>div>span{
+ display:inline-flex;
+ align-items:center;
+ max-width:100%;
+ min-height:29px;
+ padding:6px 9px;
+ border:1px solid #f0d9aa;
+ border-radius:9px;
+ background:#fff;
+ color:#856017;
+ font-size:11px;
+ font-weight:750;
+ overflow-wrap:anywhere;
+}
+#pageFinal #finalApprove:disabled{
+ opacity:.6;
+ cursor:not-allowed;
+ box-shadow:none;
+}
