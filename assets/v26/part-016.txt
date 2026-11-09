@@ -20,7 +20,16 @@ si tahun 2026 · Matriks Kegiatan Pegawai 2026.xlsx (V25): '+BASE.teams.length+'
   if(grid)$('annualTeamGridSlot').appendChild(grid);
   const actions=page.querySelector('#annualTeamStage > .annual-team-actions');
   if(actions&&$('teamRosterActionSlot'))$('teamRosterActionSlot').appendChild(actions);
-  if($('annualTeamHeadAction')&&$('annualEditTeam'))$('annualTeamHeadAction').appendChild($('annualEditTeam'));
+  // Primary confirmation controls belong beside the green card status,
+  // not beneath the long membership checklist. Keep the optional
+  // "Use Previous Year's Members" action next to the checklist.
+  const headActions=$('annualTeamHeadAction');
+  if(headActions){
+   for(const id of ['annualConfirmTeam','annualEditTeam','annualCancelTeam']){
+    const control=$(id);
+    if(control)headActions.appendChild(control);
+   }
+  }
   const steps=panel.querySelectorAll('.annual-step');if(steps[2])steps[2].style.display='none';
   const badge=panel.querySelector('.annual-badge');if(badge)badge.textContent='SEBELUM PEMBAGIAN KRO';
   $('annualStaffSearch').addEventListener('input',renderYearStaff);
