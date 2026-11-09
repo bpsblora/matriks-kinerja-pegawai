@@ -1558,3 +1558,242 @@
   padding:8px 9px;font-size:10.5px;
  }
 }
+
+/* Rincian Pegawai: ruang kartu dipakai untuk kegiatan dan uraian nyata,
+   bukan ruang kosong di atas satu tombol. Daftar tetap mengikuti filter. */
+#pageDashboard .monitor-main-grid .person-panel #personDetails{
+ box-sizing:border-box;
+ display:flex!important;
+ flex-direction:column!important;
+ gap:10px;
+ flex:1 1 auto!important;
+ min-height:0!important;
+ height:auto!important;
+ max-height:none!important;
+ margin-top:11px!important;
+ padding:0!important;
+ overflow:hidden!important;
+}
+#pageDashboard .person-work-preview{
+ box-sizing:border-box;
+ display:flex;
+ flex-direction:column;
+ flex:1 1 auto;
+ min-height:0;
+ min-width:0;
+ border:1px solid #d3e7f7;
+ border-radius:14px;
+ background:linear-gradient(160deg,#f5faff,#edf6ff);
+ padding:12px;
+ overflow:hidden;
+}
+#pageDashboard .person-work-preview-heading{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:9px;flex:0 0 auto;
+ padding:0 1px 9px;
+}
+#pageDashboard .person-work-preview-heading>div{min-width:0}
+#pageDashboard .person-work-preview-heading h4{
+ margin:0;
+ color:#11548b;
+ font-size:13px;
+ line-height:1.35;
+ font-weight:900;
+}
+#pageDashboard .person-work-preview-heading p{
+ margin:3px 0 0;
+ color:#64839d;
+ font-size:10.5px;
+ line-height:1.4;
+}
+#pageDashboard .person-work-preview-total{
+ box-sizing:border-box;
+ flex:0 0 auto;
+ max-width:42%;
+ padding:6px 9px;
+ background:#e0effd;
+ border:1px solid #badbf3;
+ border-radius:9px;
+ color:#12639f;
+ font-size:11px;
+ line-height:1.25;
+ font-weight:900;
+ text-align:center;
+ font-variant-numeric:tabular-nums;
+}
+#pageDashboard .person-work-preview-list{
+ box-sizing:border-box;
+ flex:1 1 auto;
+ min-height:0;
+ display:flex;
+ flex-direction:column;
+ gap:6px;
+ overflow-y:auto;
+ overflow-x:hidden;
+ padding:2px 3px 2px 0;
+ overscroll-behavior:contain;
+ scrollbar-width:thin;
+ scrollbar-color:#a7cee9 #edf5fc;
+}
+#pageDashboard .person-work-preview-row{
+ box-sizing:border-box;
+ display:grid;
+ grid-template-columns:25px minmax(0,1fr) auto;
+ gap:9px;
+ align-items:start;
+ padding:9px 10px;
+ min-width:0;
+ border:1px solid #dfeaf5;
+ border-radius:10px;
+ background:#fff;
+}
+#pageDashboard .person-work-preview-rank{
+ display:grid;
+ place-items:center;
+ width:23px;height:23px;
+ border-radius:8px;
+ background:#e5f2ff;
+ color:#1765a1;
+ font-size:11px;
+ font-weight:900;
+}
+#pageDashboard .person-work-preview-main{min-width:0}
+#pageDashboard .person-work-preview-team{
+ display:block;
+ font-size:10px;
+ color:#5d7f9c;
+ font-weight:800;
+ line-height:1.35;
+}
+#pageDashboard .person-work-preview-activity{
+ display:block;
+ margin:2px 0 4px;
+ font-size:12px;
+ color:#144d7c;
+ font-weight:900;
+ line-height:1.35;
+ white-space:normal;
+ overflow-wrap:anywhere;
+}
+#pageDashboard .person-work-preview-tasks{
+ display:flex;
+ flex-direction:column;
+ gap:2px;
+ color:#617f98;
+ font-size:10.5px;
+ line-height:1.35;
+ min-width:0;
+}
+#pageDashboard .person-work-preview-tasks>span{
+ display:block;
+ overflow-wrap:anywhere;
+}
+#pageDashboard .person-work-preview-tasks>span::before{
+ content:"• ";
+ color:#3b99cc;
+ font-weight:900;
+}
+#pageDashboard .person-work-preview-tasks>small{
+ font-size:10px;
+ color:#386f9c;
+ font-weight:800;
+}
+#pageDashboard .person-work-preview-hours{
+ display:flex;
+ flex-direction:column;
+ gap:3px;
+ align-items:flex-end;
+ min-width:70px;
+ max-width:115px;
+ font-variant-numeric:tabular-nums;
+}
+#pageDashboard .person-work-preview-hours>strong{
+ display:block;
+ padding:5px 7px;
+ border:1px solid #cce3f7;
+ border-radius:8px;
+ background:#e9f5ff;
+ color:#0c5792;
+ font-size:11px;
+ font-weight:900;
+ text-align:right;
+ white-space:normal;
+}
+#pageDashboard .person-work-preview-hours>small{
+ display:block;
+ text-align:right;
+ color:#758da2;
+ font-size:10px;
+ font-weight:750;
+}
+#pageDashboard .person-work-preview-more{
+ flex:0 0 auto;
+ margin:7px 0 0;
+ font-size:10px;
+ line-height:1.4;
+ color:#517e9f;
+ font-weight:750;
+}
+#pageDashboard .person-work-preview-empty{
+ margin:0;
+ padding:15px 10px;
+ color:#6b8498;
+ font-size:12px;
+ line-height:1.5;
+}
+#pageDashboard .person-panel .person-work-trigger{
+ box-sizing:border-box;
+ display:flex;
+ flex:0 0 auto!important;
+ width:100%;
+ min-height:65px!important;
+ margin:0!important;
+ padding:12px 14px!important;
+ border-radius:12px;
+}
+#pageDashboard .person-panel .person-work-trigger strong{font-size:13px;line-height:1.35}
+#pageDashboard .person-panel .person-work-trigger small{font-size:10.5px}
+@media(min-width:1241px){
+ #pageDashboard .monitor-main-grid .person-panel #personDetails{
+  flex:1 1 0!important;
+  min-height:145px!important;
+  margin-top:10px!important;
+ }
+ #pageDashboard .person-work-preview{
+  min-height:0!important;
+ }
+}
+@media(max-width:1240px){
+ #pageDashboard .monitor-main-grid .person-panel #personDetails{
+  flex:0 0 auto!important;
+  min-height:0!important;
+  overflow:visible!important;
+ }
+ #pageDashboard .person-work-preview{
+  flex:0 0 auto;
+  min-height:0;
+ }
+ #pageDashboard .person-work-preview-list{
+  flex:0 1 auto;
+  max-height:340px;
+ }
+}
+@media(max-width:540px){
+ #pageDashboard .person-work-preview{padding:9px}
+ #pageDashboard .person-work-preview-row{
+  grid-template-columns:22px minmax(0,1fr);
+  gap:7px;
+  padding:9px 8px;
+ }
+ #pageDashboard .person-work-preview-hours{
+  grid-column:2;
+  flex-direction:row;
+  align-items:center;
+  flex-wrap:wrap;
+  min-width:0;
+  max-width:none;
+ }
+ #pageDashboard .person-work-preview-hours>small{text-align:left}
+ #pageDashboard .person-work-preview-heading h4{font-size:12px}
+ #pageDashboard .person-work-preview-total{font-size:10px}
+}
