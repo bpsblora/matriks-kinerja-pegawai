@@ -574,38 +574,50 @@ assert(personCode.includes("const auditMarkup=isBaseYear?"),
 assert(personCode.includes("${auditMarkup}</div>"),
   "Ringkasan pegawai belum memakai audit sesuai tahun aktif");
 
-/* The right-hand employee card must show actual activities and task titles,
-   not a large empty spacer above the only action button. */
+/* The dashboard employee detail must not repeat the full activities view.
+   One enlarged button summarizes workload across Tim, Kegiatan and Uraian.
+   Full group names and descriptions are always available in the modal. */
 for(const token of [
- "const featuredGroups=groups.slice(0,5);",
- "person-work-preview-heading",
- "person-work-preview-team",
- "person-work-preview-activity",
- "person-work-preview-tasks",
- "person-work-preview-hours",
- "g.items.slice(0,2)",
- "g.hours/total*100",
- "person-work-preview-more",
+ "const teamCount=new Set(groups.map(g=>g.team)).size;",
+ "person-work-trigger-large",
+ "person-work-trigger-metrics",
+ "${nf(teamCount)}",
+ "${nf(groups.length)}",
+ "${nf(rows.length)}",
+ "Klik untuk melihat nama kegiatan, uraian tugas, dan alokasi Jam tiap pekerjaan.",
  "openPersonWorkDialog({"
 ]){
- assert(personCode.includes(token),"Ringkasan kegiatan/uraian pegawai hilang: "+token);
+ assert(personCode.includes(token),"Ringkasan beban kerja pegawai tidak lengkap: "+token);
 }
-assert(personCode.indexOf('person-work-preview')<personCode.indexOf('id="openPersonWorkDialog"'),
- "Tombol detail seharusnya berada setelah daftar ringkasan pekerjaan");
+assert(!personCode.includes("const featuredGroups=groups.slice(0,5);"),
+ "Kartu pegawai masih menduplikasi daftar pekerjaan sebelum tombol pop-up");
+const modalStart=inline.indexOf("function openPersonWorkDialog(");
+const modalEnd=inline.indexOf("function renderPerson(",modalStart);
+assert(modalStart>=0&&modalEnd>modalStart,"Fungsi rincian pekerjaan tidak ditemukan");
+const modalCode=inline.slice(modalStart,modalEnd);
 for(const token of [
- "#pageDashboard .monitor-main-grid .person-panel #personDetails{",
- "display:flex!important;",
- "flex-direction:column!important;",
- ".person-work-preview-list{",
- "overflow-y:auto;",
- ".person-work-preview-row{",
- ".person-work-preview-hours{",
- ".person-panel .person-work-trigger{",
- "min-height:65px!important;"
-]){
- assert(cssPolish.includes(token),"Tampilan detail pegawai belum diperluas: "+token);
-}
-
+ "group.items.map(item=>",
+ "${esc(group.activity)}",
+ "${esc(item.title)}",
+ "${nf(item.hours)} Jam",
+ "Tim Terlibat",
+ "Kegiatan Tim",
+ "Uraian Pekerjaan"
+]) assert(modalCode.includes(token),"Pop-up kehilangan rincian kegiatan/uraian: "+token);
+for(const token of [
+ "#pageDashboard .person-panel .person-work-trigger-large{",
+ "min-height:156px!important;",
+ ".person-work-trigger-metrics{",
+ ".person-work-dialog-scroll{",
+ "display:block!important;",
+ ".person-work-dialog-scroll>.person-work-group{",
+ "height:auto!important;",
+ ".person-work-dialog-scroll .person-work-items{",
+ "overflow-y:auto!important;",
+ "grid-template-columns:repeat(4,minmax(0,1fr))!important;"
+]) assert(cssPolish.includes(token),"Desain modal / kartu rincian belum tepat: "+token);
+assert(!cssPolish.includes("person-work-preview-list"),
+ "CSS ringkasan pekerjaan ganda belum dibersihkan");
 const printStart=inline.indexOf("function printMonitoringPDF(){");
 const printEnd=inline.indexOf("function exportCSV(){",printStart);
 assert(printStart>=0&&printEnd>printStart,"Cetak laporan monitoring tidak ditemukan");
