@@ -604,15 +604,6 @@ function assignedStaffIds(teamId){return new Set(assignedStaff(teamId).map(e=>e.
 function allocationEligibleEmployees(){const yearIds=isBaseYear?null:yearSetup.staff?.confirmed?new Set(yearSetup.staff.ids||[]):null;return BASE.employees.filter(e=>e.type==='pegawai'&&e.active!==false&&(!yearIds||yearIds.has(e.id)))}
 function allocationEligibleIds(){return new Set(allocationEligibleEmployees().map(e=>e.id))}
 function strayAllocations(id,m,teamId){const eligible=allocationEligibleIds();return BASE.employees.filter(e=>!eligible.has(e.id)&&getQty(id,e.id,m)>0).map(e=>({e,qty:getQty(id,e.id,m)}));}
-function renderEmployeeMaster(){
- if(!$('employeeMasterList'))return;const q=$('empSearch').value.trim().toLocaleLowerCase('id'),status=$('empStatus').value,kind=$('empType').value;
- const rows=BASE.employees.filter(e=>(!q||e.full_name.toLocaleLowerCase('id').includes(q))&&(status==='all'||(status==='active'?(e.active!==false):(e.active===false)))&&(kind==='all'||e.type===kind));
- const manager=currentRole==='admin'||currentRole==='kepala';$('empAdd').classList.toggle('hidden',!manager);
- $('empCount').textContent=rows.length+' dari '+BASE.employees.length+' nama · '+BASE.employees.filter(e=>e.active!==false&&e.type==='pegawai').length+' Pegawai Aktif';
- $('employeeMasterList').innerHTML=rows.map(e=>{const teamNames=demoTeams.filter(t=>(demoRoster[t.id]?.members||[]).includes(e.id)).map(t=>t.name);return `<article class="emp-person ${e.active===false?'inactive':''}"><div><div class="name">${esc(e.full_name)}</div><small>${e.type==='mitra'?'Pegawai 040':'Pegawai'} · ${e.active===false?'Nonaktif':'Aktif'} · ${teamNames.length} Tim</small></div>${manager?`<button type="button" class="btn tiny soft" data-emp-edit="${esc(e.id)}">Edit</button>`:''}</article>`}).join('')||'<div class="empty">Tidak ada pegawai yang sesuai filter.</div>';
- $('employeeMasterList').querySelectorAll('[data-emp-edit]').forEach(b=>b.onclick=()=>openEmployeeEditor(b.dataset.empEdit));
- $('empAccessNote').textContent=manager?'Pegawai baru bisa ditambahkan langsung ke tim terpilih. Pegawai nonaktif tetap tampil pada riwayat lama.':'Ketua Tim dapat mengubah anggota tim sendiri di atas. Perubahan nama dan status pegawai dilakukan Admin/Kepala BPS.';
-}
 let editingEmployeeId=null;
 function openEmployeeEditor(id=null){if(!(currentRole==='admin'||currentRole==='kepala'))return;editingEmployeeId=id;const e=employeeMaster.find(x=>x.id===id);
  $('empDialogTitle').textContent=e?'Edit Pegawai':'Tambah Pegawai';$('empName').value=e?.full_name||'';$('empKind').value=e?.type||'pegawai';$('empActive').value=e?.active===false?'false':'true';
@@ -642,7 +633,7 @@ function saveEmployeeEditor(){
  }
  persistEmployeeMaster();
  if(membershipChanged&&(!isBaseYear||yearSetup.staff?.confirmed)){yearSetup.staff.confirmed=false;annualEditingStaff=true;storeYearSetup();}
- annualEditorFromStage=false;persist();closeEmployeeEditor();renderTeamAdminPage();renderEmployeeMaster();
+ annualEditorFromStage=false;persist();closeEmployeeEditor();renderTeamAdminPage();
  if(selectedId){const valid=allocationEligibleIds();chosen=new Set([...chosen].filter(id=>valid.has(id)));renderStaff()}
  toast('Pegawai diperbarui.'+(membershipChanged?' Tetapkan ulang daftar pegawai tahun ini.':''));
 }
