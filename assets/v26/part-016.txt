@@ -47,11 +47,12 @@ function refreshTeamStore(){
 function saveTeamStore(){try{localStorage.setItem(TEAM_STORE_KEY,JSON.stringify(demoTeams))}catch(e){} refreshTeamStore();}
 function syncAllTeamSelectors(){
  const teamOpts=BASE.teams.filter(t=>t.active!==false).map(t=>({value:t.id,label:t.name}));
+ const historicalTeamOpts=BASE.teams.map(t=>({value:t.id,label:t.name+(t.active===false?' · Nonaktif':'')}));
  const keep=(sel, fallback='')=>{if(!sel)return;const cur=sel.value;const exists=teamOpts.some(x=>x.value===cur);return exists?cur:(fallback||teamOpts[0]?.value||'')};
  fillSelect($('teamSelect'),teamOpts,keep($('teamSelect'))||teamOpts[0]?.value||'');
- fillSelect($('monitorTeam'),[{value:'',label:'Semua Tim'},...teamOpts],$('monitorTeam')?.value||'');
- if($('timelineTeam'))fillSelect($('timelineTeam'),[{value:'',label:'Seluruh Tim'},...teamOpts],$('timelineTeam').value||'');
- if($('reconTeam'))fillSelect($('reconTeam'),[{value:'',label:'Semua Tim'},...teamOpts],$('reconTeam').value||'');
+ fillSelect($('monitorTeam'),[{value:'',label:'Semua Tim'},...historicalTeamOpts],$('monitorTeam')?.value||'');
+ if($('timelineTeam'))fillSelect($('timelineTeam'),[{value:'',label:'Seluruh Tim'},...historicalTeamOpts],$('timelineTeam').value||'');
+ if($('reconTeam'))fillSelect($('reconTeam'),[{value:'',label:'Semua Tim'},...historicalTeamOpts],$('reconTeam').value||'');
  if($('rosterTeam'))fillSelect($('rosterTeam'),teamOpts,$('rosterTeam').value||teamOpts[0]?.value||'');
  if($('teamAdminSelect')){const scoped=currentRole==='ketua'?teamOpts.filter(t=>t.value===roleTeamId):teamOpts;fillSelect($('teamAdminSelect'),scoped,(currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value)||scoped[0]?.value||'');}
 }
@@ -156,7 +157,7 @@ function renderEstablishedTeams(){
  const el=$('establishedTeamSummary');if(!el)return;
  el.classList.toggle('hidden',isBaseYear&&!yearSetup.staff?.confirmed);
  const employeeName=id=>BASE.employees.find(e=>e.id===id)?.full_name||id;
- const list=demoTeams.map(t=>{const ro=demoRoster[t.id]||{members:[]};const ids=(ro.members||[]).filter(id=>BASE.employees.some(e=>e.id===id));const complete=!!(ro.leaderId&&ids.length)&&(isBaseYear?!!(yearSetup.teams[t.id]&&yearSetup.teams[t.id].leaderId===ro.leaderId&&equalIds(yearSetup.teams[t.id].members,ro.members)):yearTeamReady(t.id));return {t,ro,ids,complete}});
+ const list=demoTeams.filter(t=>t.active!==false).map(t=>{const ro=demoRoster[t.id]||{members:[]};const ids=(ro.members||[]).filter(id=>BASE.employees.some(e=>e.id===id));const complete=!!(ro.leaderId&&ids.length)&&(isBaseYear?!!(yearSetup.teams[t.id]&&yearSetup.teams[t.id].leaderId===ro.leaderId&&equalIds(yearSetup.teams[t.id].members,ro.members)):yearTeamReady(t.id));return {t,ro,ids,complete}});
  const ready=list.filter(x=>x.complete),missing=list.filter(x=>!x.complete);
  const canEdit=yearInfo().status!=='closed'&&currentRole!=='pegawai'&&currentRole!=='view';
  const action=(x,label)=>canEdit&&roleCanManageTeam(x.t.id)?`<button class="btn tiny soft" type="button" data-team-summary-edit="${esc(x.t.id)}">${label}</button>`:'';
@@ -428,7 +429,7 @@ function syncTeamWorkspace(){
 }
 function v7Accounts(){
  const admin=[{username:'admin',role:'admin',team:null,label:'Admin · Seluruh Tim'},{username:'kepala',role:'kepala',team:null,label:'Kepala BPS · Seluruh Tim'}];
- const chief=BASE.teams.map((t,i)=>({username:'ketua'+String(i+1).padStart(2,'0'),role:'ketua',team:t.id,label:'Ketua '+String(i+1).padStart(2,'0')+' · '+t.name}));
+ const chief=BASE.teams.filter(t=>t.active!==false).map((t,i)=>({username:'ketua'+String(i+1).padStart(2,'0'),role:'ketua',team:t.id,label:'Ketua '+String(i+1).padStart(2,'0')+' · '+t.name}));
  return admin.concat(chief);
 }
 function renderTeamRosterHint(){
