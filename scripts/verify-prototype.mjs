@@ -454,4 +454,42 @@ assert.equal(teamLoad.totals.get("E1"),3,"Alokasi anggota tim harus dihitung");
 assert.equal(teamLoad.totals.get("E2"),5,"Pelaksana di luar keanggotaan tim tetap dihitung");
 assert.equal([...teamLoad.totals.values()].reduce((sum,v)=>sum+v,0),8,"Beban Tim harus total Jam-Orang semua pelaksana kegiatan milik tim");
 
+
+// Visual card-density regression suite: prevent broad, empty KPI cards.
+const visualStart=cssPolish.indexOf("/* Audit visual menyeluruh November 2026: metric density and readable hierarchy.");
+assert(visualStart>=0,"Audit visual Dashboard dan submenu belum diterapkan");
+const visualRules=cssPolish.slice(visualStart);
+const dashboardCardRules=[
+ "#pageDashboard>.combined-metrics{",
+ "grid-template-columns:repeat(4,minmax(0,1fr))!important;",
+ "#pageDashboard>.combined-metrics>article{",
+ "grid-template-columns:minmax(0,1fr) auto!important;",
+ "min-height:76px!important;",
+ "#pageDashboard>.combined-metrics>article>small{",
+ "#pageDashboard>.combined-metrics>article>strong{",
+ "justify-self:end!important;",
+ "background:linear-gradient(125deg,#d6eaff,#e9f5ff)!important;",
+ "#pageDashboard>.combined-metrics>article:nth-child(4)>strong{"
+];
+for(const rule of dashboardCardRules)assert(visualRules.includes(rule),"KPI Dashboard masih berpotensi kosong atau angkanya kurang tegas: "+rule);
+for(const rule of [
+ "#pageTeams .team-admin-kpis>.quickbox:not(.hidden){",
+ "#pageRecon .mini-kpi{",
+ "#pageFinal .combined-final-grid>div{",
+ "#pageInput .input-quick-grid .quickbox{",
+ "#pageKRO .kro-hub-grid>.kro-hub-card{",
+ ".page :is(.mon-kpi,.tl-kpi,.recon-card,.kro-audit-kpi,.stat){",
+ "@media(max-width:1410px){",
+ "@media(max-width:600px){",
+ "@media(prefers-reduced-motion:reduce){"
+]) assert(visualRules.includes(rule),"Audit kartu lintas submenu belum lengkap: "+rule);
+const dashboardRenderStart=inline.indexOf("function renderCombinedDashboard(){");
+const dashboardRenderEnd=inline.indexOf("let kroBoardDraft=",dashboardRenderStart);
+assert(dashboardRenderStart>=0&&dashboardRenderEnd>dashboardRenderStart,"Kartu ringkasan Dashboard tidak dapat diperiksa");
+const dashboardRender=inline.slice(dashboardRenderStart,dashboardRenderEnd);
+for(const label of ["Tim","Pegawai Aktif","Uraian Aktif","Total Jam Alokasi"]){
+ assert(dashboardRender.includes("<small>"+label+"</small>"),"Label ringkasan Dashboard terhapus: "+label);
+}
+assert(dashboardRender.split("<article><small>").length===5,"Dashboard harus tetap memiliki empat KPI, bukan duplikasi atau kartu kosong");
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
