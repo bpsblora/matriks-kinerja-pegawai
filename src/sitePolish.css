@@ -3889,3 +3889,399 @@
 #pageTeams .team-picker-dialog .team-directory-row.is-pending .team-directory-copy small{
  color:#946526;
 }
+
+
+/* Kegiatan Tim: cards are real detail actions; no nested full-card scroller.
+   Keep long employee lists internally scrollable instead of clipping CTAs. */
+#pageTeams #annualTeamGridSlot .team-admin-grid > .team-admin-card{
+ max-height:none!important;
+ overflow:visible!important;
+ align-self:start!important;
+}
+#pageTeams .team-roster-members .team-admin-members{
+ max-height:min(37dvh,310px)!important;
+ overflow-y:auto!important;
+ scrollbar-width:thin;
+}
+#pageTeams .team-activity-overview{
+ box-sizing:border-box;
+ min-width:0;
+ padding:17px 18px 18px!important;
+ margin-top:16px!important;
+ border:1px solid #c4def3;
+ border-radius:15px;
+ background:linear-gradient(125deg,#f5faff 0%,#fff 100%);
+}
+#pageTeams .team-overview-heading{margin-bottom:10px;gap:10px}
+#pageTeams .team-overview-heading h4{
+ font-size:14px;
+ font-weight:900;
+ line-height:1.4;
+}
+#pageTeams #teamOverviewCount{
+ padding:7px 10px;
+ border-radius:10px;
+ white-space:nowrap;
+}
+#pageTeams #teamOverviewSummary{
+ margin:0 0 12px!important;
+ color:#4b728f;
+ font-size:12px;
+ line-height:1.6;
+}
+#pageTeams .team-overview-list{
+ box-sizing:border-box;
+ display:grid!important;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:9px;
+ max-height:none!important;
+ overflow:visible!important;
+}
+#pageTeams .team-overview-chip{
+ box-sizing:border-box;
+ display:flex!important;
+ flex-direction:column;
+ align-items:flex-start;
+ justify-content:center;
+ gap:6px;
+ text-align:left;
+ width:100%;
+ min-width:0;
+ min-height:62px;
+ padding:11px 13px;
+ border:1px solid #c8e1f5;
+ border-radius:11px;
+ background:#fff;
+ color:#185e94;
+ font:800 12px/1.4 Nunito,Arial,sans-serif;
+ cursor:pointer;
+ transition:border-color .15s,background .15s,box-shadow .15s,transform .15s;
+}
+#pageTeams .team-overview-chip:hover{
+ border-color:#7fbce7;
+ background:#ebf7ff;
+ box-shadow:0 5px 14px rgba(20,96,157,.10);
+ transform:translateY(-1px);
+}
+#pageTeams .team-overview-chip:focus-visible,
+.team-activity-dialog button:focus-visible{
+ outline:3px solid #76bdf2;
+ outline-offset:2px;
+}
+#pageTeams .team-overview-chip-name{
+ display:-webkit-box;
+ -webkit-box-orient:vertical;
+ -webkit-line-clamp:2;
+ overflow:hidden;
+ max-width:100%;
+ overflow-wrap:anywhere;
+}
+#pageTeams .team-overview-chip small{
+ font-size:10.5px;
+ line-height:1.35;
+ color:#5383a7;
+ font-weight:850;
+}
+#pageTeams .team-overview-chip.more{
+ background:#edf7ff;
+ border-style:dashed;
+ color:#1d6598;
+ justify-content:center;
+}
+#pageTeams .team-activity-open{
+ display:block;
+ min-height:45px;
+ margin:14px 0 0!important;
+ padding:11px 15px;
+ border-radius:11px;
+ font-size:12px;
+ line-height:1.4;
+}
+#pageTeams .team-activity-open.is-locked{
+ opacity:1!important;
+ border:1px solid #a7cdec!important;
+ background:#e3f2ff!important;
+ color:#135f9a!important;
+ box-shadow:none!important;
+ cursor:pointer;
+}
+#pageTeams .team-activity-open.is-locked:hover{
+ background:#d6ebff!important;
+}
+#pageTeams #teamNextHint{
+ margin:9px 0 0!important;
+ font-size:11px;
+ line-height:1.55;
+ color:#4f748f;
+ overflow-wrap:anywhere;
+}
+.team-activity-dialog{
+ box-sizing:border-box;
+ width:min(1000px,calc(100vw - 26px));
+ max-width:none;
+ height:min(82dvh,760px);
+ max-height:90dvh;
+ padding:0;
+ margin:auto;
+ border:1px solid #c6dfee;
+ border-radius:19px;
+ background:#fff;
+ color:#174d76;
+ box-shadow:0 24px 85px rgba(12,51,86,.33);
+ overflow:hidden;
+}
+.team-activity-dialog::backdrop{
+ background:rgba(13,44,73,.53);
+ backdrop-filter:blur(2px);
+}
+.team-activity-dialog-shell{
+ box-sizing:border-box;
+ height:100%;
+ min-height:0;
+ display:flex;
+ flex-direction:column;
+}
+.team-activity-dialog-head{
+ display:flex;
+ justify-content:space-between;
+ align-items:flex-start;
+ gap:18px;
+ flex:0 0 auto;
+ padding:19px 22px 15px;
+ background:linear-gradient(120deg,#f0f8ff,#fff);
+ border-bottom:1px solid #dceaf6;
+}
+.team-activity-dialog-head>div{min-width:0}
+.team-activity-dialog-head small{
+ color:#357ba8;
+ font-size:10px;
+ letter-spacing:.08em;
+ font-weight:900;
+}
+.team-activity-dialog-head h3{
+ font:900 20px/1.35 Nunito,Arial,sans-serif;
+ margin:4px 0;
+ color:#145482;
+ overflow-wrap:anywhere;
+}
+.team-activity-dialog-head p{
+ margin:2px 0 0;
+ color:#6687a0;
+ font-size:11px;
+ font-weight:750;
+}
+.team-activity-dialog-close{
+ flex:0 0 36px;
+ width:36px;
+ height:36px;
+ border:1px solid #c7ddec;
+ border-radius:10px;
+ background:white;
+ color:#275f89;
+ font-size:25px;
+ line-height:1;
+ cursor:pointer;
+}
+.team-activity-dialog-body{
+ display:grid;
+ grid-template-columns:minmax(220px,.37fr) minmax(0,.63fr);
+ flex:1 1 auto;
+ min-height:0;
+ overflow:hidden;
+}
+.team-activity-dialog-nav{
+ display:flex;
+ flex-direction:column;
+ gap:7px;
+ min-width:0;
+ overflow-y:auto;
+ padding:15px;
+ background:#f7fbff;
+ border-right:1px solid #e2eef7;
+ scrollbar-width:thin;
+}
+.team-activity-dialog-tab{
+ display:flex;
+ flex-direction:column;
+ align-items:flex-start;
+ gap:5px;
+ padding:11px 12px;
+ text-align:left;
+ border:1px solid #dce9f4;
+ background:#fff;
+ border-radius:10px;
+ color:#315e82;
+ cursor:pointer;
+}
+.team-activity-dialog-tab.is-selected{
+ color:#145d98;
+ border-color:#89bde4;
+ background:#e7f4ff;
+ box-shadow:inset 3px 0 0 #2179bb;
+}
+.team-activity-dialog-tab strong{
+ font-size:12px;
+ line-height:1.4;
+ overflow-wrap:anywhere;
+}
+.team-activity-dialog-tab small{font-size:10px;color:#6c8ba2}
+.team-activity-dialog-detail{
+ min-width:0;
+ overflow-y:auto;
+ padding:18px 19px;
+ scrollbar-width:thin;
+}
+.team-activity-detail-title{
+ display:flex;
+ align-items:flex-start;
+ justify-content:space-between;
+ gap:12px;
+}
+.team-activity-detail-title span{
+ font-size:10px;
+ font-weight:900;
+ color:#397eaa;
+ letter-spacing:.05em;
+}
+.team-activity-detail-title h4{
+ margin:4px 0;
+ color:#184b72;
+ font-size:15px;
+ line-height:1.4;
+ overflow-wrap:anywhere;
+}
+.team-activity-detail-title b{
+ flex:0 0 auto;
+ border:1px solid #c2ddf1;
+ border-radius:9px;
+ padding:6px 9px;
+ background:#eaf5ff;
+ font-size:10.5px;
+ white-space:nowrap;
+}
+.team-activity-detail-kro{
+ padding:9px 12px;
+ margin:12px 0;
+ border-radius:9px;
+ background:#f1f7fd;
+ color:#537692;
+ font-size:11px;
+ line-height:1.5;
+ overflow-wrap:anywhere;
+}
+.team-activity-detail-list{
+ display:flex;
+ flex-direction:column;
+ gap:9px;
+}
+.team-activity-detail-list article{
+ display:flex;
+ align-items:flex-start;
+ gap:10px;
+ padding:12px;
+ border:1px solid #e0eaf3;
+ border-radius:10px;
+ background:#fff;
+}
+.team-activity-detail-index{
+ display:grid;
+ place-items:center;
+ flex:0 0 25px;
+ height:25px;
+ border-radius:8px;
+ background:#e9f5ff;
+ font-size:11px;
+ color:#286c9e;
+ font-weight:900;
+}
+.team-activity-detail-list article>div{
+ min-width:0;
+ display:flex;
+ flex-direction:column;
+ gap:5px;
+}
+.team-activity-detail-list strong{
+ font-size:12px;
+ color:#1c4f78;
+ overflow-wrap:anywhere;
+}
+.team-activity-detail-list small{
+ color:#6488a3;
+ line-height:1.55;
+ font-size:10.5px;
+}
+.team-activity-dialog-empty{
+ color:#72899d;
+ font-size:12px;
+ line-height:1.5;
+}
+.team-activity-dialog-foot{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:16px;
+ padding:13px 20px;
+ flex:0 0 auto;
+ border-top:1px solid #ddebf6;
+ background:#f8fbff;
+}
+.team-activity-dialog-foot p{
+ margin:0;
+ color:#64829b;
+ font-size:11px;
+ line-height:1.5;
+ flex:1 1 auto;
+}
+.team-activity-dialog-foot>div{
+ display:flex;
+ align-items:center;
+ gap:9px;
+ flex:0 0 auto;
+}
+.team-activity-dialog-foot .btn{
+ min-height:39px;
+ padding:9px 14px;
+ font-size:11px;
+}
+.team-activity-dialog-foot .btn:disabled{
+ opacity:.52;
+ cursor:not-allowed;
+}
+@media(max-width:720px){
+ #pageTeams .team-overview-list{grid-template-columns:1fr}
+ #pageTeams .team-activity-overview{padding:14px!important}
+ .team-activity-dialog{
+  width:calc(100vw - 14px);
+  height:min(91dvh,860px);
+  max-height:94dvh;
+  border-radius:14px;
+ }
+ .team-activity-dialog-head{padding:14px 15px}
+ .team-activity-dialog-head h3{font-size:17px}
+ .team-activity-dialog-body{
+  display:flex;
+  flex-direction:column;
+ }
+ .team-activity-dialog-nav{
+  display:flex;
+  flex:0 0 auto;
+  flex-direction:row;
+  max-height:122px;
+  min-height:0;
+  overflow:auto;
+  padding:10px;
+  border-bottom:1px solid #e2eef7;
+  border-right:0;
+ }
+ .team-activity-dialog-tab{flex:0 0 195px}
+ .team-activity-dialog-detail{flex:1 1 auto;min-height:0;padding:13px}
+ .team-activity-dialog-foot{flex-direction:column;align-items:stretch;padding:11px 13px}
+ .team-activity-dialog-foot>div{justify-content:flex-end}
+}
+@media(max-width:410px){
+ .team-activity-dialog-foot>div{flex-direction:column-reverse}
+ .team-activity-dialog-foot .btn{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+ #pageTeams .team-overview-chip{transition:none;transform:none!important}
+}
