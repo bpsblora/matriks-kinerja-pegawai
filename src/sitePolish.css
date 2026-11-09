@@ -1768,3 +1768,201 @@
   white-space:normal;
  }
 }
+
+/* Kelola Tim: daftar Tim tahunan seperti daftar pegawai, dengan seleksi
+   baris, pencarian, dan aksi Edit/Hapus yang terlihat jelas. */
+#pageTeams .team-admin-list{
+ display:flex;
+ flex-direction:column;
+ gap:10px;
+ min-width:0;
+}
+#pageTeams .team-admin-list>.section-top{margin:0}
+#pageTeams .team-admin-list .team-directory-toolbar{
+ display:flex;
+ flex-direction:column;
+ gap:6px;
+ min-width:0;
+}
+#pageTeams .team-directory-toolbar>label{
+ color:#245c89;
+ font-size:11.5px;
+ font-weight:900;
+}
+#pageTeams .team-directory-toolbar>input{
+ box-sizing:border-box;
+ width:100%;
+ min-width:0;
+ min-height:40px;
+ border:1px solid #bdd9ef;
+ border-radius:11px;
+ padding:9px 12px;
+ outline:none;
+ color:#174b76;
+ background:#fff;
+ font:750 12px Nunito,Arial,sans-serif;
+}
+#pageTeams .team-directory-toolbar>input:focus{
+ border-color:#388fd0;
+ box-shadow:0 0 0 3px #e0f1ff;
+}
+#pageTeams .team-directory-count{
+ color:#6383a0;
+ font-size:10.5px;
+ font-weight:800;
+ line-height:1.45;
+}
+#pageTeams .team-directory-list{
+ box-sizing:border-box;
+ display:flex;
+ flex-direction:column;
+ align-items:stretch;
+ gap:5px;
+ min-height:0;
+ max-height:min(48dvh,380px);
+ overflow-y:auto;
+ overflow-x:hidden;
+ overscroll-behavior:contain;
+ scrollbar-width:thin;
+ scrollbar-color:#a9c9e4 #eef5fc;
+ scrollbar-gutter:stable;
+ padding:2px 5px 2px 1px;
+}
+#pageTeams .team-directory-row{
+ box-sizing:border-box;
+ display:flex;
+ align-items:center;
+ gap:7px;
+ width:100%;
+ min-width:0;
+ padding:7px;
+ border:1px solid #dbe8f5;
+ border-radius:12px;
+ background:#fff;
+ transition:border-color .16s,background .16s,box-shadow .16s;
+}
+#pageTeams .team-directory-row:hover{
+ border-color:#bdd8f0;
+ background:#f8fcff;
+}
+#pageTeams .team-directory-row.is-selected{
+ border-color:#8dc1ef;
+ background:#eaf5ff;
+ box-shadow:inset 3px 0 0 #1673bf;
+}
+#pageTeams .team-directory-pick{
+ display:flex;
+ align-items:center;
+ gap:9px;
+ flex:1 1 0;
+ min-width:0;
+ border:0;
+ background:transparent;
+ color:#194b73;
+ text-align:left;
+ padding:4px 1px;
+ cursor:pointer;
+}
+#pageTeams .team-directory-symbol{
+ display:grid;
+ place-items:center;
+ flex:0 0 21px;
+ width:21px;height:21px;
+ border:1px solid #c6def1;
+ border-radius:7px;
+ background:#f0f6fd;
+ color:#6f99b9;
+ font-size:12px;
+ font-weight:900;
+}
+#pageTeams .team-directory-row.is-selected .team-directory-symbol{
+ background:#176db7;
+ border-color:#176db7;
+ color:#fff;
+}
+#pageTeams .team-directory-copy{
+ display:flex;
+ flex-direction:column;
+ gap:3px;
+ min-width:0;
+}
+#pageTeams .team-directory-copy strong{
+ color:#124a78;
+ font-size:12px;
+ line-height:1.35;
+ font-weight:900;
+ overflow-wrap:anywhere;
+}
+#pageTeams .team-directory-copy small{
+ color:#728aa2;
+ font-size:10px;
+ line-height:1.35;
+ font-weight:700;
+ overflow-wrap:anywhere;
+}
+#pageTeams .team-directory-row.is-selected .team-directory-copy strong{color:#0e5c9f}
+#pageTeams .team-directory-actions{
+ flex:0 0 auto;
+ display:flex;
+ align-items:center;
+ gap:4px;
+}
+#pageTeams .team-directory-action{
+ box-sizing:border-box;
+ border:1px solid #c8ddec;
+ border-radius:8px;
+ background:#f4f9ff;
+ color:#17619b;
+ padding:6px 8px;
+ min-height:30px;
+ font:850 10px/1.25 Nunito,Arial,sans-serif;
+ cursor:pointer;
+}
+#pageTeams .team-directory-action.edit:hover{
+ background:#dfeffd;
+ border-color:#8fc3e8;
+}
+#pageTeams .team-directory-action.delete{
+ color:#b85054;
+ background:#fff7f7;
+ border-color:#f0d0d0;
+}
+#pageTeams .team-directory-action.delete:hover:not(:disabled){
+ color:#a13138;
+ background:#fee8e8;
+}
+#pageTeams .team-directory-action.delete:disabled{
+ color:#99a9b8;
+ background:#f2f5f8;
+ border-color:#e1e8f0;
+ cursor:not-allowed;
+ opacity:.65;
+}
+#pageTeams .team-directory-pick:focus-visible,
+#pageTeams .team-directory-action:focus-visible{
+ outline:3px solid #86beeb;
+ outline-offset:2px;
+}
+#pageTeams .team-directory-empty{
+ padding:15px 12px;
+ border:1px dashed #cedfea;
+ border-radius:10px;
+ color:#66819b;
+ font-size:12px;
+ text-align:center;
+}
+#pageTeams .team-admin-list .team-admin-kpis{margin:3px 0 0}
+#pageTeams .team-admin-list .team-admin-actions{margin-top:2px}
+#pageTeams .team-admin-list #teamAdminMeta{
+ font-size:10.5px;
+ line-height:1.45;
+ margin:0;
+}
+@media(max-width:650px){
+ #pageTeams .team-directory-list{max-height:360px}
+ #pageTeams .team-directory-row{padding:6px;gap:5px}
+ #pageTeams .team-directory-action{padding:6px;min-height:29px}
+}
+@media(prefers-reduced-motion:reduce){
+ #pageTeams .team-directory-row{transition:none}
+}
