@@ -507,16 +507,18 @@ function renderTrendPickerOptions(kind){
  const query=$(isTeam?'trendTeamSearch':'trendActivitySearch').value.trim().toLocaleLowerCase('id');
  if(isTeam){
   const choices=BASE.teams.filter(t=>!query||t.name.toLocaleLowerCase('id').includes(query));
-  list.innerHTML=choices.map(t=>{
-   const id=String(t.id),checked=trendOwnerTeams===null||trendOwnerTeams.has(id);
-   return '<label class="trend-picker-choice"><input type="checkbox" data-trend-owner="'+esc(id)+'" '+(checked?'checked':'')+'><span>'+esc(t.name)+'</span></label>';
-  }).join('')||'<p class="trend-picker-empty">Tidak ada tim yang cocok.</p>';
+  list.innerHTML=(!query?'<label class="trend-picker-choice trend-picker-all"><input type="checkbox" data-trend-owner-all '+(trendOwnerTeams===null?'checked':'')+'><span>Seluruh Tim Pemilik</span></label>':'')+
+   (choices.map(t=>{
+    const id=String(t.id),checked=trendOwnerTeams instanceof Set&&trendOwnerTeams.has(id);
+    return '<label class="trend-picker-choice"><input type="checkbox" data-trend-owner="'+esc(id)+'" '+(checked?'checked':'')+'><span>'+esc(t.name)+'</span></label>';
+   }).join('')||'<p class="trend-picker-empty">Tidak ada tim yang cocok.</p>');
  }else{
   const choices=trendAvailableActivities().filter(x=>!query||(x.team+' '+x.name).toLocaleLowerCase('id').includes(query));
-  list.innerHTML=choices.map(row=>{
-   const checked=trendActivityKeys===null||trendActivityKeys.has(row.key);
-   return '<label class="trend-picker-choice"><input type="checkbox" data-trend-activity="'+esc(row.key)+'" '+(checked?'checked':'')+'><span>'+esc(row.name)+'<small>'+esc(row.team)+'</small></span></label>';
-  }).join('')||'<p class="trend-picker-empty">Tidak ada kegiatan pada tim terpilih.</p>';
+  list.innerHTML=(!query?'<label class="trend-picker-choice trend-picker-all"><input type="checkbox" data-trend-activity-all '+(trendActivityKeys===null?'checked':'')+'><span>Seluruh Kegiatan dari Tim Terpilih</span></label>':'')+
+   (choices.map(row=>{
+    const checked=trendActivityKeys instanceof Set&&trendActivityKeys.has(row.key);
+    return '<label class="trend-picker-choice"><input type="checkbox" data-trend-activity="'+esc(row.key)+'" '+(checked?'checked':'')+'><span>'+esc(row.name)+'<small>'+esc(row.team)+'</small></span></label>';
+   }).join('')||'<p class="trend-picker-empty">Tidak ada kegiatan pada tim terpilih.</p>');
  }
 }
 function openTrendPicker(kind){
@@ -552,20 +554,21 @@ function initTrendPickers(){
  $('trendTeamSearch').oninput=()=>renderTrendPickerOptions('team');
  $('trendActivitySearch').oninput=()=>renderTrendPickerOptions('activity');
  $('trendTeamChoices').onchange=event=>{
-  const input=event.target.closest('input[data-trend-owner]');
+  const input=event.target.closest('input[data-trend-owner],input[data-trend-owner-all]');
   if(!input)return;
+  if(input.hasAttribute('data-trend-owner-all')){trendOwnerTeams=null;applyTrendFilterChange('team');return}
   const id=input.dataset.trendOwner;
-  const next=trendOwnerTeams===null?new Set(BASE.teams.map(t=>String(t.id))):new Set(trendOwnerTeams);
+  const next=trendOwnerTeams===null?new Set():new Set(trendOwnerTeams);
   if(input.checked)next.add(id);else next.delete(id);
   trendOwnerTeams=next;
   applyTrendFilterChange('team');
  };
  $('trendActivityChoices').onchange=event=>{
-  const input=event.target.closest('input[data-trend-activity]');
+  const input=event.target.closest('input[data-trend-activity],input[data-trend-activity-all]');
   if(!input)return;
+  if(input.hasAttribute('data-trend-activity-all')){trendActivityKeys=null;applyTrendFilterChange('activity');return}
   const id=input.dataset.trendActivity;
-  const all=trendAvailableActivities().map(row=>row.key);
-  const next=trendActivityKeys===null?new Set(all):new Set(trendActivityKeys);
+  const next=trendActivityKeys===null?new Set():new Set(trendActivityKeys);
   if(input.checked)next.add(id);else next.delete(id);
   trendActivityKeys=next;
   applyTrendFilterChange('activity');
