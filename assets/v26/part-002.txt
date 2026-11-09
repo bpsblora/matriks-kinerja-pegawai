@@ -640,7 +640,7 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
  <div class="monitor-hero team-hero"><div><div class="hero-eyebrow">PENETAPAN KEANGGOTAAN TIM</div><h2>Kelola Tim & Pegawai</h2><p>Pengaturan anggota dan KRO di sini menentukan pilihan penugasan pada Input Alokasi.</p></div><div class="hero-symbol">♧</div></div>
  <div class="team-admin-grid" id="teamAdminGrid">
    <section class="team-admin-card team-admin-list">
-    <div class="section-top"><div><h3>Daftar Tim</h3><p id="teamAdminAccess"></p></div></div>
+    <div class="section-top"><div><h3>01 · Pilih Tim</h3><p id="teamAdminAccess">Pilih tim kerja sebelum menetapkan ketua dan anggota.</p></div></div>
     <div class="team-directory-toolbar"><label for="teamAdminSearch">Cari Tim Kerja</label><input type="search" id="teamAdminSearch" placeholder="Cari nama tim..." autocomplete="off" aria-controls="teamAdminDirectory"><button type="button" class="btn primary team-directory-add" id="teamAdminNew">+ Tambah Tim</button><div class="team-directory-status"><label for="teamAdminStatus">Status Tim</label><select id="teamAdminStatus" aria-label="Filter status tim"><option value="active">Aktif</option><option value="inactive">Nonaktif</option><option value="all">Semua</option></select></div></div>
     <div id="teamAdminDirectoryCount" class="team-directory-count" aria-live="polite">Daftar Tim Tahun Berjalan</div>
     <div id="teamAdminDirectory" class="team-directory-list" role="group" aria-label="Daftar tim kerja untuk tahun berjalan"></div>
@@ -650,16 +650,20 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
      <div class="quickbox"><span>Anggota</span><b id="teamAdminMemberCount">0</b></div>
      <div class="quickbox hidden" aria-hidden="true"><span>KRO terhubung</span><b id="teamAdminKroCount">0</b></div>
     </div>
-    <div class="team-admin-actions"><button class="btn soft" id="teamAdminGoInput">Kelola Kegiatan Tim Terpilih</button><button class="btn warn hidden" hidden id="teamAdminDelete">Hapus Tim</button></div>
+    <div class="team-admin-actions"><button class="btn warn hidden" hidden id="teamAdminDelete">Hapus Tim</button></div>
     <div class="notice" id="teamAdminMeta">Tim yang memiliki riwayat dapat dinonaktifkan agar tidak dipilih untuk penugasan baru. Riwayat alokasi tetap tersimpan.</div>
    </section>
    <section class="team-admin-card">
-    <div class="section-top"><div><h3>Rincian Tim</h3><p id="teamAdminScope"></p></div></div>
-    <div class="formgrid">
-      <div class="field"><label>Nama Tim Kerja</label><input id="teamAdminName" placeholder="Nama tim kerja"></div>
-      <div class="field"><label>Ketua Tim</label><select id="teamAdminLeader"></select><small id="teamAdminLeaderHint" class="help"></small></div>
+    <div class="section-top"><div><h3>02 · Ketua dan Anggota Tim</h3><p id="teamAdminScope"></p></div><span class="team-focus-name" id="teamAdminSelectedName">Pilih Tim</span></div>
+    <input id="teamAdminName" type="hidden" aria-hidden="true">
+    <div class="team-roster-guide" id="teamRosterGuide">Pilih tim di Daftar Tim, kemudian tetapkan ketua dan anggota.</div>
+    <div class="formgrid team-roster-leader">
+      <div class="field"><label for="teamAdminLeader">Ketua Tim</label><select id="teamAdminLeader"></select><small id="teamAdminLeaderHint" class="help"></small></div>
     </div>
-    <div class="field" style="margin-top:14px"><label>Anggota Tim</label><input type="search" id="teamAdminMemberSearch" placeholder="Cari nama pegawai..."><div class="team-admin-members" id="teamAdminMembers"></div><small class="team-admin-note">Pegawai yang dikeluarkan dari tim tidak tersedia untuk tugas baru; alokasi sebelumnya tetap tercatat.</small></div>
+    <div class="field team-roster-members"><label for="teamAdminMemberSearch">Anggota Tim</label><input type="search" id="teamAdminMemberSearch" placeholder="Cari nama pegawai..."><div class="team-admin-members" id="teamAdminMembers"></div><small class="team-admin-note">Centang anggota yang ditugaskan di tim ini. Pegawai di luar tim tetap boleh menerima alokasi kegiatan. Riwayat pekerjaan lama tidak dihapus.</small></div>
+    <div id="teamRosterActionSlot" class="team-roster-action-slot"></div>
+    <section class="team-activity-overview" aria-label="Ringkasan kegiatan tim terpilih"><div class="team-overview-heading"><h4>03 · Kegiatan Tim</h4><span id="teamOverviewCount">0 Kegiatan</span></div><p id="teamOverviewSummary">Tampilkan ringkasan kegiatan setelah memilih tim.</p><div id="teamOverviewList" class="team-overview-list"></div></section>
+    <div class="team-next-actions"><button type="button" class="btn soft" id="teamAdminGoKro">Pembagian KRO →</button><button type="button" class="btn primary" id="teamAdminGoInput">Kelola Kegiatan dan Alokasi →</button><p class="team-admin-note" id="teamNextHint">Tetapkan susunan tim terlebih dahulu.</p></div>
     <div class="team-kro-panel">
        <div class="section-top"><div><h3>KRO Berdasarkan POK <span id="kroListYear">2026</span></h3><p>Satu KRO dapat ditangani lebih dari satu tim.</p></div><span class="badge" id="teamAdminKroSelection">0 dipilih</span></div>
        <div class="kro-guide"><div><strong>KRO yang Direkomendasikan</strong><p id="teamKroRecommendation">Rekomendasi KRO berdasarkan tim dan pembagian kegiatan 2026.</p></div><button type="button" class="btn tiny soft hidden" id="applyKroRecommendations">Pilih Rekomendasi</button></div>
