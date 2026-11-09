@@ -790,6 +790,9 @@ function renderYearSetup(){
  teamStage.classList.toggle('is-confirmed',teamComplete);
  $('annualTeamStatusNote').textContent=teamEditing?'Perubahan belum disimpan. Tetapkan ulang untuk menerapkan susunan; KRO serta riwayat alokasi tetap tersimpan.':teamComplete?'Susunan tim telah ditetapkan. '+progress.ready+' dari '+progress.total+' tim aktif selesai.':!allReady?'Tetapkan Daftar Pegawai terlebih dahulu.':teamEstablishmentIssue(tid)==='Susunan tim belum ditetapkan'?'Ketua Tim mengisi dan menetapkan anggota timnya masing-masing.':'Belum lengkap: '+teamEstablishmentIssue(tid)+'. Periksa ketua dan anggota tim.';
  $('annualCopyRoster').classList.toggle('hidden',teamComplete||isBaseYear);
+ // The lower action slot only contains the optional copy action now.
+ // Hide the entire slot when it is unavailable to avoid a blank spacer.
+ $('teamRosterActionSlot')?.classList.toggle('hidden',teamComplete||isBaseYear);
  $('annualConfirmTeam').classList.toggle('hidden',teamComplete);
  $('annualConfirmTeam').disabled=!allReady||!canTeam||!writable;
  $('annualEditTeam').classList.toggle('hidden',!teamComplete||!canTeam||!writable);
