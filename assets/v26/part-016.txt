@@ -169,51 +169,126 @@ function renderKroMap(){
 function paintTeamAdminMembers(){const q=$('teamAdminMemberSearch').value.trim().toLocaleLowerCase('id'),tid=$('teamAdminSelect').value;const ro=demoRoster[tid]||{members:[]};const members=new Set(ro.members||[]);const rows=BASE.employees.filter(e=>e.type==='pegawai'&&e.full_name.toLocaleLowerCase('id').includes(q));$('teamAdminMembers').innerHTML=rows.map(e=>`<label><input type="checkbox" data-team-member="${esc(e.id)}" ${members.has(e.id)?'checked':''}><span>${esc(e.full_name)}</span></label>`).join('')||'<div class="empty">Pegawai tidak ditemukan.</div>';
 }
 let adminMemberWorking=new Set();
-let establishedTeamFilter='ready'; // preserve the chosen status while other team settings update
-function renderEstablishedTeams(){
- const el=$('establishedTeamSummary');if(!el)return;
- el.classList.toggle('hidden',isBaseYear&&!yearSetup.staff?.confirmed);
+let establishedTeamFilter='ready';
+let establishedTeamReturnFocus=null;
+function establishedTeamSnapshot(){
  const employeeName=id=>BASE.employees.find(e=>e.id===id)?.full_name||id;
- const list=demoTeams.filter(t=>t.active!==false).map(t=>{const ro=demoRoster[t.id]||{members:[]};const ids=(ro.members||[]).filter(id=>BASE.employees.some(e=>e.id===id));const complete=!!(ro.leaderId&&ids.length)&&(isBaseYear?!!(yearSetup.teams[t.id]&&yearSetup.teams[t.id].leaderId===ro.leaderId&&equalIds(yearSetup.teams[t.id].members,ro.members)):yearTeamReady(t.id));return {t,ro,ids,complete}});
- const ready=list.filter(x=>x.complete),missing=list.filter(x=>!x.complete);
- const canEdit=yearInfo().status!=='closed'&&currentRole!=='pegawai'&&currentRole!=='view';
- const action=(x,label)=>canEdit&&roleCanManageTeam(x.t.id)?`<button class="btn tiny soft" type="button" data-team-summary-edit="${esc(x.t.id)}">${label}</button>`:'';
- const showingReady=establishedTeamFilter!=='pending';
- el.innerHTML=`<div class="section-top team-summary-heading"><div><h3>Ringkasan Penetapan Tim ${activeYear}</h3><p>Klik salah satu status untuk memeriksa tim yang sudah ditetapkan atau masih perlu dilengkapi.</p></div><span class="badge">${list.length} Tim Aktif</span></div>
-  <div class="team-status-count" role="group" aria-label="Filter status penetapan tim">
-   <button type="button" class="team-status-filter ${showingReady?'is-active':''}" data-team-summary-filter="ready" aria-controls="teamSummaryList" aria-pressed="${showingReady}"><span aria-hidden="true">✓</span> ${ready.length} Tim Ditetapkan</button>
-   <button type="button" class="team-status-filter ${!showingReady?'is-active':''}" data-team-summary-filter="pending" aria-controls="teamSummaryList" aria-pressed="${!showingReady}"><span aria-hidden="true">◷</span> ${missing.length} Tim Belum Lengkap</button>
-  </div>
-  <div id="teamSummaryList" class="team-summary-content" aria-live="polite">
-   <div class="team-summary-view" data-team-summary-view="ready" ${showingReady?'':'hidden'}>
-    <div class="team-summary-subheading">Tim yang Sudah Ditetapkan · ${ready.length}</div>
-    ${ready.length?`<div class="team-summary-ready">${ready.map(x=>`<article class="team-summary-item"><div class="team-summary-item-top"><div><strong>${esc(x.t.name)}</strong><span class="team-summary-state ready">Sudah Ditetapkan</span></div>${action(x,'Lihat / Edit Tim')}</div><p>Ketua: <b>${esc(employeeName(x.ro.leaderId))}</b> · ${x.ids.length} Anggota</p><details><summary>Lihat Anggota (${x.ids.length})</summary><div class="team-summary-members">${x.ids.map(employeeName).map(esc).join(', ')}</div></details></article>`).join('')}</div>`:'<p class="team-summary-empty">Belum ada tim yang selesai ditetapkan.</p>'}
-   </div>
-   <div class="team-summary-view" data-team-summary-view="pending" ${showingReady?'hidden':''}>
-    <div class="team-summary-subheading">Tim yang Perlu Dilengkapi · ${missing.length}</div>
-    ${missing.length?`<div class="team-summary-pending-list">${missing.map(x=>`<article class="team-summary-pending-row"><div><strong>${esc(x.t.name)}</strong><small>${esc(teamEstablishmentIssue(x.t.id)||'Susunan tim belum ditetapkan lengkap')}</small></div>${action(x,'Lengkapi Tim')}</article>`).join('')}</div>`:'<p class="team-summary-complete">✓ Seluruh tim aktif sudah ditetapkan. Tidak ada tim yang perlu dilengkapi.</p>'}
-   </div>
-  </div>`;
- el.querySelectorAll('[data-team-summary-filter]').forEach(btn=>btn.onclick=()=>{
-  establishedTeamFilter=btn.dataset.teamSummaryFilter;
-  el.querySelectorAll('[data-team-summary-filter]').forEach(item=>{
-   const selected=item.dataset.teamSummaryFilter===establishedTeamFilter;
-   item.classList.toggle('is-active',selected);
-   item.setAttribute('aria-pressed',String(selected));
-  });
-  el.querySelectorAll('[data-team-summary-view]').forEach(view=>{
-   view.hidden=view.dataset.teamSummaryView!==establishedTeamFilter;
-  });
+ const list=demoTeams.filter(t=>t.active!==false).map(t=>{
+  const ro=demoRoster[t.id]||{members:[]};
+  const ids=(ro.members||[]).filter(id=>BASE.employees.some(e=>e.id===id));
+  const complete=!!(ro.leaderId&&ids.length)&&(isBaseYear?
+   !!(yearSetup.teams[t.id]&&yearSetup.teams[t.id].leaderId===ro.leaderId&&equalIds(yearSetup.teams[t.id].members,ro.members)):
+   yearTeamReady(t.id));
+  return {t,ro,ids,complete,reason:complete?'':teamEstablishmentIssue(t.id)};
  });
- el.querySelectorAll('[data-team-summary-edit]').forEach(btn=>btn.onclick=()=>{
+ return {list,ready:list.filter(x=>x.complete),missing:list.filter(x=>!x.complete),employeeName};
+}
+function ensureEstablishedTeamDialog(){
+ let dialog=$('establishedTeamDialog');
+ if(dialog)return dialog;
+ dialog=document.createElement('dialog');
+ dialog.id='establishedTeamDialog';
+ dialog.className='team-establishment-dialog';
+ dialog.setAttribute('aria-labelledby','establishedTeamDialogTitle');
+ document.body.appendChild(dialog);
+ dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
+ dialog.addEventListener('close',()=>{
+  const back=establishedTeamReturnFocus;
+  establishedTeamReturnFocus=null;
+  if(back?.isConnected)back.focus({preventScroll:true});
+ });
+ return dialog;
+}
+function renderEstablishedTeamDialog(){
+ const dialog=ensureEstablishedTeamDialog();
+ const {list,ready,missing,employeeName}=establishedTeamSnapshot();
+ const showingReady=establishedTeamFilter!=='pending';
+ const canEdit=yearInfo().status!=='closed'&&currentRole!=='pegawai'&&currentRole!=='view';
+ const action=(x,label)=>canEdit&&roleCanManageTeam(x.t.id)?
+  '<button type="button" class="btn tiny soft" data-team-summary-edit="'+esc(String(x.t.id))+'">'+label+'</button>':'';
+ const listMarkup=showingReady?
+  (ready.length?
+   '<div class="team-summary-ready">'+ready.map(x=>'<article class="team-summary-item"><div class="team-summary-item-top"><div><strong>'+esc(x.t.name)+'</strong><span class="team-summary-state ready">Sudah Ditetapkan</span></div>'+action(x,'Lihat / Edit Tim')+'</div><p>Ketua: <b>'+esc(employeeName(x.ro.leaderId))+'</b> · '+x.ids.length+' Anggota</p><details><summary>Lihat Anggota ('+x.ids.length+')</summary><div class="team-summary-members">'+x.ids.map(employeeName).map(esc).join(', ')+'</div></details></article>').join('')+'</div>':
+   '<p class="team-summary-empty">Belum ada tim yang selesai ditetapkan.</p>'):
+  (missing.length?
+   '<div class="team-summary-pending-list">'+missing.map(x=>'<article class="team-summary-pending-row"><div><strong>'+esc(x.t.name)+'</strong><small>'+esc(x.reason||'Susunan tim belum ditetapkan lengkap')+'</small></div>'+action(x,'Lengkapi Tim')+'</article>').join('')+'</div>':
+   '<p class="team-summary-complete">✓ Seluruh tim aktif sudah ditetapkan. Tidak ada tim yang perlu dilengkapi.</p>');
+ dialog.innerHTML=`<div class="team-establishment-shell">
+  <header class="team-establishment-head">
+   <div><span class="team-establishment-eyebrow">PENETAPAN SUSUNAN TIM</span>
+    <h2 id="establishedTeamDialogTitle">Rincian Penetapan Tim ${activeYear}</h2>
+    <p>Pantau ketua dan anggota tim. Pilih status untuk melihat daftar yang sesuai.</p>
+   </div>
+   <button type="button" class="team-establishment-close" id="establishedTeamDialogClose" aria-label="Tutup Rincian Penetapan Tim">×</button>
+  </header>
+  <div class="team-establishment-toolbar">
+   <span class="team-establishment-total">${list.length} Tim Aktif</span>
+   <div class="team-status-count" role="group" aria-label="Filter status penetapan tim">
+    <button type="button" class="team-status-filter ${showingReady?'is-active':''}" data-team-summary-dialog-filter="ready" aria-pressed="${showingReady}">✓ ${ready.length} Tim Ditetapkan</button>
+    <button type="button" class="team-status-filter ${showingReady?'':'is-active'}" data-team-summary-dialog-filter="pending" aria-pressed="${!showingReady}">◷ ${missing.length} Tim Belum Lengkap</button>
+   </div>
+  </div>
+  <div class="team-establishment-scroll" id="teamSummaryDialogList" role="region" aria-label="Daftar status penetapan tim" tabindex="0">
+   <div class="team-summary-subheading">${showingReady?'Tim yang Sudah Ditetapkan · '+ready.length:'Tim yang Perlu Dilengkapi · '+missing.length}</div>
+   ${listMarkup}
+  </div>
+  <footer class="team-establishment-foot">Tim nonaktif tidak termasuk hitungan persetujuan akhir. Perubahan anggota harus ditetapkan ulang.</footer>
+ </div>`;
+ $('establishedTeamDialogClose').onclick=()=>dialog.close();
+ dialog.querySelectorAll('[data-team-summary-dialog-filter]').forEach(btn=>btn.onclick=()=>{
+  establishedTeamFilter=btn.dataset.teamSummaryDialogFilter;
+  renderEstablishedTeamDialog();
+  dialog.querySelector('[data-team-summary-dialog-filter="'+establishedTeamFilter+'"]')?.focus({preventScroll:true});
+ });
+ dialog.querySelectorAll('[data-team-summary-edit]').forEach(btn=>btn.onclick=()=>{
   const tid=btn.dataset.teamSummaryEdit;
   if(!roleCanManageTeam(tid))return toast('Akses pengelolaan tim ini tidak tersedia.');
+  dialog.close();
   if($('teamAdminSelect'))$('teamAdminSelect').value=tid;
   if($('annualStageTeamSelect'))$('annualStageTeamSelect').value=tid;
   if(!isBaseYear)annualEditingTeamId=tid;
   renderTeamAdminPage();
-  const stage=$('annualTeamStage');(stage||$('teamAdminGrid'))?.scrollIntoView({behavior:'smooth',block:'start'});
+  const stage=$('annualTeamStage')||$('teamAdminGrid');
+  stage?.scrollIntoView({behavior:'smooth',block:'start'});
  });
+}
+function openEstablishedTeamDialog(filter='ready',trigger=null){
+ const dialog=ensureEstablishedTeamDialog();
+ establishedTeamFilter=filter==='pending'?'pending':'ready';
+ establishedTeamReturnFocus=trigger||document.activeElement;
+ renderEstablishedTeamDialog();
+ if(!dialog.open)dialog.showModal();
+ $('establishedTeamDialogClose')?.focus({preventScroll:true});
+}
+function renderEstablishedTeams(){
+ const el=$('establishedTeamSummary');
+ if(!el)return;
+ el.classList.toggle('hidden',isBaseYear&&!yearSetup.staff?.confirmed);
+ const {list,ready,missing}=establishedTeamSnapshot();
+ el.setAttribute('aria-label','Buka Rincian Penetapan Tim '+activeYear);
+ el.setAttribute('tabindex','0');
+ el.innerHTML=`<div class="section-top team-summary-heading">
+   <div><h3>Ringkasan Penetapan Tim ${activeYear}</h3>
+    <p>Klik kartu atau status di bawah untuk melihat rincian tim.</p></div>
+   <span class="team-summary-open-hint">Lihat Rincian <span aria-hidden="true">↗</span></span>
+  </div>
+  <div class="team-status-count" role="group" aria-label="Buka rincian berdasarkan status">
+   <button type="button" class="team-status-filter" data-team-summary-filter="ready" aria-haspopup="dialog" aria-controls="establishedTeamDialog">✓ ${ready.length} Tim Ditetapkan</button>
+   <button type="button" class="team-status-filter" data-team-summary-filter="pending" aria-haspopup="dialog" aria-controls="establishedTeamDialog">◷ ${missing.length} Tim Belum Lengkap</button>
+   <span class="team-summary-total">${list.length} Tim Aktif</span>
+  </div>`;
+ el.querySelectorAll('[data-team-summary-filter]').forEach(btn=>btn.onclick=()=>{
+  openEstablishedTeamDialog(btn.dataset.teamSummaryFilter,btn);
+ });
+ el.onclick=event=>{
+  if(event.target.closest('[data-team-summary-filter]'))return;
+  openEstablishedTeamDialog('ready',el);
+ };
+ el.onkeydown=event=>{
+  if(event.target===el&&(event.key==='Enter'||event.key===' ')){
+   event.preventDefault();openEstablishedTeamDialog('ready',el);
+  }
+ };
 }
 /* Daftar Tim tahunan: eksplisit seperti Daftar Pegawai, satu tim
    terpilih untuk penyuntingan; menghapus tidak boleh merusak riwayat. */
