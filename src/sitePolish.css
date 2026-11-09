@@ -1113,3 +1113,24 @@
  #pageDashboard>.combined-metrics>article>strong,
  .page :is(.mon-kpi .kpi-value,.tl-kpi .v,.recon-card .recon-value,.kro-audit-kpi strong,.stat b){animation:none!important}
 }
+
+
+/* Balanced paired monitoring cards after task list moved to a popup.
+   Preserve equal heights, but remove the obsolete 740px desktop ceiling
+   that left a large blank region under the employee detail button. */
+@media(min-width:1241px){
+ #pageDashboard .monitor-main-grid > :is(.chart-panel,.person-panel){
+  height:clamp(470px,54dvh,560px)!important;
+  max-height:560px!important
+ }
+ #pageDashboard .monitor-main-grid #barRows{
+  flex:1 1 0;
+  min-height:0;
+  overflow-y:auto!important;
+ }
+ #pageDashboard .monitor-main-grid .person-panel #personDetails{
+  flex:0 0 auto!important;
+  height:auto!important;
+  overflow:visible!important;
+ }
+}
