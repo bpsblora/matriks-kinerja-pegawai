@@ -708,6 +708,29 @@ function refreshStageNav(){
 function yearRosterRecord(tid){return demoRoster[tid]||{leaderId:'',members:[]}}
 function equalIds(a,b){return [...new Set(a||[])].sort().join('|')===[...new Set(b||[])].sort().join('|')}
 function yearTeamReady(tid){if(isBaseYear)return true;const record=yearSetup.teams[tid],ro=yearRosterRecord(tid);return staffReady()&&!!record&&ro.leaderId===record.leaderId&&equalIds(record.members,ro.members)}
+/* Persetujuan tahunan mencakup SELURUH tim aktif, bukan hanya tim
+   berkegiatan. Ketua wajib merupakan anggota dan semua identitas yang
+   ditetapkan harus berasal dari Daftar Pegawai tahun berjalan. */
+function teamEstablishmentIssue(tid){
+ const team=demoTeams.find(t=>String(t.id)===String(tid));
+ if(!team||team.active===false)return 'Tim tidak aktif';
+ if(!yearSetup.staff?.confirmed||(yearSetup.staff.ids||[]).length===0)return 'Daftar Pegawai belum ditetapkan';
+ const roster=yearRosterRecord(tid),record=yearSetup.teams?.[tid];
+ const allowed=new Set(yearSetup.staff.ids||[]);
+ if(!record)return 'Susunan tim belum ditetapkan';
+ if(!roster.leaderId||!allowed.has(roster.leaderId))return 'Ketua Tim belum valid';
+ if(!(roster.members||[]).length)return 'Anggota Tim belum dipilih';
+ if(!roster.members.includes(roster.leaderId))return 'Ketua Tim belum menjadi Anggota';
+ if(roster.members.some(id=>!allowed.has(id)))return 'Anggota di luar Daftar Pegawai';
+ if(record.leaderId!==roster.leaderId||!equalIds(record.members,roster.members))return 'Perubahan anggota belum ditetapkan ulang';
+ if(!(record.members||[]).includes(record.leaderId))return 'Ketua belum tercatat sebagai anggota pada penetapan';
+ return '';
+}
+function annualTeamCompletion(){
+ const all=demoTeams.filter(t=>t.active!==false);
+ const pending=all.map(t=>({id:t.id,name:t.name,reason:teamEstablishmentIssue(t.id)})).filter(x=>x.reason);
+ return {total:all.length,ready:all.length-pending.length,pending};
+}
 function yearKroReady(tid){if(isBaseYear)return true;const record=yearSetup.kros[tid],team=demoTeams.find(t=>t.id===tid);return yearTeamReady(tid)&&!!record&&record.length>0&&equalIds(record,team?.kroCodes||[])}
 function allowYearTask(tid){if(demoTeams.find(t=>t.id===tid)?.active===false){toast('Tim sedang nonaktif. Aktifkan kembali melalui Kelola Tim sebelum input alokasi baru.');setPage('teams');return false}if(isBaseYear)return true;if(!predecessorHasData()){toast('Isi dan simpan Matriks '+(activeYear-1)+' terlebih dahulu.');return false}if(yearInfo().status==='closed'){toast('Siapkan draf '+activeYear+' dari panel periode tahun.');return false}if(!staffReady()){toast('Tetapkan daftar pegawai '+activeYear+' terlebih dahulu di Kelola Tim.');setPage('teams');return false}if(!yearTeamReady(tid)){toast('Tetapkan ketua dan anggota tim '+activeYear+' dahulu.');setPage('teams');return false}if(!yearKroReady(tid)){toast('Tetapkan pilihan KRO tim ini di menu Pembagian KRO sebelum menginput kegiatan.');setPage('kro');return false}return true}
 function renderYearStaff(){
@@ -742,7 +765,8 @@ function renderYearSetup(){
   prevReady?'Data '+(activeYear-1)+' tersedia sebagai referensi. Tetapkan pegawai dan tim untuk '+activeYear+', lalu buka Pembagian KRO.':'Data '+(activeYear-1)+' belum tersedia. Lengkapi terlebih dahulu matriks tahun sebelumnya.';
  $('annualPreviousInfo').className='annual-source '+(prevReady?'':'annual-warning');
  $('annualStaffState').textContent=allReady&&!staffEditing?'✓ Ditetapkan · '+yearSetup.staff.ids.length+' pegawai':'1. Perlu penetapan';
- $('annualTeamState').textContent=teamOk&&!teamEditing?'✓ Ditetapkan':'2. Perlu penetapan';
+ const progress=annualTeamCompletion();
+ $('annualTeamState').textContent=progress.ready+' / '+progress.total+' Tim Ditetapkan';
  $('annualKroState').textContent=kroOk&&!kroEditing?'✓ Ditetapkan':'3. Perlu penetapan';
  const steps=panel.querySelectorAll('.annual-step');
  steps.forEach((step,i)=>{const done=[allReady&&!staffEditing,teamOk&&!teamEditing,kroOk&&!kroEditing][i];const current=i===0?!done:(i===1?allReady&&!staffEditing&&!done:teamOk&&!teamEditing&&!done);const locked=(i===1&&!allReady)||(i===2&&!teamOk);step.classList.toggle('is-done',done);step.classList.toggle('is-current',current);step.classList.toggle('is-locked',locked)});
@@ -825,14 +849,16 @@ function copyPreviousRoster(){const tid=currentRole==='ketua'?roleTeamId:$('team
 function confirmTeamYear(){
  const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
  if(!roleCanManageTeam(tid)||!staffReady()||yearInfo().status==='closed'||(isBaseYear&&!yearSetup.staff?.confirmed))return;
+ if(demoTeams.find(t=>String(t.id)===String(tid))?.active===false)return toast('Tim nonaktif tidak dapat ditetapkan.');
  const allowed=new Set(yearSetup.staff.ids||[]),leaderId=(currentRole==='admin'||currentRole==='kepala')?$('teamAdminLeader').value:(demoRoster[tid]?.leaderId||'');
  if(!leaderId||!allowed.has(leaderId))return toast('Pilih ketua dari daftar pegawai yang sudah ditetapkan.');
- if(!adminMemberWorking.size)return toast('Pilih minimal satu anggota tim.');
+ if(!adminMemberWorking.size)return toast('Pilih minimal satu anggota tim, termasuk Ketua Tim.');
+ if(!adminMemberWorking.has(leaderId))return toast('Ketua Tim wajib ikut dicentang sebagai anggota.');
  if([...adminMemberWorking].some(id=>!allowed.has(id)))return toast('Ada anggota di luar daftar pegawai yang ditetapkan.');
  const old=yearSetup.teams[tid];
  const changed=!old||old.leaderId!==leaderId||!equalIds(old.members,[...adminMemberWorking]);
  // Simpan sekaligus menetapkan, tanpa menekan tombol Simpan Pengaturan Tim lagi.
- saveTeamAdmin();
+ if(saveTeamAdmin()!==true)return;
  const ro=yearRosterRecord(tid);
  if(!ro.leaderId||!(ro.members||[]).length)return;
  yearSetup.teams[tid]={leaderId:ro.leaderId,members:[...ro.members].sort(),at:new Date().toISOString(),by:roleActor()};
