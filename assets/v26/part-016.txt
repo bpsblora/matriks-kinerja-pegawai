@@ -211,7 +211,7 @@ function renderTeamDirectory(){
  host.scrollTop=scroll;
  $('teamAdminDirectoryCount').textContent=nf(rows.length)+' dari '+nf(demoTeams.length)+' Tim Kerja · Tahun '+activeYear;
  host.querySelectorAll('[data-team-dir-pick]').forEach(btn=>btn.onclick=()=>selectTeamFromDirectory(btn.dataset.teamDirPick));
- host.querySelectorAll('[data-team-dir-edit]').forEach(btn=>btn.onclick=()=>selectTeamFromDirectory(btn.dataset.teamDirEdit,true));
+ host.querySelectorAll('[data-team-dir-edit]').forEach(btn=>btn.onclick=()=>renameTeamFromDirectory(btn.dataset.teamDirEdit));
  host.querySelectorAll('[data-team-dir-delete]').forEach(btn=>btn.onclick=()=>deleteTeamAdmin(btn.dataset.teamDirDelete));
 }
 function selectTeamFromDirectory(tid,edit=false){
@@ -225,7 +225,7 @@ function renderTeamAdminPage(){
  if(!$('pageTeams'))return;refreshTeamStore();syncAllTeamSelectors();
  const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;const team=demoTeams.find(t=>t.id===tid);if(!team)return;
  $('teamAdminSelect').value=tid;
- const isCentral=currentRole==='admin'||currentRole==='kepala';$('teamAdminSelect').disabled=!isCentral;$('teamAdminNew').classList.toggle('hidden',!isCentral);$('teamAdminDelete').classList.add('hidden');$('teamAdminName').disabled=!isCentral;$('teamAdminLeader').disabled=!isCentral;
+ const isCentral=currentRole==='admin'||currentRole==='kepala';$('teamAdminSelect').disabled=!isCentral;$('teamAdminNew').classList.toggle('hidden',!isCentral);$('teamAdminNew').disabled=!isCentral||yearInfo().status==='closed';$('teamAdminDelete').classList.add('hidden');$('teamAdminName').disabled=!isCentral;$('teamAdminLeader').disabled=!isCentral;
  $('teamAdminName').value=team.name;
  const ro=demoRoster[tid]||{members:[]},leaderId=ro.leaderId||'';
  const leaderOptions=[{value:'',label:'Belum ditetapkan'},...BASE.employees.filter(e=>e.type==='pegawai'&&e.active!==false&&(isBaseYear?(!yearSetup.staff?.confirmed||(yearSetup.staff.ids||[]).includes(e.id)):(!staffReady()||(yearSetup.staff.ids||[]).includes(e.id)))).map(e=>({value:e.id,label:e.full_name}))];
@@ -276,17 +276,54 @@ function saveTeamAdmin(){
  persist();rebuild();syncAllTeamSelectors();if(currentRole==='ketua')selectedTeam=roleTeamId;if($('teamSelect'))$('teamSelect').value=selectedTeam;
  renderKroOptions(teamKroCodes(selectedTeam)[0]||NO_KRO);renderGroups();renderYearUI();renderTeamAdminPage();renderTeamRosterHint();if(selectedId)renderStaff();toast('Tim diperbarui. Pilihan pegawai pada Input Alokasi otomatis mengikuti anggota aktif tim ini.');
 }
-async function createTeamAdmin(){
- if(!(currentRole==='admin'||currentRole==='kepala'))return;
- const name=await uiPrompt('Nama tim baru:');if(!name||!name.trim())return;const clean=name.trim();if(demoTeams.some(t=>t.name.toLocaleLowerCase('id')===clean.toLocaleLowerCase('id')))return toast('Nama tim sudah ada.');
- const id='TEAM-'+Date.now();demoTeams.push({id,name:clean,kroCodes:[]});demoRoster[id]={leaderId:'',leaderName:'',members:[]};saveTeamStore();localStorage.setItem(ROSTER_KEY,JSON.stringify(demoRoster));syncAllTeamSelectors();$('teamAdminSelect').value=id;renderTeamAdminPage();logChange('Tambah tim kerja',clean);persist();toast('Tim baru ditambahkan; lengkapi penugasan dan KRO.');
+async function renameTeamFromDirectory(tid){
+ if(!(currentRole==='admin'||currentRole==='kepala')||yearInfo().status==='closed')return toast('Pengubahan nama tim tidak tersedia pada periode ini.');
+ const team=demoTeams.find(t=>String(t.id)===String(tid));if(!team)return;
+ const response=await uiPrompt('Ubah nama tim kerja:',team.name,'Edit Nama Tim');
+ if(response===null||response===undefined)return;
+ const name=String(response).trim();
+ if(!name)return toast('Nama tim wajib diisi.');
+ if(demoTeams.some(t=>String(t.id)!==String(tid)&&t.name.toLocaleLowerCase('id')===name.toLocaleLowerCase('id')))return toast('Nama tim sudah digunakan.');
+ if(name===team.name)return;
+ const previous=team.name;
+ team.name=name;
+ for(const a of BASE.activities.filter(a=>String(a.team_id)===String(tid)))state.activityEdits[a.id]={...(state.activityEdits[a.id]||{}),team:name};
+ for(const a of state.added.filter(a=>String(a.team_id)===String(tid)))a.team=name;
+ saveTeamStore();persist();rebuild();syncAllTeamSelectors();
+ $('teamAdminSelect').value=tid;
+ logChange('Ubah nama tim',previous+' → '+name);
+ renderTeamAdminPage();renderYearUI();toast('Nama tim telah diperbarui. Kegiatan dan alokasi tetap terkait pada ID tim yang sama.');
 }
-async function deleteTeamAdmin(){
+async function createTeamAdmin(){
+ if(!(currentRole==='admin'||currentRole==='kepala')||yearInfo().status==='closed')return toast('Tambah tim hanya dapat dilakukan Admin/Kepala pada tahun yang terbuka.');
+ const name=await uiPrompt('Nama tim kerja baru:','','Tambah Tim Kerja');if(name===null||name===undefined)return;
+ const clean=String(name).trim();
+ if(!clean)return toast('Nama tim wajib diisi.');
+ if(demoTeams.some(t=>t.name.toLocaleLowerCase('id')===clean.toLocaleLowerCase('id')))return toast('Nama tim sudah digunakan.');
+ const id='TEAM-'+Date.now();
+ demoTeams.push({id,name:clean,kroCodes:[]});
+ demoRoster[id]={leaderId:'',leaderName:'',members:[]};
+ saveTeamStore();try{localStorage.setItem(ROSTER_KEY,JSON.stringify(demoRoster))}catch(e){}
+ syncAllTeamSelectors();$('teamAdminSelect').value=id;
+ $('teamAdminSearch').value='';
+ logChange('Tambah tim kerja',clean);persist();renderTeamAdminPage();
+ toast('Tim baru ditambahkan ke daftar '+activeYear+'. Tetapkan ketua dan anggota sebelum input kegiatan.');
+}
+async function deleteTeamAdmin(requestedId=null){
  if(!(currentRole==='admin'||currentRole==='kepala'))return;
- const id=$('teamAdminSelect').value,team=demoTeams.find(t=>t.id===id);if(!team)return;
- if(activities.some(a=>a.team_id===id))return toast('Tim sudah mempunyai kegiatan; nonaktifkan dan arsipkan kegiatan dahulu.');
- if(!await uiConfirm('Hapus tim '+team.name+' dari daftar?'))return;
- demoTeams=demoTeams.filter(t=>t.id!==id);delete demoRoster[id];saveTeamStore();localStorage.setItem(ROSTER_KEY,JSON.stringify(demoRoster));syncAllTeamSelectors();renderTeamAdminPage();logChange('Hapus tim kerja',team.name);persist();toast('Tim tidak digunakan telah dihapus.');
+ const id=typeof requestedId==='string'?requestedId:$('teamAdminSelect').value;
+ const team=demoTeams.find(t=>String(t.id)===String(id));if(!team)return;
+ const reason=teamDeletionReason(id);
+ if(reason)return toast('Tim '+team.name+' tidak dapat dihapus: '+reason+'.');
+ if(!await uiConfirm('Hapus tim '+team.name+' dari daftar tahun '+activeYear+'? Tim tanpa kegiatan atau penetapan saja yang dapat dihapus.','Hapus Tim Kerja',true))return;
+ if(teamDeletionReason(id))return toast('Tim sudah memiliki ketergantungan dan tidak dapat dihapus.');
+ const fallback=demoTeams.find(t=>String(t.id)!==String(id))?.id||'';
+ demoTeams=demoTeams.filter(t=>String(t.id)!==String(id));delete demoRoster[id];
+ saveTeamStore();try{localStorage.setItem(ROSTER_KEY,JSON.stringify(demoRoster))}catch(e){}
+ syncAllTeamSelectors();$('teamAdminSelect').value=fallback;
+ if(String(selectedTeam)===String(id)){selectedTeam=fallback;selectedGroup='';selectedId=null;}
+ logChange('Hapus tim kerja',team.name+' · '+activeYear);persist();
+ renderTeamAdminPage();renderYearUI();toast('Tim tanpa riwayat telah dihapus dari daftar '+activeYear+'.');
 }
 function roleActor(){return ({admin:'Admin',kepala:'Kepala BPS',ketua:'Ketua Tim',pegawai:'Pegawai · View'})[currentRole]+(currentRole==='ketua'?' · '+(teamMap.get(roleTeamId)?.name||''):'')}
 function canEdit(teamId){return currentRole==='admin'||currentRole==='kepala'||(currentRole==='ketua'&&teamId===roleTeamId)}
