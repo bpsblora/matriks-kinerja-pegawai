@@ -169,6 +169,7 @@ function renderKroMap(){
 function paintTeamAdminMembers(){const q=$('teamAdminMemberSearch').value.trim().toLocaleLowerCase('id'),tid=$('teamAdminSelect').value;const ro=demoRoster[tid]||{members:[]};const members=new Set(ro.members||[]);const rows=BASE.employees.filter(e=>e.type==='pegawai'&&e.full_name.toLocaleLowerCase('id').includes(q));$('teamAdminMembers').innerHTML=rows.map(e=>`<label><input type="checkbox" data-team-member="${esc(e.id)}" ${members.has(e.id)?'checked':''}><span>${esc(e.full_name)}</span></label>`).join('')||'<div class="empty">Pegawai tidak ditemukan.</div>';
 }
 let adminMemberWorking=new Set();
+let establishedTeamFilter='ready'; // preserve the chosen status while other team settings update
 function renderEstablishedTeams(){
  const el=$('establishedTeamSummary');if(!el)return;
  el.classList.toggle('hidden',isBaseYear&&!yearSetup.staff?.confirmed);
@@ -177,11 +178,33 @@ function renderEstablishedTeams(){
  const ready=list.filter(x=>x.complete),missing=list.filter(x=>!x.complete);
  const canEdit=yearInfo().status!=='closed'&&currentRole!=='pegawai'&&currentRole!=='view';
  const action=(x,label)=>canEdit&&roleCanManageTeam(x.t.id)?`<button class="btn tiny soft" type="button" data-team-summary-edit="${esc(x.t.id)}">${label}</button>`:'';
- el.innerHTML=`<div class="section-top team-summary-heading"><div><h3>Ringkasan Penetapan Tim ${activeYear}</h3><p>Pantau susunan tim yang sudah ditetapkan dan tim yang masih perlu dilengkapi.</p></div><span class="badge">${list.length} Tim</span></div>
-  <div class="team-status-count"><span>✓ ${ready.length} Tim ditetapkan</span><span>◷ ${missing.length} Tim belum lengkap</span></div>
-  <div class="team-summary-subheading">Tim yang Sudah Ditetapkan</div>
-  ${ready.length?`<div class="team-summary-ready">${ready.map(x=>`<article class="team-summary-item"><div class="team-summary-item-top"><div><strong>${esc(x.t.name)}</strong><span class="team-summary-state ready">Sudah Ditetapkan</span></div>${action(x,'Edit Tim')}</div><p>Ketua: <b>${esc(employeeName(x.ro.leaderId))}</b> · ${x.ids.length} anggota</p><details><summary>Lihat anggota (${x.ids.length})</summary><div class="team-summary-members">${x.ids.map(employeeName).map(esc).join(', ')}</div></details></article>`).join('')}</div>`:'<p class="team-summary-empty">Belum ada susunan tim yang ditetapkan.</p>'}
-  ${missing.length?`<details class="team-summary-pending"><summary>Tim yang Perlu Dilengkapi (${missing.length})</summary><div class="team-summary-pending-list">${missing.map(x=>`<div class="team-summary-pending-row"><span>${esc(x.t.name)}</span>${action(x,'Lengkapi Tim')}</div>`).join('')}</div></details>`:'<p class="team-summary-complete">Seluruh tim telah ditetapkan.</p>'}`;
+ const showingReady=establishedTeamFilter!=='pending';
+ el.innerHTML=`<div class="section-top team-summary-heading"><div><h3>Ringkasan Penetapan Tim ${activeYear}</h3><p>Klik salah satu status untuk memeriksa tim yang sudah ditetapkan atau masih perlu dilengkapi.</p></div><span class="badge">${list.length} Tim Aktif</span></div>
+  <div class="team-status-count" role="group" aria-label="Filter status penetapan tim">
+   <button type="button" class="team-status-filter ${showingReady?'is-active':''}" data-team-summary-filter="ready" aria-controls="teamSummaryList" aria-pressed="${showingReady}"><span aria-hidden="true">✓</span> ${ready.length} Tim Ditetapkan</button>
+   <button type="button" class="team-status-filter ${!showingReady?'is-active':''}" data-team-summary-filter="pending" aria-controls="teamSummaryList" aria-pressed="${!showingReady}"><span aria-hidden="true">◷</span> ${missing.length} Tim Belum Lengkap</button>
+  </div>
+  <div id="teamSummaryList" class="team-summary-content" aria-live="polite">
+   <div class="team-summary-view" data-team-summary-view="ready" ${showingReady?'':'hidden'}>
+    <div class="team-summary-subheading">Tim yang Sudah Ditetapkan · ${ready.length}</div>
+    ${ready.length?`<div class="team-summary-ready">${ready.map(x=>`<article class="team-summary-item"><div class="team-summary-item-top"><div><strong>${esc(x.t.name)}</strong><span class="team-summary-state ready">Sudah Ditetapkan</span></div>${action(x,'Lihat / Edit Tim')}</div><p>Ketua: <b>${esc(employeeName(x.ro.leaderId))}</b> · ${x.ids.length} Anggota</p><details><summary>Lihat Anggota (${x.ids.length})</summary><div class="team-summary-members">${x.ids.map(employeeName).map(esc).join(', ')}</div></details></article>`).join('')}</div>`:'<p class="team-summary-empty">Belum ada tim yang selesai ditetapkan.</p>'}
+   </div>
+   <div class="team-summary-view" data-team-summary-view="pending" ${showingReady?'hidden':''}>
+    <div class="team-summary-subheading">Tim yang Perlu Dilengkapi · ${missing.length}</div>
+    ${missing.length?`<div class="team-summary-pending-list">${missing.map(x=>`<article class="team-summary-pending-row"><div><strong>${esc(x.t.name)}</strong><small>${esc(teamEstablishmentIssue(x.t.id)||'Susunan tim belum ditetapkan lengkap')}</small></div>${action(x,'Lengkapi Tim')}</article>`).join('')}</div>`:'<p class="team-summary-complete">✓ Seluruh tim aktif sudah ditetapkan. Tidak ada tim yang perlu dilengkapi.</p>'}
+   </div>
+  </div>`;
+ el.querySelectorAll('[data-team-summary-filter]').forEach(btn=>btn.onclick=()=>{
+  establishedTeamFilter=btn.dataset.teamSummaryFilter;
+  el.querySelectorAll('[data-team-summary-filter]').forEach(item=>{
+   const selected=item.dataset.teamSummaryFilter===establishedTeamFilter;
+   item.classList.toggle('is-active',selected);
+   item.setAttribute('aria-pressed',String(selected));
+  });
+  el.querySelectorAll('[data-team-summary-view]').forEach(view=>{
+   view.hidden=view.dataset.teamSummaryView!==establishedTeamFilter;
+  });
+ });
  el.querySelectorAll('[data-team-summary-edit]').forEach(btn=>btn.onclick=()=>{
   const tid=btn.dataset.teamSummaryEdit;
   if(!roleCanManageTeam(tid))return toast('Akses pengelolaan tim ini tidak tersedia.');
