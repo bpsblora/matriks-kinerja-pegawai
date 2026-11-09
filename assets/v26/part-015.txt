@@ -413,7 +413,8 @@ function openPersonWorkDialog({employee,period,total,groups,detailCount},trigger
   </div>
   <div class="person-work-dialog-stats">
    <div><small>Total Beban Pekerjaan</small><strong>${nf(total)} Jam</strong></div>
-   <div><small>Kelompok Tim–Kegiatan</small><strong>${nf(groups.length)}</strong></div>
+   <div><small>Tim Terlibat</small><strong>${nf(new Set(groups.map(g=>g.team)).size)}</strong></div>
+   <div><small>Kegiatan Tim</small><strong>${nf(groups.length)}</strong></div>
    <div><small>Uraian Pekerjaan</small><strong>${nf(detailCount)}</strong></div>
   </div>
   <div class="person-work-dialog-scroll" tabindex="0" role="region" aria-label="Daftar beban kerja berdasarkan Tim dan Kegiatan">
@@ -455,31 +456,19 @@ function renderPerson(data,period,team,annual,monthly){
  $('personSummary').innerHTML=`<div class="personinfo"><div class="person-metrics"><div class="person-metric primary"><div class="pm-label">Total Jam</div><div class="pm-value">${nf(total)}</div><div class="pm-sub">Jam-Orang</div></div><div class="person-metric"><div class="pm-label">Rata-rata Harian</div><div class="pm-value">${nf(total/days)}</div><div class="pm-sub">Jam/Hari Kerja Efektif</div></div><div class="person-metric"><div class="pm-label">Kapasitas Terpakai</div><div class="pm-value">${nf(ratio.pct)}%</div><div class="pm-sub">Dari ${nf(cap)} Jam Kapasitas Acuan</div></div><div class="person-metric"><div class="pm-label">Rata-rata per Bulan</div><div class="pm-value">${nf(total/(period==='annual'||period==='monthly'?12:1))}</div><div class="pm-sub">Jam per Bulan dalam Periode</div></div></div>${auditMarkup}</div>`;
 
  const groups=groupPersonWorkload(rows);
- const featuredGroups=groups.slice(0,5);
- const workPreview=featuredGroups.map((g,i)=>`<article class="person-work-preview-row">
-  <span class="person-work-preview-rank" aria-hidden="true">${i+1}</span>
-  <div class="person-work-preview-main">
-   <span class="person-work-preview-team">Tim: ${esc(g.team)}</span>
-   <strong class="person-work-preview-activity" title="${esc(g.activity)}">${esc(g.activity)}</strong>
-   <div class="person-work-preview-tasks">
-    ${g.items.slice(0,2).map(item=>`<span title="${esc(item.title)}">${esc(item.title)}</span>`).join('')}
-    ${g.items.length>2?`<small>+${nf(g.items.length-2)} Uraian Lainnya</small>`:''}
-   </div>
-  </div>
-  <div class="person-work-preview-hours"><strong>${nf(g.hours)} Jam</strong><small>${nf(total?g.hours/total*100:0)}% Total</small></div>
- </article>`).join('');
- $('personDetails').innerHTML=`<section class="person-work-preview" aria-label="Ringkasan Kegiatan dan Uraian Pekerjaan">
-  <header class="person-work-preview-heading">
-   <div><h4>Kegiatan dan Uraian Pekerjaan</h4><p>Berdasarkan beban Jam terbesar pada periode terpilih</p></div>
-   <span class="person-work-preview-total">${nf(groups.length)} Kegiatan</span>
-  </header>
-  <div class="person-work-preview-list" tabindex="0" role="region" aria-label="Daftar ringkas beban pekerjaan">
-   ${groups.length?workPreview:'<p class="person-work-preview-empty">Belum ada pekerjaan yang dialokasikan pada periode dan tim ini.</p>'}
-  </div>
-  ${groups.length>featuredGroups.length?`<p class="person-work-preview-more">${nf(groups.length-featuredGroups.length)} Kelompok Kegiatan Lainnya Tersedia dalam Rincian Lengkap</p>`:''}
- </section>
- <button type="button" id="openPersonWorkDialog" class="person-work-trigger" ${groups.length?'':'disabled'}>
-  <span><strong>Lihat Semua Beban Pekerjaan</strong><small>${nf(rows.length)} Uraian Pekerjaan · ${nf(groups.length)} Kelompok Tim–Kegiatan</small></span>
+ const teamCount=new Set(groups.map(g=>g.team)).size;
+ $('personDetails').innerHTML=`<button type="button" id="openPersonWorkDialog" class="person-work-trigger person-work-trigger-large" ${groups.length?'':'disabled'}>
+  <span class="person-work-trigger-content">
+   <span class="person-work-trigger-eyebrow">RINCIAN BEBAN KERJA PEGAWAI</span>
+   <strong>Lihat Semua Beban Pekerjaan</strong>
+   <span class="person-work-trigger-description">Pegawai ini memiliki alokasi pekerjaan pada periode terpilih:</span>
+   <span class="person-work-trigger-metrics">
+    <span><b>${nf(teamCount)}</b> Tim</span>
+    <span><b>${nf(groups.length)}</b> Kegiatan</span>
+    <span><b>${nf(rows.length)}</b> Uraian Pekerjaan</span>
+   </span>
+   <span class="person-work-trigger-note">Klik untuk melihat nama kegiatan, uraian tugas, dan alokasi Jam tiap pekerjaan.</span>
+  </span>
   <span class="person-work-arrow" aria-hidden="true">›</span>
  </button>`;
  $('openPersonWorkDialog').onclick=event=>openPersonWorkDialog({
