@@ -2074,3 +2074,235 @@
  padding-top:9px;
  border-top:1px solid #e2edf7;
 }
+
+/* Kelola Tim: alur tunggal (pilih tim → tetapkan susunan → KRO → kegiatan).
+   Nama Tim hanya disunting di Daftar Tim; tidak ada tombol kelola kegiatan
+   sebelum tahap susunan dipastikan tersimpan. */
+#pageTeams #annualTeamStage .annual-stage-select{display:none!important}
+#pageTeams #annualTeamGridSlot .team-admin-grid{
+ display:grid;
+ grid-template-columns:minmax(285px,.77fr) minmax(0,1.23fr);
+ gap:14px;
+ align-items:start!important;
+}
+#pageTeams #teamAdminGrid>.team-admin-card{
+ min-width:0;
+ padding:17px!important;
+}
+#pageTeams .team-admin-list>.section-top{margin-bottom:2px}
+#pageTeams .team-admin-list>.section-top h3,
+#pageTeams .team-admin-grid>.team-admin-card>.section-top h3{
+ font-size:16px;
+ font-weight:900;
+ line-height:1.35;
+}
+#pageTeams .team-admin-list .team-admin-actions{display:none!important}
+#pageTeams .team-focus-name{
+ display:inline-flex;
+ align-items:center;
+ flex:0 1 auto;
+ max-width:46%;
+ padding:7px 10px;
+ border:1px solid #b9d9f6;
+ border-radius:10px;
+ color:#145d99;
+ background:#e7f3ff;
+ font-size:11.5px;
+ font-weight:900;
+ text-align:right;
+ overflow-wrap:anywhere;
+}
+#pageTeams .team-roster-guide{
+ padding:11px 13px;
+ margin:2px 0 11px;
+ border:1px solid #d3e5f5;
+ border-left:3px solid #2a84c8;
+ border-radius:10px;
+ background:#f3f9ff;
+ color:#416d90;
+ font-size:12px;
+ font-weight:750;
+ line-height:1.5;
+}
+#pageTeams .team-roster-leader{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ margin-bottom:11px;
+}
+#pageTeams .team-roster-leader .field{min-width:0}
+#pageTeams .team-roster-members{margin:0!important}
+#pageTeams .team-roster-members>label,
+#pageTeams .team-roster-leader label{
+ display:block;
+ margin-bottom:6px;
+ color:#174d79;
+ font-size:12px;
+ font-weight:900;
+}
+#pageTeams .team-roster-members .team-admin-members{
+ box-sizing:border-box;
+ max-height:min(43dvh,325px);
+ overflow-y:auto;
+ overflow-x:hidden;
+ border-radius:12px;
+}
+#pageTeams .team-roster-members>.team-admin-note{
+ display:block;
+ margin-top:8px;
+ color:#62809b;
+ line-height:1.45;
+}
+#pageTeams .team-roster-action-slot{
+ margin:13px 0 8px;
+ border-top:1px solid #e2eef7;
+ padding-top:12px;
+}
+#pageTeams .team-roster-action-slot .annual-team-actions{
+ margin:0!important;
+ padding:0!important;
+ display:flex;
+ flex-wrap:wrap;
+ justify-content:flex-start;
+ gap:8px;
+}
+#pageTeams .team-roster-action-slot .annual-team-actions .btn{
+ min-height:37px;
+ padding:9px 12px;
+ border-radius:10px;
+ font-size:11.5px;
+ font-weight:850;
+}
+#pageTeams .team-kro-next{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:12px;
+ border:1px solid #d7e7f5;
+ border-radius:13px;
+ background:#fbfdff;
+ padding:13px 14px;
+ margin:12px 0;
+}
+#pageTeams .team-kro-next>div{min-width:0}
+#pageTeams .team-kro-next strong{
+ display:block;
+ margin-bottom:3px;
+ font-size:12px;
+ color:#154d7e;
+ font-weight:900;
+}
+#pageTeams .team-kro-next p{
+ margin:0;
+ max-width:440px;
+ font-size:11px;
+ line-height:1.45;
+ color:#6b88a0;
+}
+#pageTeams .team-kro-next button{
+ min-width:155px;
+ min-height:36px;
+ flex:0 0 auto;
+ white-space:normal;
+ font-size:11px;
+}
+#pageTeams .team-activity-overview{
+ padding:13px 14px;
+ margin-top:12px;
+ border:1px solid #c9e2f7;
+ border-radius:14px;
+ background:linear-gradient(130deg,#f3f9ff,#fcfeff);
+}
+#pageTeams .team-overview-heading{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:12px;
+ margin-bottom:7px;
+}
+#pageTeams .team-overview-heading h4{
+ margin:0;
+ color:#125888;
+ font-size:12.5px;
+ font-weight:900;
+ line-height:1.3;
+}
+#pageTeams #teamOverviewCount{
+ flex:0 0 auto;
+ padding:6px 9px;
+ border-radius:9px;
+ border:1px solid #beddf3;
+ background:#e4f2fe;
+ color:#15609c;
+ font-size:11px;
+ font-weight:900;
+ font-variant-numeric:tabular-nums;
+}
+#pageTeams #teamOverviewSummary{
+ margin:0 0 10px;
+ color:#6688a0;
+ font-size:11px;
+ line-height:1.45;
+}
+#pageTeams .team-overview-list{
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ max-height:98px;
+ overflow-y:auto;
+ scrollbar-width:thin;
+}
+#pageTeams .team-overview-chip{
+ display:inline-flex;
+ max-width:100%;
+ padding:6px 9px;
+ border:1px solid #d1e5f5;
+ border-radius:8px;
+ background:#fff;
+ color:#2b648f;
+ font-size:10.5px;
+ font-weight:800;
+ line-height:1.3;
+ overflow-wrap:anywhere;
+}
+#pageTeams .team-overview-chip.more{
+ color:#176eaa;
+ background:#e8f5ff;
+}
+#pageTeams .team-activity-open{
+ width:100%;
+ min-height:42px;
+ margin:11px 0 4px;
+ padding:10px 13px;
+ border-radius:10px;
+ font-size:12px;
+ font-weight:900;
+}
+#pageTeams .team-activity-open:disabled,
+#pageTeams .team-kro-next button:disabled{
+ opacity:.55;
+ cursor:not-allowed;
+ box-shadow:none;
+}
+#pageTeams #teamNextHint{
+ display:block;
+ margin:6px 0 0;
+ color:#537994;
+ line-height:1.5;
+ font-size:11px;
+}
+@media(max-width:1050px){
+ #pageTeams #annualTeamGridSlot .team-admin-grid{
+  grid-template-columns:minmax(0,1fr);
+ }
+ #pageTeams #teamAdminGrid>.team-admin-card{
+  max-height:none!important;
+  overflow:visible!important;
+ }
+ #pageTeams .team-admin-list .team-directory-list{max-height:min(36dvh,300px)}
+}
+@media(max-width:600px){
+ #pageTeams .team-kro-next{flex-direction:column;align-items:stretch}
+ #pageTeams .team-kro-next button{width:100%}
+ #pageTeams .team-focus-name{max-width:55%}
+ #pageTeams .team-overview-heading{align-items:flex-start;flex-wrap:wrap}
+}
