@@ -1966,3 +1966,86 @@
 @media(prefers-reduced-motion:reduce){
  #pageTeams .team-directory-row{transition:none}
 }
+
+/* Tim: formulir ubah nama langsung pada baris, termasuk tim historis. */
+#pageTeams .team-directory-status{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:3px}
+#pageTeams .team-directory-status label{font-size:11px;font-weight:850;color:#416e95}
+#pageTeams .team-directory-status select{
+ box-sizing:border-box;
+ min-width:116px;
+ min-height:35px;
+ padding:7px 27px 7px 10px;
+ border:1px solid #c5dcf0;
+ border-radius:9px;
+ background:#f7fbff;
+ color:#1b5b90;
+ font:850 11px Nunito,Arial,sans-serif;
+}
+#pageTeams .team-directory-inline-edit{
+ box-sizing:border-box;
+ display:flex;
+ flex-direction:column;
+ gap:7px;
+ flex:1 1 100%;
+ min-width:0;
+ width:100%;
+ padding:3px;
+}
+#pageTeams .team-directory-inline-edit>label{font-size:10.5px;color:#245b86;font-weight:900}
+#pageTeams .team-directory-inline-edit>input{
+ box-sizing:border-box;
+ width:100%;
+ min-width:0;
+ min-height:37px;
+ border:1px solid #91bfe6;
+ border-radius:9px;
+ padding:8px 10px;
+ background:#fff;
+ color:#163f66;
+ font-size:12px;
+ font-weight:750;
+}
+#pageTeams .team-directory-inline-edit>input:focus{
+ outline:3px solid #d5eaff;
+ outline-offset:1px;
+}
+#pageTeams .team-directory-inline-edit>div{
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+}
+#pageTeams .team-directory-inline-edit .team-directory-action.edit{
+ background:#186bad;
+ color:#fff;
+ border-color:#186bad;
+}
+#pageTeams .team-directory-action.archive{
+ background:#fff8ed;
+ color:#92601e;
+ border-color:#efddb9;
+}
+#pageTeams .team-directory-action.archive:hover:not(:disabled){background:#ffedcb;color:#805118}
+#pageTeams .team-directory-action.restore{
+ background:#eaf8f2;
+ color:#187555;
+ border-color:#c0e4d3;
+}
+#pageTeams .team-directory-action.restore:hover:not(:disabled){background:#d7f2e5}
+#pageTeams .team-directory-row.is-inactive{
+ border-style:dashed;
+ border-color:#c7d6e2;
+ background:#f7f9fb;
+}
+#pageTeams .team-directory-row.is-inactive .team-directory-copy strong{color:#697c91}
+#pageTeams .team-directory-row.is-inactive .team-directory-pick{opacity:.72;cursor:not-allowed}
+#pageTeams .team-directory-actions .team-directory-action{
+ padding:6px 7px;
+ font-size:10px;
+ white-space:normal;
+ overflow-wrap:anywhere;
+}
+@media(max-width:460px){
+ #pageTeams .team-directory-row{flex-wrap:wrap}
+ #pageTeams .team-directory-actions{margin-left:30px}
+ #pageTeams .team-directory-actions .team-directory-action{font-size:10px}
+}
