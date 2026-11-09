@@ -808,6 +808,8 @@ for(const token of [
  "renderEstablishedTeams();renderTeamDirectory();renderTeamWorkflow();",
  "const actions=page.querySelector('#annualTeamStage > .annual-team-actions');",
  "$('teamRosterActionSlot').appendChild(actions);",
+ "for(const id of ['annualConfirmTeam','annualEditTeam','annualCancelTeam'])",
+ "headActions.appendChild(control);",
  "$('teamAdminLeader').onchange=onTeamLeaderChanged;", 
  "drawWorkingMembers();renderYearSetup();renderTeamWorkflow()", 
  "$('teamAdminGoKro').onclick=()=>",
@@ -1091,5 +1093,37 @@ for(const rule of [
  ".team-establishment-dialog .team-summary-pending-list{",
  ".team-establishment-dialog .team-establishment-close:focus-visible"
 ])assert(cssPolish.includes(rule),"Desain pop-up Ringkasan Penetapan Tim tidak lengkap: "+rule);
+
+
+// Confirm/Edit/Cancel should all be in the green header, never underneath
+// the member checklist; only optional copying of prior-year roster remains
+// near that checklist.
+const headerMoveStart=inline.indexOf("const actions=page.querySelector('#annualTeamStage > .annual-team-actions');");
+const headerMoveEnd=inline.indexOf("const steps=panel.querySelectorAll('.annual-step');",headerMoveStart);
+assert(headerMoveStart>=0&&headerMoveEnd>headerMoveStart,
+ "Pemindahan tombol penetapan susunan ke header tidak ditemukan");
+const headerMoveCode=inline.slice(headerMoveStart,headerMoveEnd);
+for(const id of ["annualConfirmTeam","annualEditTeam","annualCancelTeam"]){
+ assert(headerMoveCode.includes("'"+id+"'"),
+  "Tombol "+id+" belum dipindahkan ke header Susunan Tim");
+}
+assert(headerMoveCode.includes("headActions.appendChild(control);"),
+ "Ketiga tombol penetapan harus memakai satu slot aksi bagian atas");
+const staffRenderStart=inline.indexOf("function renderYearSetup(){");
+const staffRenderEnd=inline.indexOf("function confirmStaffYear(){",staffRenderStart);
+const teamHeaderRender=inline.slice(staffRenderStart,staffRenderEnd);
+assert(teamHeaderRender.includes("$('teamRosterActionSlot')?.classList.toggle('hidden',teamComplete||isBaseYear);"),
+ "Area aksi bawah wajib hilang jika salin anggota tahun lalu tidak tersedia");
+for(const rule of [
+ "#pageTeams #annualTeamHeadAction{",
+ "#pageTeams #annualTeamHeadAction>.btn.primary{",
+ "#pageTeams #annualTeamHeadAction>#annualCancelTeam{",
+ "#pageTeams #annualTeamHeadAction>.btn.hidden{display:none!important}",
+ "#pageTeams #teamRosterActionSlot.hidden{",
+ "#pageTeams #annualTeamStage .annual-stage-head>.annual-team-head-right{"
+]) assert(cssPolish.includes(rule),"Layout tombol penetapan di header belum lengkap: "+rule);
+assert(html.includes('id="annualTeamHeadAction"')&&
+ html.includes('id="teamRosterActionSlot"'),
+ "Slot header dan slot tombol salin anggota harus ada tepat satu");
 
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
