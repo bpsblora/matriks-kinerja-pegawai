@@ -504,6 +504,7 @@ function closeTrendPickers(){
 }
 function renderTrendPickerOptions(kind){
  const isTeam=kind==='team',list=$(isTeam?'trendTeamChoices':'trendActivityChoices');
+ const scrollTop=list.scrollTop;
  const query=$(isTeam?'trendTeamSearch':'trendActivitySearch').value.trim().toLocaleLowerCase('id');
  if(isTeam){
   const choices=BASE.teams.filter(t=>!query||t.name.toLocaleLowerCase('id').includes(query));
@@ -520,6 +521,7 @@ function renderTrendPickerOptions(kind){
     return '<label class="trend-picker-choice"><input type="checkbox" data-trend-activity="'+esc(row.key)+'" '+(checked?'checked':'')+'><span>'+esc(row.name)+'<small>'+esc(row.team)+'</small></span></label>';
    }).join('')||'<p class="trend-picker-empty">Tidak ada kegiatan pada tim terpilih.</p>');
  }
+ list.scrollTop=scrollTop;
 }
 function openTrendPicker(kind){
  if(trendPickerOpen===kind){closeTrendPickers();return}
