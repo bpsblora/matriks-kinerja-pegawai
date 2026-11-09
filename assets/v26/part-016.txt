@@ -337,6 +337,47 @@ function renderTeamWorkflow(){
   'Susunan tim'+(isBaseYear?'':' dan KRO')+' siap. Lanjutkan mengelola kegiatan serta alokasi pegawai.';
  const heading=$('teamOverviewHeading');if(heading)heading.textContent=(isBaseYear?'03':'04')+' · Ringkasan Kegiatan Tim';
 }
+/* Two-way leader/member validation.
+   - No member checked yet: Admin/Kepala may choose from annual staff.
+   - Once members are checked: leader options are limited to them.
+   - Choosing a leader automatically checks their membership.
+   - The Ketua role retains its centrally appointed leader. */
+function eligibleAnnualTeamEmployees(){
+ const selected=yearSetup.staff?.confirmed?new Set(yearSetup.staff.ids||[]):null;
+ return BASE.employees.filter(e=>e.type==='pegawai'&&e.active!==false&&(!selected||selected.has(e.id)));
+}
+function syncLeaderWithMembers(){
+ const select=$('teamAdminLeader');if(!select)return;
+ const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
+ const central=currentRole==='admin'||currentRole==='kepala';
+ const appointed=demoRoster[tid]?.leaderId||'';
+ const previous=central?select.value:appointed;
+ const eligible=eligibleAnnualTeamEmployees();
+ const memberIds=new Set(adminMemberWorking);
+ const pool=memberIds.size?eligible.filter(e=>memberIds.has(e.id)):eligible;
+ const list=[{value:'',label:memberIds.size?'Pilih dari Anggota Tercentang':'Pilih Ketua Tim'}];
+ for(const e of pool)list.push({value:e.id,label:e.full_name});
+ // Ketua assigned by the central office remains visible even when a
+ // historical roster needs repair; submission still validates annual IDs.
+ if(!central&&appointed&&!list.some(x=>x.value===appointed)){
+  const e=BASE.employees.find(x=>x.id===appointed);
+  if(e)list.push({value:appointed,label:e.full_name+' · Ketua yang ditunjuk'});
+ }
+ const chosen=list.some(x=>x.value===previous)?previous:'';
+ fillSelect(select,list,chosen);
+ select.value=chosen;
+ $('teamAdminLeaderHint').textContent=memberIds.size?
+  'Ketua hanya dapat dipilih dari anggota yang dicentang. Memilih Ketua otomatis mencentang namanya.':
+  'Pilih Ketua terlebih dahulu untuk otomatis menambahkannya sebagai anggota, atau centang anggota dahulu.';
+}
+function onTeamLeaderChanged(){
+ const chosen=$('teamAdminLeader').value;
+ if(chosen&&chosen!=='external'&&!adminMemberWorking.has(chosen))adminMemberWorking.add(chosen);
+ syncLeaderWithMembers();
+ drawWorkingMembers();
+ $('teamAdminMemberCount').textContent=nf(adminMemberWorking.size);
+ renderYearSetup();renderTeamWorkflow();
+}
 function renderTeamAdminPage(){
  if(!$('pageTeams'))return;refreshTeamStore();syncAllTeamSelectors();
  const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;const team=demoTeams.find(t=>t.id===tid);if(!team)return;
@@ -344,11 +385,11 @@ function renderTeamAdminPage(){
  const isCentral=currentRole==='admin'||currentRole==='kepala';$('teamAdminSelect').disabled=!isCentral;$('teamAdminNew').classList.toggle('hidden',!isCentral);$('teamAdminNew').disabled=!isCentral||yearInfo().status==='closed';$('teamAdminDelete').classList.add('hidden');$('teamAdminName').disabled=!isCentral;$('teamAdminLeader').disabled=!isCentral;
  $('teamAdminName').value=team.name;
  const ro=demoRoster[tid]||{members:[]},leaderId=ro.leaderId||'';
- const leaderOptions=[{value:'',label:'Belum ditetapkan'},...BASE.employees.filter(e=>e.type==='pegawai'&&e.active!==false&&(isBaseYear?(!yearSetup.staff?.confirmed||(yearSetup.staff.ids||[]).includes(e.id)):(!staffReady()||(yearSetup.staff.ids||[]).includes(e.id)))).map(e=>({value:e.id,label:e.full_name}))];
- if(!leaderId && ro.leaderName)leaderOptions.splice(1,0,{value:'external',label:ro.leaderName+' (di luar master pegawai)'});
- fillSelect($('teamAdminLeader'),leaderOptions,leaderId||(ro.leaderName?'external':''));
- $('teamAdminLeaderHint').textContent=ro.leaderName?'Sumber daftar tim 2026; perubahan hanya dapat dilakukan Admin/Kepala.':'';
- adminMemberWorking=new Set(ro.members||[]);$('teamAdminMemberSearch').value='';drawWorkingMembers();
+ adminMemberWorking=new Set(ro.members||[]);
+ if(leaderId&&eligibleAnnualTeamEmployees().some(e=>e.id===leaderId))adminMemberWorking.add(leaderId);
+ fillSelect($('teamAdminLeader'),[{value:'',label:'Pilih Ketua Tim'},...eligibleAnnualTeamEmployees().map(e=>({value:e.id,label:e.full_name}))],leaderId);
+ syncLeaderWithMembers();
+ $('teamAdminMemberSearch').value='';drawWorkingMembers();
  selectedKroCodes=new Set(team.kroCodes||[]);$('teamAdminKroQuery').value='';$('kroListYear').textContent=String(activeYear);$('teamMapYear').textContent=String(activeYear);$('teamKroMapBadge').textContent=nf(POK_KROS.length)+' KRO';$('teamMapSourceInfo').textContent=activeYear>=2027?'Pemetaan sebelumnya hanya rekomendasi; daftar KRO '+activeYear+' perlu dikonfirmasi.':'Pemetaan 2026 menjadi acuan penyusunan tahun berikutnya.';renderKroChecks();renderKroMap();
  $('teamAdminCount').textContent=nf(activeTeamList().length);$('teamAdminMemberCount').textContent=nf(adminMemberWorking.size);$('teamAdminKroCount').textContent=nf(selectedKroCodes.size);
  $('teamAdminDelete').disabled=!isCentral||activities.some(a=>a.team_id===tid);
@@ -363,7 +404,19 @@ function drawWorkingMembers(){
  const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
  const target=$('teamMemberTarget');if(target)target.textContent='Centang pegawai untuk menambahkan ke '+(demoTeams.find(t=>t.id===tid)?.name||'tim ini')+'.';
  const q=$('teamAdminMemberSearch').value.trim().toLocaleLowerCase('id');$('teamAdminMembers').innerHTML=BASE.employees.filter(e=>(e.active!==false||adminMemberWorking.has(e.id))&&((isBaseYear?!yearSetup.staff?.confirmed:!staffReady())||(yearSetup.staff.ids||[]).includes(e.id)||adminMemberWorking.has(e.id))&&e.full_name.toLocaleLowerCase('id').includes(q)).sort((a,b)=>adminMemberWorking.has(a.id)===adminMemberWorking.has(b.id)?a.full_name.localeCompare(b.full_name,'id'):(adminMemberWorking.has(a.id)?-1:1)).map(e=>`<label class="${e.active===false?'inactive':''}"><input type="checkbox" data-team-member="${esc(e.id)}" ${adminMemberWorking.has(e.id)?'checked':''} data-inactive="${e.active===false&&!adminMemberWorking.has(e.id)?'true':'false'}" ${e.active===false&&!adminMemberWorking.has(e.id)?'disabled':''}><span>${esc(e.full_name)}${e.active===false?' · Nonaktif':''}${e.type==='mitra'?' · Pegawai 040':''}</span></label>`).join('')||'<div class="empty">Tidak ada pegawai yang cocok.</div>';
- $('teamAdminMembers').querySelectorAll('[data-team-member]').forEach(el=>el.onchange=()=>{if(el.checked)adminMemberWorking.add(el.dataset.teamMember);else adminMemberWorking.delete(el.dataset.teamMember);$('teamAdminMemberCount').textContent=nf(adminMemberWorking.size);drawWorkingMembers();renderYearSetup();renderTeamWorkflow()});
+ $('teamAdminMembers').querySelectorAll('[data-team-member]').forEach(el=>el.onchange=()=>{
+  const id=el.dataset.teamMember,tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
+  if(el.checked)adminMemberWorking.add(id);
+  else if(currentRole==='ketua'&&id===demoRoster[tid]?.leaderId){
+   adminMemberWorking.add(id);toast('Ketua Tim wajib tetap menjadi anggota tim.');
+  }else{
+   adminMemberWorking.delete(id);
+   if(id===$('teamAdminLeader').value)$('teamAdminLeader').value='';
+  }
+  syncLeaderWithMembers();
+  $('teamAdminMemberCount').textContent=nf(adminMemberWorking.size);
+  drawWorkingMembers();renderYearSetup();renderTeamWorkflow();
+ });
 }
 function saveTeamAdmin(){
  const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value,team=demoTeams.find(t=>t.id===tid);if(!team||!roleCanManageTeam(tid))return toast('Tidak memiliki izin mengubah tim tersebut.');
@@ -375,8 +428,11 @@ function saveTeamAdmin(){
  const oldName=team.name,oldKro=[...(team.kroCodes||[])],oldMembers=[...((demoRoster[tid]||{}).members||[])],oldLeader=(demoRoster[tid]||{}).leaderId||'';
  team.name=name;team.kroCodes=[...selectedKroCodes].sort();
  const existing=demoRoster[tid]||{leaderId:'',leaderName:'',members:[]},chosenLeader=$('teamAdminLeader').value;
- const leaderId=isCentral?(chosenLeader==='external'?'':chosenLeader):existing.leaderId;
- const leaderName=isCentral?(chosenLeader==='external'?existing.leaderName:BASE.employees.find(e=>e.id===chosenLeader)?.full_name||''):existing.leaderName;
+ const leaderId=isCentral?chosenLeader:existing.leaderId;
+ if(!leaderId||!adminMemberWorking.has(leaderId))return toast('Ketua Tim wajib dipilih dan dicentang sebagai Anggota.');
+ if((yearSetup.staff?.confirmed||!isBaseYear)&&(!yearSetup.staff?.ids?.includes(leaderId)||[...adminMemberWorking].some(id=>!yearSetup.staff.ids.includes(id))))
+  return toast('Ketua dan seluruh Anggota wajib berasal dari Daftar Pegawai yang ditetapkan.');
+ const leaderName=isCentral?(BASE.employees.find(e=>e.id===leaderId)?.full_name||''):existing.leaderName;
  demoRoster[tid]={leaderId,leaderName,members:[...adminMemberWorking]};
  if(!isBaseYear||yearSetup.staff?.confirmed){const rosterChanged=!equalIds(oldMembers,[...adminMemberWorking])||oldLeader!==leaderId;
   if(rosterChanged){delete yearSetup.teams[tid]; /* Hak KRO tidak berubah hanya karena susunan personel berubah. */}
@@ -390,7 +446,8 @@ function saveTeamAdmin(){
  saveTeamStore();try{localStorage.setItem(ROSTER_KEY,JSON.stringify(demoRoster))}catch(e){}
  if(oldMembers.length!==adminMemberWorking.size||oldKro.join('|')!==team.kroCodes.join('|')||oldName!==name)logChange('Perbarui tim kerja',oldName+' · '+adminMemberWorking.size+' anggota · '+team.kroCodes.length+' KRO');
  persist();rebuild();syncAllTeamSelectors();if(currentRole==='ketua')selectedTeam=roleTeamId;if($('teamSelect'))$('teamSelect').value=selectedTeam;
- renderKroOptions(teamKroCodes(selectedTeam)[0]||NO_KRO);renderGroups();renderYearUI();renderTeamAdminPage();renderTeamRosterHint();if(selectedId)renderStaff();toast('Tim diperbarui. Pilihan pegawai pada Input Alokasi otomatis mengikuti anggota aktif tim ini.');
+ renderKroOptions(teamKroCodes(selectedTeam)[0]||NO_KRO);renderGroups();renderYearUI();renderTeamAdminPage();renderTeamRosterHint();if(selectedId)renderStaff();toast('Susunan tim tersimpan. Penetapan tetap dilakukan per tim.');
+ return true;
 }
 function renameTeamFromDirectory(tid){
  if(!(currentRole==='admin'||currentRole==='kepala')||yearInfo().status==='closed')return toast('Pengubahan nama tim tidak tersedia pada periode ini.');
@@ -560,7 +617,7 @@ function setupRoster(){
  $('teamAdminSearch').oninput=renderTeamDirectory;
  $('teamAdminStatus').onchange=renderTeamDirectory;
  $('teamAdminMemberSearch').oninput=drawWorkingMembers;
- $('teamAdminLeader').onchange=renderTeamWorkflow;
+ $('teamAdminLeader').onchange=onTeamLeaderChanged;
  $('teamAdminKroQuery').oninput=renderKroChecks;
  $('applyKroRecommendations').onclick=()=>{const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
   for(const k of POK_KROS)if(suggestedKroForTeam(k,tid))selectedKroCodes.add(k.code);
