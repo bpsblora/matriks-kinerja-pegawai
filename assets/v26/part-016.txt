@@ -452,6 +452,105 @@ function selectTeamFromDirectory(tid){
 /* One guided path, no duplicate team-name editor or early activity action.
    The team directory owns identity; the right card owns roster and next steps.
    Activity identity and allocations stay in the Input Alokasi workflow. */
+
+/* Ringkasan kegiatan: rincian dapat dibaca meskipun penetapan belum siap,
+   tetapi perubahan alokasi tetap melewati pemeriksaan peran dan tahapan. */
+let teamActivityDialogTeam='',teamActivityDialogGroup='',teamActivityDialogReturnFocus=null;
+function teamActivityAccessIssue(tid){
+ const team=demoTeams.find(t=>String(t.id)===String(tid));
+ if(!team||team.active===false)return 'Tim tidak aktif. Pilih atau aktifkan tim terlebih dahulu.';
+ if(!roleCanManageTeam(tid))return 'Akun ini belum memiliki hak mengelola kegiatan tim tersebut.';
+ if(yearInfo().status==='closed')return 'Tahun ini sudah ditutup. Buka draf tahun yang sesuai terlebih dahulu.';
+ if(!staffReady())return 'Tetapkan Daftar Pegawai tahun '+activeYear+' sebelum mengelola kegiatan.';
+ const issue=teamEstablishmentIssue(tid);
+ if(issue)return 'Tetapkan Ketua dan Anggota Tim terlebih dahulu: '+issue+'.';
+ if(!isBaseYear&&!yearKroReady(tid))return 'Tetapkan Pembagian KRO tim ini sebelum mengelola kegiatan.';
+ if(!stageAccess('input'))return stageBlockReason('input');
+ return '';
+}
+function openTeamActivityInInput(tid,group=''){
+ const issue=teamActivityAccessIssue(tid);
+ if(issue){toast(issue);return false;}
+ selectedTeam=tid;selectedId=null;selectedGroup=group||'';
+ $('teamSelect').value=tid;
+ $('taskQuery').value='';
+ $('showInactive').checked=false;
+ renderKroOptions(group?resolveGroupKro(tid,group):(teamKroCodes(tid)[0]||NO_KRO));
+ renderGroups(group||undefined);
+ return setPage('input');
+}
+function ensureTeamActivityDialog(){
+ let dialog=$('teamActivityDialog');
+ if(dialog)return dialog;
+ dialog=document.createElement('dialog');
+ dialog.id='teamActivityDialog';
+ dialog.className='team-activity-dialog';
+ dialog.setAttribute('aria-labelledby','teamActivityDialogTitle');
+ dialog.innerHTML='<div class="team-activity-dialog-shell">'+
+  '<header class="team-activity-dialog-head"><div><small>RINCIAN KEGIATAN TIM</small><h3 id="teamActivityDialogTitle">Daftar Kegiatan</h3><p id="teamActivityDialogMeta"></p></div><button type="button" class="team-activity-dialog-close" id="teamActivityDialogClose" aria-label="Tutup Rincian Kegiatan">×</button></header>'+
+  '<div class="team-activity-dialog-body"><nav class="team-activity-dialog-nav" id="teamActivityDialogNav" aria-label="Pilih kegiatan"></nav><section class="team-activity-dialog-detail" id="teamActivityDialogDetail" aria-live="polite"></section></div>'+
+  '<footer class="team-activity-dialog-foot"><p id="teamActivityDialogNotice"></p><div><button type="button" class="btn soft" id="teamActivityDialogDone">Tutup</button><button type="button" class="btn primary" id="teamActivityDialogManage">Buka di Input Alokasi →</button></div></footer></div>';
+ document.body.appendChild(dialog);
+ $('teamActivityDialogClose').onclick=()=>dialog.close();
+ $('teamActivityDialogDone').onclick=()=>dialog.close();
+ dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
+ dialog.addEventListener('close',()=>{
+  const previous=teamActivityDialogReturnFocus;
+  teamActivityDialogReturnFocus=null;
+  if(previous?.isConnected)previous.focus({preventScroll:true});
+ });
+ $('teamActivityDialogManage').onclick=()=>{
+  const tid=teamActivityDialogTeam,group=teamActivityDialogGroup;
+  const issue=teamActivityAccessIssue(tid);
+  if(issue){toast(issue);return;}
+  dialog.close();
+  openTeamActivityInInput(tid,group);
+ };
+ return dialog;
+}
+function renderTeamActivityDialog(){
+ const dialog=$('teamActivityDialog');
+ if(!dialog)return;
+ const tid=teamActivityDialogTeam;
+ const team=demoTeams.find(t=>String(t.id)===String(tid));
+ const tasks=activities.filter(a=>String(a.team_id)===String(tid)&&a.status==='aktif');
+ const names=[...new Set(tasks.map(a=>groupName(a)))].sort((a,b)=>a.localeCompare(b,'id'));
+ if(!names.includes(teamActivityDialogGroup))teamActivityDialogGroup=names[0]||'';
+ const selected=teamActivityDialogGroup;
+ const detail=tasks.filter(a=>groupName(a)===selected);
+ $('teamActivityDialogTitle').textContent=team?.name||'Daftar Kegiatan';
+ $('teamActivityDialogMeta').textContent=nf(names.length)+' Kegiatan · '+nf(tasks.length)+' Uraian Aktif · '+activeYear;
+ $('teamActivityDialogNav').innerHTML=names.map(name=>
+  '<button type="button" class="team-activity-dialog-tab '+(name===selected?'is-selected':'')+'" data-activity-group="'+esc(name)+'" aria-pressed="'+(name===selected)+'"><strong>'+esc(name)+'</strong><small>'+nf(tasks.filter(a=>groupName(a)===name).length)+' Uraian</small></button>'
+ ).join('')||'<p class="team-activity-dialog-empty">Belum ada kegiatan aktif pada tim ini.</p>';
+ $('teamActivityDialogNav').querySelectorAll('[data-activity-group]').forEach(btn=>btn.onclick=()=>{
+  teamActivityDialogGroup=btn.dataset.activityGroup;
+  renderTeamActivityDialog();
+ });
+ const code=selected?resolveGroupKro(tid,selected):NO_KRO;
+ const kro=POK_KROS.find(k=>k.code===code);
+ $('teamActivityDialogDetail').innerHTML=detail.length?
+  '<div class="team-activity-detail-title"><div><span>KEGIATAN TERPILIH</span><h4>'+esc(selected)+'</h4></div><b>'+nf(detail.length)+' Uraian</b></div>'+
+  '<p class="team-activity-detail-kro">KRO: '+(code===NO_KRO?'Belum Dipetakan':esc(code+(kro?' — '+kro.name:'')))+'</p>'+
+  '<div class="team-activity-detail-list">'+detail.map((a,i)=>
+   '<article><span class="team-activity-detail-index">'+nf(i+1)+'</span><div><strong>'+esc(a.description||'Uraian Tanpa Nama')+'</strong><small>Satuan: '+esc(a.unit||'Belum Diisi')+' · Standar: '+(a.standard_hours==null?'Belum Diisi':nfPrecise(a.standard_hours)+' Jam/Satuan')+'</small></div></article>'
+  ).join('')+'</div>':
+  '<p class="team-activity-dialog-empty">Belum ada uraian aktif untuk ditampilkan.</p>';
+ const issue=teamActivityAccessIssue(tid);
+ $('teamActivityDialogNotice').textContent=issue?'Pengelolaan belum tersedia: '+issue:'Pilih Buka di Input Alokasi untuk mengelola kegiatan terpilih.';
+ $('teamActivityDialogManage').disabled=!!issue||!selected;
+ $('teamActivityDialogManage').title=issue||(!selected?'Belum ada kegiatan aktif':'Buka kegiatan terpilih');
+}
+function openTeamActivityDialog(tid,group='',trigger=null){
+ const dialog=ensureTeamActivityDialog();
+ teamActivityDialogTeam=tid;
+ teamActivityDialogGroup=group;
+ teamActivityDialogReturnFocus=trigger||document.activeElement;
+ renderTeamActivityDialog();
+ if(!dialog.open)dialog.showModal();
+ $('teamActivityDialogClose').focus({preventScroll:true});
+}
+
 function renderTeamWorkflow(){
  const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect')?.value;
  const team=demoTeams.find(t=>String(t.id)===String(tid));
@@ -478,21 +577,32 @@ function renderTeamWorkflow(){
   'Ketua dan '+nf(selectedMembers.size)+' Anggota sudah dipilih. Gunakan Tetapkan Susunan Tim pada bagian atas untuk menyimpan.';
  $('teamOverviewCount').textContent=nf(groups.length)+' Kegiatan · '+nf(activeTasks.length)+' Uraian';
  $('teamOverviewSummary').textContent=groups.length?
-  'Kegiatan ini dimiliki Tim '+team.name+'. Alokasi tetap dapat dikerjakan pegawai di luar tim.':
-  'Tim ini belum memiliki kegiatan aktif. Setelah susunan ditetapkan, lanjutkan melalui Input Alokasi.';
- $('teamOverviewList').innerHTML=groups.slice(0,3).map(name=>'<span class="team-overview-chip">'+esc(name)+'</span>').join('')+
-  (groups.length>3?'<span class="team-overview-chip more">+'+nf(groups.length-3)+' Kegiatan Lainnya</span>':'');
+  'Kegiatan aktif milik Tim '+team.name+'. Klik nama kegiatan untuk melihat uraian dan satuannya.':
+  'Tim ini belum memiliki kegiatan aktif. Pengelolaan dapat dimulai melalui Input Alokasi setelah penetapan selesai.';
+ const shown=groups.slice(0,4);
+ $('teamOverviewList').innerHTML=shown.map(name=>{
+  const count=activeTasks.filter(a=>groupName(a)===name).length;
+  return '<button type="button" class="team-overview-chip" data-team-overview-group="'+esc(name)+'" title="Lihat Rincian '+esc(name)+'"><span class="team-overview-chip-name">'+esc(name)+'</span><small>'+nf(count)+' Uraian · Lihat Rincian ›</small></button>';
+ }).join('')+(groups.length>shown.length?
+  '<button type="button" class="team-overview-chip more" data-team-overview-all>+'+nf(groups.length-shown.length)+' Kegiatan Lainnya · Lihat Semua ›</button>':'');
+ $('teamOverviewList').querySelectorAll('[data-team-overview-group]').forEach(btn=>
+  btn.onclick=()=>openTeamActivityDialog(tid,btn.dataset.teamOverviewGroup,btn));
+ $('teamOverviewList').querySelector('[data-team-overview-all]')?.addEventListener('click',event=>
+  openTeamActivityDialog(tid,'',event.currentTarget));
  const goKro=$('teamAdminGoKro'),goInput=$('teamAdminGoInput');
- const kroReady=isBaseYear||yearKroReady(tid);
  $('teamKroStep')?.classList.toggle('hidden',isBaseYear);
  goKro?.classList.toggle('hidden',isBaseYear);
  if(goKro)goKro.disabled=!active||!ready||!canWrite;
- if(goInput)goInput.disabled=!active||!ready||!kroReady||!canWrite;
- $('teamNextHint').textContent=!active?'Tim nonaktif tidak dapat menerima penugasan baru.':
-  !staffReady()?'Langkah pertama: Tetapkan Daftar Pegawai.':
-  !ready?'Langkah kedua: Tetapkan Ketua dan Anggota Tim terlebih dahulu.':
-  !kroReady?'Langkah ketiga: Tetapkan Pembagian KRO, kemudian kelola kegiatan dan alokasi.':
-  'Susunan tim'+(isBaseYear?'':' dan KRO')+' siap. Lanjutkan mengelola kegiatan serta alokasi pegawai.';
+ const issue=teamActivityAccessIssue(tid);
+ if(goInput){
+  goInput.disabled=false;
+  goInput.classList.toggle('is-locked',!!issue);
+  goInput.textContent=issue?'Lihat Persyaratan Pengelolaan →':'Kelola Kegiatan dan Alokasi →';
+  goInput.title=issue||'Buka Input Alokasi untuk Tim '+team.name;
+ }
+ $('teamNextHint').textContent=issue?
+  'Pengelolaan belum tersedia: '+issue:
+  'Penetapan lengkap. Kegiatan dapat dikelola melalui Input Alokasi; pegawai di luar tim tetap dapat ditugaskan.';
  const heading=$('teamOverviewHeading');if(heading)heading.textContent=(isBaseYear?'03':'04')+' · Ringkasan Kegiatan Tim';
 }
 /* Two-way leader/member validation.
@@ -800,13 +910,11 @@ function setupRoster(){
   if(!yearSetup.teams?.[tid]||!staffReady())return toast('Tetapkan Ketua dan Anggota Tim sebelum membuka Pembagian KRO.');
   selectedTeam=tid;setPage('kro');
  };
- $('teamAdminGoInput').onclick=()=>{
+ $('teamAdminGoInput').onclick=event=>{
   const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
-  if(!demoTeams.some(t=>t.id===tid&&t.active!==false))return toast('Pilih tim aktif terlebih dahulu.');
-  if(!yearSetup.teams?.[tid]||!staffReady())return toast('Tetapkan Ketua dan Anggota Tim terlebih dahulu.');
-  if(!isBaseYear&&!allowYearTask(tid))return;
-  selectedTeam=tid;selectedId=null;selectedGroup='';
-  $('teamSelect').value=tid;renderKroOptions(teamKroCodes(tid)[0]||NO_KRO);renderGroups();setPage('input');
+  const issue=teamActivityAccessIssue(tid);
+  if(issue){openTeamActivityDialog(tid,'',event.currentTarget);return;}
+  openTeamActivityInInput(tid);
  };
 }
 function enterView(){
