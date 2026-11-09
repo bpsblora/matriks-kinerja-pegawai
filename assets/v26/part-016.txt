@@ -402,6 +402,12 @@ function selectTeamFromDirectory(tid){
  }
  $('teamAdminSelect').value=tid;
  renderTeamAdminPage();
+ // On stacked/mobile layouts the roster is below a long team directory.
+ // Bring the selected team's form into view when the user chooses a team.
+ if(typeof window!=='undefined'&&window.matchMedia?.('(max-width:1050px)').matches){
+  const rosterCard=$('teamAdminGrid')?.querySelector('.team-admin-card:not(.team-admin-list)');
+  rosterCard?.scrollIntoView({behavior:'smooth',block:'start'});
+ }
 }
 /* One guided path, no duplicate team-name editor or early activity action.
    The team directory owns identity; the right card owns roster and next steps.
@@ -428,8 +434,8 @@ function renderTeamWorkflow(){
   currentRole==='ketua'&&!roster.leaderId?'Ketua belum ditunjuk. Hubungi Admin/Kepala BPS untuk menetapkan Ketua terlebih dahulu.':
   editing?'Mode Ubah Susunan Tim. Sesuaikan ketua/anggota, lalu klik Tetapkan Susunan Tim atau Batal Mengubah.':
   ready?'Susunan tim sudah ditetapkan. Klik Ubah Susunan Tim untuk memperbarui anggota tanpa menghilangkan riwayat alokasi.':
-  !leader||!selectedMembers.size?'Pilih Ketua Tim dan centang minimal satu Anggota, lalu klik Tetapkan Susunan Tim di bawah.':
-  'Ketua dan '+nf(selectedMembers.size)+' anggota sudah dipilih. Klik Tetapkan Susunan Tim untuk menyimpan.';
+  !leader||!selectedMembers.size?'Pilih Ketua Tim dan centang minimal satu Anggota, lalu klik Tetapkan Susunan Tim pada bagian atas panel ini.':
+  'Ketua dan '+nf(selectedMembers.size)+' Anggota sudah dipilih. Gunakan Tetapkan Susunan Tim pada bagian atas untuk menyimpan.';
  $('teamOverviewCount').textContent=nf(groups.length)+' Kegiatan · '+nf(activeTasks.length)+' Uraian';
  $('teamOverviewSummary').textContent=groups.length?
   'Kegiatan ini dimiliki Tim '+team.name+'. Alokasi tetap dapat dikerjakan pegawai di luar tim.':
