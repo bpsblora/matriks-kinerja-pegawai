@@ -707,22 +707,55 @@ const guardStart=inline.indexOf("function activeTeamList(){");
 const guardEnd=inline.indexOf("let editingTeamNameId=null;",guardStart);
 assert(guardStart>=0&&guardEnd>guardStart,"Validasi penghapusan tim tidak ditemukan");
 const guardCode=inline.slice(guardStart,guardEnd);
-const guardCase=(activityList,teams,setup,yearStatus='draft')=>vm.runInNewContext(
- guardCode+";teamDeletionReason('T1')",
- {demoTeams:teams,activities:activityList,state:{added:[]},yearSetup:setup,yearInfo:()=>({status:yearStatus})}
-);
 const sampleTeams=[{id:'T1',name:'Satu'},{id:'T2',name:'Dua'}];
-assert.equal(guardCase([],sampleTeams,{teams:{},kros:{}}),'',"Tim tanpa pekerjaan harus dapat dihapus");
-assert.equal(guardCase([{team_id:'T1'}],sampleTeams,{teams:{},kros:{}}),'Memiliki riwayat kegiatan',
- "Tim dengan kegiatan tidak boleh dihapus");
-assert.equal(guardCase([],sampleTeams,{teams:{T1:{leaderId:'E1'}},kros:{}}),
- 'Susunan Tim atau KRO sudah ditetapkan',"Penetapan tim tidak boleh hilang saat hapus");
-assert.equal(guardCase([],sampleTeams,{teams:{},kros:{}},'closed'),
- 'Tahun telah ditutup',"Tim pada tahun tutup tidak boleh dihapus");
-assert.equal(guardCase([],[sampleTeams[0]],{teams:{},kros:{}}),
- 'Minimal satu tim aktif harus tetap tersedia',"Tim terakhir tidak boleh dinonaktifkan");
-assert.equal(guardCase([],[{id:'T1',name:'Satu',active:false},sampleTeams[1]],{teams:{},kros:{}}),'',
- "Tim nonaktif harus tetap dapat dikelola tanpa menghapus data");
+// Make the guard tests independent of the browser and verify year-specific
+// history, including when an old activity has disappeared from the new year.
+const guardCase=(opts={})=>{
+ const teams=opts.teams||sampleTeams,year=opts.year||2026,seed=opts.seed||{activities:[],monthly_allocations_source:[]};
+ const live=opts.live||{added:[],allocEdits:{},workflowPlans:{}};
+ const saved=opts.saved||{};
+ const context={
+  demoTeams:teams,activities:opts.activities||[],state:live,
+  yearSetup:opts.setup||{teams:{},kros:{}},
+  demoRoster:opts.roster||{},baseMonthly:opts.monthly||new Map(),
+  activeYear:year,
+  yearInfo:()=>({status:opts.status||'draft'}),
+  document:{getElementById:()=>({textContent:JSON.stringify(seed)})},
+  localStorage:{getItem:key=>JSON.stringify(saved[key]||null)}
+ };
+ return vm.runInNewContext(guardCode+";teamDeletionReason('T1')",context);
+};
+assert.equal(guardCase(),'', "Tim tanpa hubungan boleh dihapus");
+assert.equal(guardCase({roster:{T1:{members:['E01'],leaderId:''}}}),'Masih memiliki ketua atau anggota',
+ "Tim dengan anggota tidak boleh dihapus sebelum keanggotaan dibersihkan");
+assert.equal(guardCase({roster:{T1:{members:[],leaderId:'E01'}}}),'Masih memiliki ketua atau anggota',
+ "Tim yang masih memiliki ketua tidak boleh dihapus");
+assert.equal(guardCase({activities:[{id:'A01',team_id:'T1'}]}),'Masih memiliki kegiatan',
+ "Tim dengan kegiatan belum dialokasikan tidak boleh dihapus");
+assert.equal(guardCase({setup:{teams:{T1:{leaderId:'E01'}},kros:{}}}),
+ 'Susunan Tim atau KRO sudah ditetapkan',"Penetapan tim tidak boleh hilang");
+assert.equal(guardCase({teams:[{id:'T1',name:'Satu',kroCodes:['K01']},sampleTeams[1]]}),
+ 'Masih memiliki KRO',"Tim masih terikat KRO tidak boleh dihapus");
+assert.equal(guardCase({seed:{activities:[{id:'A01',team_id:'T1'}],monthly_allocations_source:[['A01','E01',1,8]]}}),
+ 'Pernah memiliki alokasi pekerjaan',"Acuan alokasi tahun 2026 tidak boleh hilang");
+assert.equal(guardCase({activities:[{id:'A01',team_id:'T1'}],live:{added:[],allocEdits:{'A01|E01|2':0},workflowPlans:{}}}),
+ 'Pernah memiliki alokasi pekerjaan',"Jejak revisi nol tetap riwayat alokasi");
+assert.equal(guardCase({year:2027,live:{added:[],allocEdits:{},workflowPlans:{}},saved:{
+ 'bps-blora-matriks-pegawai-2026-prototype-v13':{added:[{id:'AOLD',team_id:'T1'}],allocEdits:{'AOLD|E01|1':6}}
+ }}),'Pernah memiliki alokasi pekerjaan',
+ "Riwayat tahun sebelumnya wajib menghalangi penghapusan permanen");
+assert.equal(guardCase({status:'closed'}),'Tahun telah ditutup',
+ "Tim pada tahun tutup tidak boleh dihapus");
+assert.equal(guardCase({teams:[sampleTeams[0]]}),'Minimal satu tim aktif harus tetap tersedia',
+ "Tim aktif terakhir tidak boleh dihapus");
+assert.equal(guardCase({teams:[{id:'T1',name:'Satu',active:false},sampleTeams[1]]}),'',
+ "Tim nonaktif tanpa ketergantungan dapat diperiksa kembali");
+assert(inline.includes("const actionLabel=inactive?'Aktifkan':reason?'Nonaktifkan':'Hapus'"),
+ "Tim yang memiliki ketergantungan wajib hanya bisa dinonaktifkan");
+assert(inline.includes("if(teamDeletionReason(id))return toast("),
+ "Wajib memeriksa ulang seluruh syarat sebelum penghapusan permanen");
+assert(inline.includes("Keanggotaan, kegiatan, KRO, dan alokasi historis tidak akan dihapus."),
+ "Konfirmasi nonaktifkan harus menjelaskan riwayat yang tetap tersimpan");
 assert(inline.includes("const historicalTeamOpts=BASE.teams.map("),
  "Tim nonaktif harus tetap dapat ditemukan pada monitoring historis");
 assert(inline.includes("const teamOpts=BASE.teams.filter(t=>t.active!==false)"),
