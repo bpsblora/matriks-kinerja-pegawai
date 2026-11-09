@@ -656,6 +656,7 @@ assert(popupRenderCode.includes("const scrollTop=list.scrollTop;")&&popupRenderC
 // Legacy hidden select is retained only as internal state for dependent views.
 for(const token of [
  'id="teamAdminSearch"',
+ 'id="teamAdminStatus"',
  'id="teamAdminDirectory"',
  'id="teamAdminDirectoryCount"',
  'id="teamAdminSelect" class="hidden" hidden',
@@ -671,6 +672,16 @@ for(const token of [
  "function renderTeamDirectory(){",
  "function selectTeamFromDirectory(",
  "function renameTeamFromDirectory(",
+ "function commitTeamDirectoryRename(",
+ "function activeTeamList(){",
+ "host.querySelectorAll('[data-team-rename-save]')",
+ "host.querySelectorAll('[data-team-rename-cancel]')",
+ "const actionLabel=inactive?'Aktifkan'",
+ "$('teamAdminStatus').onchange=renderTeamDirectory;",
+ "team.active=false;",
+ "team.active=true;",
+ "renderTeamAdminPage();renderYearUI();",
+ "function renameTeamFromDirectory(",
  "async function createTeamAdmin(){",
  "async function deleteTeamAdmin(requestedId=null){",
  "function teamDeletionReason(tid){",
@@ -683,13 +694,17 @@ for(const token of [
 ])assert(inline.includes(token),"Daftar Tim belum terintegrasi dengan sistem: "+token);
 for(const token of [
  "#pageTeams .team-directory-list{",
+ "#pageTeams .team-directory-inline-edit{",
+ "#pageTeams .team-directory-status{",
+ "#pageTeams .team-directory-action.archive{",
+ "#pageTeams .team-directory-action.restore{",
  "#pageTeams .team-directory-row{",
  "#pageTeams .team-directory-action.delete:disabled{",
  "#pageTeams .team-directory-row.is-selected{",
  "#pageTeams .team-directory-toolbar>input{"
 ])assert(cssPolish.includes(token),"Tampilan Daftar Tim belum rapi: "+token);
-const guardStart=inline.indexOf("function teamDeletionReason(tid){");
-const guardEnd=inline.indexOf("function renderTeamDirectory(){",guardStart);
+const guardStart=inline.indexOf("function activeTeamList(){");
+const guardEnd=inline.indexOf("let editingTeamNameId=null;",guardStart);
 assert(guardStart>=0&&guardEnd>guardStart,"Validasi penghapusan tim tidak ditemukan");
 const guardCode=inline.slice(guardStart,guardEnd);
 const guardCase=(activityList,teams,setup,yearStatus='draft')=>vm.runInNewContext(
@@ -705,6 +720,18 @@ assert.equal(guardCase([],sampleTeams,{teams:{T1:{leaderId:'E1'}},kros:{}}),
 assert.equal(guardCase([],sampleTeams,{teams:{},kros:{}},'closed'),
  'Tahun telah ditutup',"Tim pada tahun tutup tidak boleh dihapus");
 assert.equal(guardCase([],[sampleTeams[0]],{teams:{},kros:{}}),
- 'Minimal satu tim harus tetap tersedia',"Tim terakhir tidak boleh dihapus");
+ 'Minimal satu tim aktif harus tetap tersedia',"Tim terakhir tidak boleh dinonaktifkan");
+assert.equal(guardCase([],[{id:'T1',name:'Satu',active:false},sampleTeams[1]],{teams:{},kros:{}}),'',
+ "Tim nonaktif harus tetap dapat dikelola tanpa menghapus data");
+assert(inline.includes("const historicalTeamOpts=BASE.teams.map("),
+ "Tim nonaktif harus tetap dapat ditemukan pada monitoring historis");
+assert(inline.includes("const teamOpts=BASE.teams.filter(t=>t.active!==false)"),
+ "Tim nonaktif tidak boleh tersedia pada penugasan baru");
+assert(inline.includes("data-team-rename-value="),
+ "Edit nama tim harus menampilkan input dan tombol simpan langsung pada baris");
+assert(!inline.includes("async function renameTeamFromDirectory("),
+ "Edit nama tim tidak boleh bergantung pada prompt yang tidak terlihat");
+assert(inline.includes("const name=input.value.trim();"),
+ "Simpan ubah nama tim harus memakai nilai input dari baris");
 
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
