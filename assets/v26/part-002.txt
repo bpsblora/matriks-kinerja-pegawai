@@ -674,12 +674,7 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
     <div class="team-admin-inline"><button class="btn success" id="teamAdminSave">Simpan Pengaturan Tim</button><span id="teamAdminSaveNote" class="team-admin-note">Perubahan hanya berlaku di browser uji coba.</span></div>
    </section>
  </div>
- <section class="panel employee-master-panel" hidden aria-hidden="true">
-   <div class="section-top"><div><h3>Daftar Pegawai</h3><p>Pegawai nonaktif tetap tercatat dalam riwayat alokasi sebelumnya.</p></div><button class="btn primary" id="empAdd">+ Tambah Pegawai</button></div>
-   <div class="employee-controls"><div class="field"><label>Cari Pegawai</label><input type="search" id="empSearch" placeholder="Cari nama pegawai..."></div><div class="field"><label>Status</label><select id="empStatus"><option value="all">Semua</option><option value="active">Aktif</option><option value="inactive">Nonaktif</option></select></div><div class="field"><label>Jenis</label><select id="empType"><option value="all">Semua</option><option value="pegawai">Pegawai</option><option value="mitra">Pegawai 040</option></select></div></div>
-   <div class="emp-summary" id="empCount">—</div><div id="employeeMasterList" class="employee-master-list"></div>
-   <p class="team-admin-note" id="empAccessNote">Perubahan identitas pegawai dilakukan oleh Admin/Kepala. Ketua Tim mengelola keanggotaan tim di atas.</p>
- </section>
+
 
 </section>
 <section id="pageTimeline" class="hidden">
