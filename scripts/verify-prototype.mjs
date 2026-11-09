@@ -651,4 +651,60 @@ const popupRenderCode=inline.slice(popupFnStart,popupFnEnd);
 assert(popupRenderCode.includes("const scrollTop=list.scrollTop;")&&popupRenderCode.includes("list.scrollTop=scrollTop;"),
  "Daftar checkbox meloncat ke awal setelah mengubah pilihan");
 
+
+// Kelola Tim: list is searchable and rows allow select / edit / guarded delete.
+// Legacy hidden select is retained only as internal state for dependent views.
+for(const token of [
+ 'id="teamAdminSearch"',
+ 'id="teamAdminDirectory"',
+ 'id="teamAdminDirectoryCount"',
+ 'id="teamAdminSelect" class="hidden" hidden',
+ 'id="teamAdminNew"',
+ 'data-team-dir-delete'
+]) {
+ if(token==='data-team-dir-delete')continue;
+ assert(html.includes(token),"Daftar Tim belum tersedia: "+token);
+}
+assert(!html.includes('<label>Tim kerja</label><select id="teamAdminSelect"'),
+ "Daftar Tim masih memakai dropdown tunggal yang tidak dapat dikelola.");
+for(const token of [
+ "function renderTeamDirectory(){",
+ "function selectTeamFromDirectory(",
+ "function renameTeamFromDirectory(",
+ "async function createTeamAdmin(){",
+ "async function deleteTeamAdmin(requestedId=null){",
+ "function teamDeletionReason(tid){",
+ "host.querySelectorAll('[data-team-dir-delete]')",
+ "$('teamAdminSearch').oninput=renderTeamDirectory;",
+ "renderEstablishedTeams();renderTeamDirectory();",
+ "saveTeamStore();",
+ "yearInfo().status==='closed'",
+ "logChange('Hapus tim kerja'"
+])assert(inline.includes(token),"Daftar Tim belum terintegrasi dengan sistem: "+token);
+for(const token of [
+ "#pageTeams .team-directory-list{",
+ "#pageTeams .team-directory-row{",
+ "#pageTeams .team-directory-action.delete:disabled{",
+ "#pageTeams .team-directory-row.is-selected{",
+ "#pageTeams .team-directory-toolbar>input{"
+])assert(cssPolish.includes(token),"Tampilan Daftar Tim belum rapi: "+token);
+const guardStart=inline.indexOf("function teamDeletionReason(tid){");
+const guardEnd=inline.indexOf("function renderTeamDirectory(){",guardStart);
+assert(guardStart>=0&&guardEnd>guardStart,"Validasi penghapusan tim tidak ditemukan");
+const guardCode=inline.slice(guardStart,guardEnd);
+const guardCase=(activityList,teams,setup,yearStatus='draft')=>vm.runInNewContext(
+ guardCode+";teamDeletionReason('T1')",
+ {demoTeams:teams,activities:activityList,state:{added:[]},yearSetup:setup,yearInfo:()=>({status:yearStatus})}
+);
+const sampleTeams=[{id:'T1',name:'Satu'},{id:'T2',name:'Dua'}];
+assert.equal(guardCase([],sampleTeams,{teams:{},kros:{}}),'',"Tim tanpa pekerjaan harus dapat dihapus");
+assert.equal(guardCase([{team_id:'T1'}],sampleTeams,{teams:{},kros:{}}),'Memiliki riwayat kegiatan',
+ "Tim dengan kegiatan tidak boleh dihapus");
+assert.equal(guardCase([],sampleTeams,{teams:{T1:{leaderId:'E1'}},kros:{}}),
+ 'Susunan Tim atau KRO sudah ditetapkan',"Penetapan tim tidak boleh hilang saat hapus");
+assert.equal(guardCase([],sampleTeams,{teams:{},kros:{}},'closed'),
+ 'Tahun telah ditutup',"Tim pada tahun tutup tidak boleh dihapus");
+assert.equal(guardCase([],[sampleTeams[0]],{teams:{},kros:{}}),
+ 'Minimal satu tim harus tetap tersedia',"Tim terakhir tidak boleh dihapus");
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
