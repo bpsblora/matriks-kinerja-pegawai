@@ -937,7 +937,7 @@ const leadCtx={
  nf:n=>String(n),renderYearSetup:()=>{},renderTeamWorkflow:()=>{}
 };
 vm.runInNewContext(leaderHelper+";syncLeaderWithMembers()",leadCtx);
-assert.deepEqual(leaderSelect.options.map(o=>o.value),['','E1','E2','E3'],
+assert.deepEqual(Array.from(leaderSelect.options,o=>o.value),['','E1','E2','E3'],
  "Sebelum ada centang, pilihan Ketua harus menampilkan seluruh Pegawai Tahunan");
 leaderSelect.value='E2';
 vm.runInNewContext(leaderHelper+";onTeamLeaderChanged()",leadCtx);
@@ -945,7 +945,7 @@ assert(leadCtx.adminMemberWorking.has('E2'),
  "Memilih Ketua lebih dahulu harus otomatis mencentang dirinya pada Anggota");
 leadCtx.adminMemberWorking.add('E3');
 vm.runInNewContext(leaderHelper+";syncLeaderWithMembers()",leadCtx);
-assert.deepEqual(leaderSelect.options.map(o=>o.value),['','E2','E3'],
+assert.deepEqual(Array.from(leaderSelect.options,o=>o.value),['','E2','E3'],
  "Sesudah mencentang anggota, pilihan Ketua hanya boleh dari anggota tercentang");
 const teamValidationStart=inline.indexOf("function teamEstablishmentIssue(tid){");
 const teamValidationEnd=inline.indexOf("function yearKroReady(tid){",teamValidationStart);
