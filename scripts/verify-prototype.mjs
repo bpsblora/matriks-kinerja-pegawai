@@ -594,7 +594,7 @@ assert(!personCode.includes("const featuredGroups=groups.slice(0,5);"),
 const modalStart=inline.indexOf("function openPersonWorkDialog(");
 const modalEnd=inline.indexOf("function renderPerson(",modalStart);
 assert(modalStart>=0&&modalEnd>modalStart,"Fungsi rincian pekerjaan tidak ditemukan");
-const modalCode=inline.slice(modalStart,modalEnd);
+const workDialogCode=inline.slice(modalStart,modalEnd);
 for(const token of [
  "group.items.map(item=>",
  "${esc(group.activity)}",
@@ -603,7 +603,7 @@ for(const token of [
  "Tim Terlibat",
  "Kegiatan Tim",
  "Uraian Pekerjaan"
-]) assert(modalCode.includes(token),"Pop-up kehilangan rincian kegiatan/uraian: "+token);
+ ]) assert(workDialogCode.includes(token),"Pop-up kehilangan rincian kegiatan/uraian: "+token);
 for(const token of [
  "#pageDashboard .person-panel .person-work-trigger-large{",
  "min-height:156px!important;",
