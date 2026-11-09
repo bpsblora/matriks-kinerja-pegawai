@@ -2700,3 +2700,372 @@
  #pageTeams #establishedTeamSummary .team-summary-view{animation:none}
  #pageTeams #establishedTeamSummary .team-status-count .team-status-filter{transition:none}
 }
+
+/* Ringkasan Penetapan Tim: kartu ringkas, daftar lengkap hanya di pop-up.
+   Status di kartu membuka langsung filter yang sesuai. */
+#pageTeams #establishedTeamSummary.team-summary-card{
+ box-sizing:border-box;
+ display:block;
+ margin:14px 0!important;
+ padding:15px 18px!important;
+ min-height:0!important;
+ cursor:pointer;
+ border:1px solid #c8dfef;
+ border-radius:15px;
+ background:linear-gradient(110deg,#fff,#f7fbff);
+ transition:border-color .16s,background .16s,box-shadow .16s;
+}
+#pageTeams #establishedTeamSummary.team-summary-card:hover{
+ border-color:#94bee2;
+ box-shadow:0 5px 20px rgba(26,94,144,.10);
+}
+#pageTeams #establishedTeamSummary.team-summary-card:focus-visible{
+ outline:3px solid #8ac5ed;
+ outline-offset:2px;
+}
+#pageTeams #establishedTeamSummary .team-summary-heading{
+ margin:0 0 9px;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:13px;
+}
+#pageTeams #establishedTeamSummary .team-summary-heading h3{
+ font-size:15px;
+ line-height:1.3;
+ margin:0;
+ color:#12568b;
+ font-weight:900;
+}
+#pageTeams #establishedTeamSummary .team-summary-heading p{
+ margin:4px 0 0;
+ font-size:11px;
+ line-height:1.4;
+ color:#65809a;
+}
+#pageTeams #establishedTeamSummary .team-summary-open-hint{
+ display:inline-flex;
+ align-items:center;
+ gap:6px;
+ flex:0 0 auto;
+ padding:8px 10px;
+ border:1px solid #d0e4f6;
+ border-radius:9px;
+ background:#eff7ff;
+ color:#21669a;
+ font-size:11px;
+ font-weight:900;
+}
+#pageTeams #establishedTeamSummary .team-status-count{
+ display:flex;
+ align-items:center;
+ flex-wrap:wrap;
+ gap:8px;
+ margin:0!important;
+}
+#pageTeams #establishedTeamSummary .team-status-count .team-status-filter{
+ min-height:36px;
+ padding:8px 11px;
+ border-radius:10px;
+}
+#pageTeams #establishedTeamSummary .team-summary-total{
+ margin-left:auto;
+ color:#63839b;
+ font-size:11px;
+ font-weight:850;
+}
+.team-establishment-dialog{
+ box-sizing:border-box;
+ width:min(940px,calc(100vw - 28px));
+ height:min(85dvh,780px);
+ max-height:90dvh;
+ margin:auto;
+ padding:0;
+ border:1px solid #c4dcf0;
+ border-radius:20px;
+ background:#fff;
+ color:#1a4e79;
+ box-shadow:0 28px 80px rgba(7,39,76,.30);
+ overflow:hidden;
+}
+.team-establishment-dialog::backdrop{
+ background:rgba(11,36,67,.50);
+ backdrop-filter:blur(2px);
+}
+.team-establishment-dialog[open]{display:block}
+.team-establishment-dialog .team-establishment-shell{
+ display:flex;
+ flex-direction:column;
+ box-sizing:border-box;
+ height:100%;
+ max-height:100%;
+ min-height:0;
+}
+.team-establishment-dialog .team-establishment-head{
+ display:flex;
+ justify-content:space-between;
+ align-items:flex-start;
+ gap:15px;
+ padding:19px 22px 16px;
+ flex:0 0 auto;
+ border-bottom:1px solid #d9e7f4;
+ background:linear-gradient(115deg,#f4faff,#fff);
+}
+.team-establishment-dialog .team-establishment-head>div{min-width:0}
+.team-establishment-dialog .team-establishment-eyebrow{
+ display:block;
+ margin-bottom:5px;
+ font-size:10px;
+ font-weight:900;
+ letter-spacing:.07em;
+ color:#2581bd;
+}
+.team-establishment-dialog .team-establishment-head h2{
+ margin:0;
+ font-size:clamp(18px,2.6vw,24px);
+ color:#135185;
+ font-weight:900;
+ line-height:1.3;
+}
+.team-establishment-dialog .team-establishment-head p{
+ margin:7px 0 0;
+ font-size:11.5px;
+ color:#6786a0;
+ line-height:1.4;
+}
+.team-establishment-dialog .team-establishment-close{
+ display:grid;
+ place-items:center;
+ flex:0 0 35px;
+ width:35px;
+ height:35px;
+ padding:0;
+ border:1px solid #bfdcf0;
+ border-radius:11px;
+ background:#fff;
+ color:#1a659c;
+ font-size:23px;
+ line-height:1;
+ cursor:pointer;
+}
+.team-establishment-dialog .team-establishment-close:hover{background:#e5f4ff}
+.team-establishment-dialog .team-establishment-close:focus-visible,
+.team-establishment-dialog .team-status-filter:focus-visible{
+ outline:3px solid #78bcef;
+ outline-offset:2px;
+}
+.team-establishment-dialog .team-establishment-toolbar{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:12px;
+ flex:0 0 auto;
+ padding:12px 22px;
+ border-bottom:1px solid #e0ecf5;
+ background:#fff;
+}
+.team-establishment-dialog .team-establishment-total{
+ display:inline-flex;
+ align-items:center;
+ flex:0 0 auto;
+ padding:8px 11px;
+ border-radius:9px;
+ background:#e8f2fc;
+ border:1px solid #cee2f4;
+ font-size:11px;
+ font-weight:900;
+ color:#195d93;
+}
+.team-establishment-dialog .team-status-count{
+ display:flex;
+ justify-content:flex-end;
+ align-items:center;
+ flex-wrap:wrap;
+ gap:8px;
+ margin:0!important;
+}
+.team-establishment-dialog .team-status-filter{
+ box-sizing:border-box;
+ min-height:38px;
+ padding:8px 12px;
+ border:1px solid #d0e2f1;
+ border-radius:10px;
+ background:#f2f7fd;
+ color:#245f90;
+ font:850 11.5px/1.3 Nunito,Arial,sans-serif;
+ cursor:pointer;
+}
+.team-establishment-dialog .team-status-filter:hover{background:#e4f2ff}
+.team-establishment-dialog .team-status-filter.is-active{
+ border-color:#8fbce3;
+ background:#dceeff;
+ color:#0d5791;
+ box-shadow:0 0 0 2px rgba(52,125,186,.12);
+}
+.team-establishment-dialog .team-status-filter[data-team-summary-dialog-filter="pending"].is-active{
+ border-color:#e5c57f;
+ background:#fff0d3;
+ color:#88601d;
+}
+.team-establishment-dialog .team-establishment-scroll{
+ display:block;
+ box-sizing:border-box;
+ flex:1 1 auto;
+ min-height:0;
+ padding:16px 22px 20px;
+ overflow-y:auto;
+ overflow-x:hidden;
+ overscroll-behavior:contain;
+ scrollbar-width:thin;
+ scrollbar-color:#b1d2eb #f5f9fd;
+}
+.team-establishment-dialog .team-summary-subheading{
+ margin:0 0 12px;
+ color:#165686;
+ font-size:13px;
+ font-weight:900;
+}
+.team-establishment-dialog .team-summary-ready{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ align-items:start;
+ gap:10px;
+}
+.team-establishment-dialog .team-summary-item{
+ box-sizing:border-box;
+ min-width:0;
+ padding:13px 14px;
+ border:1px solid #d6e6f4;
+ border-radius:12px;
+ background:#fbfdff;
+}
+.team-establishment-dialog .team-summary-item-top,
+.team-establishment-dialog .team-summary-item-top>div{
+ display:flex;
+ align-items:center;
+ gap:8px;
+ flex-wrap:wrap;
+}
+.team-establishment-dialog .team-summary-item-top{justify-content:space-between}
+.team-establishment-dialog .team-summary-item strong{
+ color:#154d7a;
+ font-size:12px;
+ font-weight:900;
+}
+.team-establishment-dialog .team-summary-state.ready{
+ border-radius:8px;
+ padding:4px 8px;
+ background:#e7f6ee;
+ color:#187048;
+ font-size:10px;
+ font-weight:900;
+}
+.team-establishment-dialog .team-summary-item p{
+ margin:8px 0!important;
+ color:#597a94;
+ font-size:11.5px;
+ line-height:1.45;
+}
+.team-establishment-dialog .team-summary-item details{font-size:11.5px}
+.team-establishment-dialog .team-summary-item details summary{
+ cursor:pointer;
+ color:#236a9f;
+ font-weight:850;
+}
+.team-establishment-dialog .team-summary-members{
+ padding:8px 0 0;
+ line-height:1.55;
+ color:#5f7e99;
+ overflow-wrap:anywhere;
+}
+.team-establishment-dialog .team-summary-pending-list{
+ display:flex;
+ flex-direction:column;
+ gap:8px;
+}
+.team-establishment-dialog .team-summary-pending-row{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:12px;
+ padding:12px 14px;
+ border:1px solid #ecd9b4;
+ border-radius:11px;
+ background:#fffdf8;
+}
+.team-establishment-dialog .team-summary-pending-row>div{
+ display:flex;
+ flex-direction:column;
+ gap:4px;
+ min-width:0;
+}
+.team-establishment-dialog .team-summary-pending-row strong{
+ font-size:12px;
+ font-weight:900;
+ color:#76551d;
+}
+.team-establishment-dialog .team-summary-pending-row small{
+ font-size:11px;
+ color:#956f31;
+ line-height:1.45;
+ overflow-wrap:anywhere;
+}
+.team-establishment-dialog .team-summary-pending-row .btn{flex:0 0 auto}
+.team-establishment-dialog .team-summary-empty,
+.team-establishment-dialog .team-summary-complete{
+ padding:17px 16px;
+ margin:0;
+ border:1px solid #c5e2d2;
+ background:#eaf8f0;
+ border-radius:11px;
+ color:#20754f;
+ font-size:12px;
+ line-height:1.5;
+ font-weight:850;
+}
+.team-establishment-dialog .team-establishment-foot{
+ flex:0 0 auto;
+ padding:10px 22px;
+ border-top:1px solid #e0ecf5;
+ background:#f8fbff;
+ color:#718ba0;
+ font-size:10.5px;
+ line-height:1.45;
+}
+@media(max-width:700px){
+ #pageTeams #establishedTeamSummary .team-summary-heading{
+  align-items:flex-start;
+  gap:8px;
+ }
+ #pageTeams #establishedTeamSummary .team-summary-open-hint{
+  font-size:10px;
+  padding:7px 8px;
+ }
+ .team-establishment-dialog{
+  width:calc(100vw - 18px);
+  height:min(89dvh,900px);
+  border-radius:15px;
+ }
+ .team-establishment-dialog .team-establishment-head{padding:14px 15px}
+ .team-establishment-dialog .team-establishment-toolbar{
+  align-items:flex-start;
+  flex-direction:column;
+  padding:11px 15px;
+ }
+ .team-establishment-dialog .team-status-count{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  width:100%;
+ }
+ .team-establishment-dialog .team-status-filter{
+  padding:8px 7px;
+  font-size:10.5px;
+  white-space:normal;
+ }
+ .team-establishment-dialog .team-establishment-scroll{padding:14px 15px}
+ .team-establishment-dialog .team-summary-ready{grid-template-columns:1fr}
+ .team-establishment-dialog .team-establishment-foot{padding:9px 15px}
+}
+@media(prefers-reduced-motion:reduce){
+ #pageTeams #establishedTeamSummary.team-summary-card{transition:none}
+}
