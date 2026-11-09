@@ -355,6 +355,34 @@ function teamDeletionReason(tid){
  return '';
 }
 let editingTeamNameId=null;
+/* Tim dipilih dari modal lebar; panel kiri cukup menampilkan pilihan
+   sekarang, status, dan satu tombol buka. ID tim tetap sumber relasi. */
+function renderTeamPickerSummary(){
+ const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect')?.value;
+ const team=demoTeams.find(t=>String(t.id)===String(tid));
+ const ro=demoRoster[tid]||{members:[]};
+ $('teamPickerCurrentName').textContent=team?.name||'Belum Ada Tim Dipilih';
+ const memberCount=(ro.members||[]).length;
+ const status=team?.active===false?'Nonaktif':teamEstablishmentIssue(tid)===''?'Sudah Ditetapkan':'Belum Ditetapkan';
+ $('teamPickerCurrentMeta').textContent=team?
+  nf(memberCount)+' Anggota · '+status+' · Tahun '+activeYear:
+  'Pilih tim aktif melalui tombol di bawah.';
+ $('teamPickerYear').textContent=String(activeYear);
+ $('teamPickerOpen').disabled=!demoTeams.length;
+}
+function openTeamPickerDialog(){
+ const dialog=$('teamPickerDialog');
+ if(!dialog||dialog.open)return;
+ $('teamAdminSearch').value='';
+ $('teamAdminStatus').value='active';
+ renderTeamDirectory();
+ dialog.showModal();
+ $('teamAdminSearch').focus({preventScroll:true});
+}
+function closeTeamPickerDialog(){
+ const dialog=$('teamPickerDialog');
+ if(dialog?.open)dialog.close();
+}
 function renderTeamDirectory(){
  const host=$('teamAdminDirectory');if(!host)return;
  const query=($('teamAdminSearch')?.value||'').trim().toLocaleLowerCase('id');
@@ -385,7 +413,14 @@ function renderTeamDirectory(){
  $('teamAdminDirectoryCount').textContent=nf(rows.length)+' Ditampilkan · '+nf(active)+' Aktif · '+nf(inactive)+' Nonaktif · '+activeYear;
  host.querySelectorAll('[data-team-dir-pick]').forEach(btn=>btn.onclick=()=>selectTeamFromDirectory(btn.dataset.teamDirPick));
  host.querySelectorAll('[data-team-dir-edit]').forEach(btn=>btn.onclick=()=>renameTeamFromDirectory(btn.dataset.teamDirEdit));
- host.querySelectorAll('[data-team-dir-delete]').forEach(btn=>btn.onclick=()=>deleteTeamAdmin(btn.dataset.teamDirDelete));
+ host.querySelectorAll('[data-team-dir-delete]').forEach(btn=>btn.onclick=async()=>{
+  const tid=btn.dataset.teamDirDelete;
+  // uiConfirm is a separate popup: close the native dialog first so its
+  // confirmation remains visible above the screen overlay.
+  closeTeamPickerDialog();
+  await deleteTeamAdmin(tid);
+  openTeamPickerDialog();
+ });
  host.querySelectorAll('[data-team-rename-save]').forEach(btn=>btn.onclick=()=>commitTeamDirectoryRename(btn.dataset.teamRenameSave));
  host.querySelectorAll('[data-team-rename-cancel]').forEach(btn=>btn.onclick=()=>{editingTeamNameId=null;renderTeamDirectory()});
  const input=host.querySelector('[data-team-rename-value]');
@@ -403,6 +438,7 @@ function selectTeamFromDirectory(tid){
   toast('Perubahan susunan tim sebelumnya belum ditetapkan dan dibatalkan ketika berpindah tim.');
  }
  $('teamAdminSelect').value=tid;
+ closeTeamPickerDialog();
  renderTeamAdminPage();
  // On stacked/mobile layouts the roster is below a long team directory.
  // Bring the selected team's form into view when the user chooses a team.
@@ -517,7 +553,7 @@ function renderTeamAdminPage(){
  $('teamAdminScope').textContent=isCentral?'Ketua Tim menetapkan anggotanya per tim. Admin/Kepala memeriksa seluruh penetapan sebelum persetujuan akhir.':'Anda bertanggung jawab menetapkan anggota tim sendiri. Ketua yang ditunjuk harus ikut sebagai anggota.';
  $('teamAdminKroNote').textContent=activeYear===2026?'Kegiatan tanpa KRO dapat ditata kembali di Input Alokasi.':'Setiap KRO yang dipilih wajib memiliki sedikitnya satu kegiatan aktif pada tahun ini.';
  $('teamAdminMeta').textContent=teamDeletionReason(tid)?'Tidak dapat dihapus: '+teamDeletionReason(tid)+'. Gunakan Nonaktifkan agar riwayat tetap tersimpan.':'Tim ini kosong, belum memiliki alokasi dan dapat dihapus. Pastikan penetapan tim sudah sesuai.';
- renderKroAudit();renderYearSetup();renderEstablishedTeams();renderTeamDirectory();renderTeamWorkflow();
+ renderKroAudit();renderYearSetup();renderEstablishedTeams();renderTeamDirectory();renderTeamWorkflow();renderTeamPickerSummary();
 }
 function drawWorkingMembers(){
  const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
@@ -745,7 +781,16 @@ function setupRoster(){
  $('teamAdminSave').onclick=saveTeamAdmin;
  $('kroAuditRefresh').onclick=()=>{renderKroAudit();toast('Pemeriksaan KRO dan kegiatan diperbarui.')};
  $('empClose').onclick=closeEmployeeEditor;$('employeeScreen').onclick=e=>{if(e.target===$('employeeScreen'))closeEmployeeEditor()};$('employeeForm').onsubmit=e=>{e.preventDefault();saveEmployeeEditor()};
- $('teamAdminNew').onclick=createTeamAdmin;
+ $('teamPickerOpen').onclick=openTeamPickerDialog;
+ $('teamPickerClose').onclick=closeTeamPickerDialog;
+ $('teamPickerDone').onclick=closeTeamPickerDialog;
+ $('teamPickerDialog').addEventListener('click',event=>{if(event.target===$('teamPickerDialog'))closeTeamPickerDialog()});
+ $('teamAdminNew').onclick=async()=>{
+  const before=demoTeams.length;
+  closeTeamPickerDialog();
+  await createTeamAdmin();
+  if(demoTeams.length===before)openTeamPickerDialog();
+ };
  $('teamAdminDelete').onclick=deleteTeamAdmin;
  $('teamAdminGoKro').onclick=()=>{
   const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
