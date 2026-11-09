@@ -2049,3 +2049,28 @@
  #pageTeams .team-directory-actions{margin-left:30px}
  #pageTeams .team-directory-actions .team-directory-action{font-size:10px}
 }
+
+/* Tambah Tim berada dalam alur: Cari Tim → Tambah Tim → Status Tim. */
+#pageTeams .team-admin-list .team-directory-add{
+ box-sizing:border-box;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ width:100%;
+ min-height:39px;
+ margin:5px 0 0;
+ padding:9px 13px;
+ border-radius:11px;
+ font:900 12px/1.35 Nunito,Arial,sans-serif;
+ box-shadow:0 4px 11px rgba(14,96,169,.13);
+}
+#pageTeams .team-admin-list .team-directory-add:disabled{
+ opacity:.55;
+ cursor:not-allowed;
+ box-shadow:none;
+}
+#pageTeams .team-admin-list .team-directory-status{
+ margin-top:2px;
+ padding-top:9px;
+ border-top:1px solid #e2edf7;
+}
