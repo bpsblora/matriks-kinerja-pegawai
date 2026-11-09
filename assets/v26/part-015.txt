@@ -751,7 +751,12 @@ function renderYearSetup(){
  $('annualKroTeamName').textContent=demoTeams.find(t=>t.id===tid)?.name||'Tim';
  $('annualKroCount').textContent=nf((demoTeams.find(t=>t.id===tid)?.kroCodes||[]).length)+' KRO dipilih';
  const chooser=$('annualStaffChooser');chooser.open=!allReady||staffEditing;
- $('annualStaffComplete').classList.toggle('hidden',!allReady||staffEditing);
+ chooser.classList.toggle('is-confirmed',allReady&&!staffEditing);
+ chooser.classList.toggle('is-editing',staffEditing);
+ $('annualStaffDescription').textContent=staffEditing?'Periksa daftar dan simpan perubahan. Penetapan tim tetap dapat diperbarui.':allReady?'✓ '+yearSetup.staff.ids.length+' Pegawai Telah Ditetapkan untuk '+activeYear:'Pilih pegawai yang aktif untuk tahun '+activeYear;
+ $('annualStaffActionLabel').textContent=staffEditing?'Tutup / Batal Mengubah':allReady?(canCentral&&writable?'Lihat / Ubah Daftar Pegawai ▾':'Lihat Daftar Pegawai ▾'):'Kelola Daftar Pegawai ▴';
+ $('annualStaffCount').textContent=nf(staffDraft.size)+' Pegawai Dipilih';
+ $('annualStaffComplete').classList.add('hidden');
  $('annualStaffCompleteText').textContent='✓ '+yearSetup.staff.ids.length+' pegawai telah ditetapkan untuk '+activeYear;
  $('annualStaffEditActions').classList.toggle('hidden',!staffEditing);
  $('annualAddStaff').classList.toggle('hidden',!(canCentral&&writable));
@@ -763,14 +768,21 @@ function renderYearSetup(){
  const teamComplete=teamOk&&!teamEditing;
  teamStage.classList.toggle('is-complete',teamComplete);
  $('annualTeamGridSlot').classList.toggle('is-complete',teamComplete);
- $('annualTeamSummary').classList.toggle('hidden',!teamComplete);
+ $('annualTeamSummary').classList.toggle('hidden',!teamComplete&&!teamEditing);
  const ro=yearRosterRecord(tid);
- $('annualTeamSummary').textContent=teamComplete?'✓ Susunan tim ditetapkan · Ketua: '+(BASE.employees.find(e=>e.id===ro.leaderId)?.full_name||'—')+' · '+(ro.members||[]).length+' anggota':'';
- $('annualTeamStatusNote').textContent=teamComplete?'Susunan tim telah ditetapkan. KRO dikelola terpisah melalui Pembagian KRO.':!allReady?'Tetapkan daftar pegawai terlebih dahulu sebelum menentukan ketua dan anggota tim.':'Periksa ketua dan anggota dari referensi 2026, lalu tetapkan susunan tim.';
+ $('annualTeamSummary').textContent=teamComplete?'✓ Ditetapkan · '+(ro.members||[]).length+' Anggota':teamEditing?'Sedang Mengubah Susunan Tim':'';
+ $('annualTeamSummary').classList.toggle('is-editing',teamEditing);
+ teamStage.classList.toggle('is-confirmed',teamComplete);
+ $('annualTeamStatusNote').textContent=teamEditing?'Perubahan belum disimpan. Tetapkan ulang susunan untuk menerapkannya. Riwayat alokasi dan KRO tetap tersimpan.':teamComplete?'Susunan tim telah ditetapkan. Klik Ubah Susunan Tim untuk merevisi anggota kapan saja.':!allReady?'Tetapkan Daftar Pegawai terlebih dahulu.':'Pilih ketua dan anggota, kemudian Tetapkan Susunan Tim.';
  $('annualCopyRoster').classList.toggle('hidden',teamComplete||isBaseYear);
  $('annualConfirmTeam').classList.toggle('hidden',teamComplete);
  $('annualConfirmTeam').disabled=!allReady||!canTeam||!writable;
  $('annualEditTeam').classList.toggle('hidden',!teamComplete||!canTeam||!writable);
+ $('annualCancelTeam').classList.toggle('hidden',!teamEditing||!canTeam||!writable);
+ const rosterLocked=teamComplete||!writable||!allReady||!canTeam;
+ $('teamAdminLeader').disabled=rosterLocked||!(currentRole==='admin'||currentRole==='kepala');
+ $('teamAdminMemberSearch').disabled=rosterLocked;
+ $('teamAdminMembers').querySelectorAll('input[data-team-member]').forEach(input=>{input.disabled=rosterLocked||input.dataset.inactive==='true';});
  // Pengelolaan tim dan KRO adalah dua langkah berbeda. KRO tidak boleh tampil sebelum susunan tim selesai.
  const kroStage=$('annualKroStage');kroStage.classList.toggle('is-locked',!teamOk||teamEditing||staffEditing);
  kroStage.classList.toggle('hidden',!teamOk||teamEditing||staffEditing);
@@ -796,7 +808,7 @@ function confirmStaffYear(){
  if(!valid.length)return toast('Pilih minimal satu pegawai aktif.');
  const before=yearSetup.staff.ids||[],changed=!equalIds(before,valid),allowed=new Set(valid);
  yearSetup.staff={confirmed:true,ids:valid.sort(),by:roleActor(),at:new Date().toISOString()};
- if(changed){for(const [tid,r] of Object.entries(yearSetup.teams)){if(!allowed.has(r.leaderId)||(r.members||[]).some(id=>!allowed.has(id))){delete yearSetup.teams[tid];delete yearSetup.kros[tid];}}}
+ if(changed){for(const [tid,r] of Object.entries(yearSetup.teams)){if(!allowed.has(r.leaderId)||(r.members||[]).some(id=>!allowed.has(id))){delete yearSetup.teams[tid]; /* KRO milik kegiatan/tim, bukan melekat pada pegawai. */}}}
  annualEditingStaff=false;staffDraft=new Set(valid);storeYearSetup();
  logChange('Tetapkan daftar pegawai '+activeYear,valid.length+' pegawai'+(changed?' · daftar berubah':''));persist();
  renderTeamAdminPage();toast('Daftar pegawai telah ditetapkan. Lanjut ke susunan tim.');
@@ -824,7 +836,7 @@ function confirmTeamYear(){
  const ro=yearRosterRecord(tid);
  if(!ro.leaderId||!(ro.members||[]).length)return;
  yearSetup.teams[tid]={leaderId:ro.leaderId,members:[...ro.members].sort(),at:new Date().toISOString(),by:roleActor()};
- if(changed)delete yearSetup.kros[tid];
+ // Perubahan keanggotaan tidak membatalkan KRO yang dimiliki tim.
  annualEditingTeamId=null;storeYearSetup();logChange('Tetapkan susunan tim '+activeYear,teamMap.get(tid)?.name||tid);persist();renderTeamAdminPage();
  toast(isBaseYear?'Susunan tim 2026 ditetapkan. Pilih tim lain untuk melanjutkan penetapan.':'Susunan tim ditetapkan. Berikutnya pilih KRO di menu Pembagian KRO.');
  if(isBaseYear)return;
