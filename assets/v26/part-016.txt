@@ -303,7 +303,7 @@ function renderTeamWorkflow(){
  const selectedMembers=adminMemberWorking instanceof Set?adminMemberWorking:new Set(roster.members||[]);
  const active=team.active!==false;
  const stage=yearSetup.teams?.[tid];
- const confirmed=!!(stage&&stage.leaderId===roster.leaderId&&equalIds(stage.members,roster.members));
+ const confirmed=!!(stage&&teamEstablishmentIssue(tid)==='');
  const editing=annualEditingTeamId===tid;
  const draftChanged=!equalIds([...selectedMembers],roster.members||[])||(($('teamAdminLeader')?.value||'')!==(roster.leaderId||''));
  const ready=confirmed&&staffReady()&&!editing&&!draftChanged;
@@ -314,6 +314,7 @@ function renderTeamWorkflow(){
  $('teamAdminSelectedName').textContent=team.name;
  $('teamRosterGuide').textContent=!active?'Tim nonaktif. Aktifkan kembali dari Daftar Tim untuk penugasan baru.':
   !staffReady()?'Tetapkan Daftar Pegawai di bagian atas sebelum menetapkan Susunan Tim.':
+  currentRole==='ketua'&&!roster.leaderId?'Ketua belum ditunjuk. Hubungi Admin/Kepala BPS untuk menetapkan Ketua terlebih dahulu.':
   editing?'Mode Ubah Susunan Tim. Sesuaikan ketua/anggota, lalu klik Tetapkan Susunan Tim atau Batal Mengubah.':
   ready?'Susunan tim sudah ditetapkan. Klik Ubah Susunan Tim untuk memperbarui anggota tanpa menghilangkan riwayat alokasi.':
   !leader||!selectedMembers.size?'Pilih Ketua Tim dan centang minimal satu Anggota, lalu klik Tetapkan Susunan Tim di bawah.':
@@ -394,7 +395,7 @@ function renderTeamAdminPage(){
  $('teamAdminCount').textContent=nf(activeTeamList().length);$('teamAdminMemberCount').textContent=nf(adminMemberWorking.size);$('teamAdminKroCount').textContent=nf(selectedKroCodes.size);
  $('teamAdminDelete').disabled=!isCentral||activities.some(a=>a.team_id===tid);
  $('teamAdminAccess').textContent=isCentral?'Pilih satu tim, kemudian atur susunan anggotanya di panel sebelah.':'Pilih tim yang menjadi tanggung jawab Anda.';
- $('teamAdminScope').textContent=isCentral?'Nama tim diubah melalui tombol Edit pada Daftar Tim. Di sini hanya penetapan susunan anggota.':'Ketua dan nama tim ditetapkan Admin/Kepala BPS; anggota dapat diperiksa di sini.';
+ $('teamAdminScope').textContent=isCentral?'Ketua Tim menetapkan anggotanya per tim. Admin/Kepala memeriksa seluruh penetapan sebelum persetujuan akhir.':'Anda bertanggung jawab menetapkan anggota tim sendiri. Ketua yang ditunjuk harus ikut sebagai anggota.';
  $('teamAdminKroNote').textContent=activeYear===2026?'Kegiatan tanpa KRO dapat ditata kembali di Input Alokasi.':'Setiap KRO yang dipilih wajib memiliki sedikitnya satu kegiatan aktif pada tahun ini.';
  $('teamAdminMeta').textContent=teamDeletionReason(tid)?'Tidak dapat dihapus: '+teamDeletionReason(tid)+'. Gunakan Nonaktifkan agar riwayat tetap tersimpan.':'Tim ini kosong, belum memiliki alokasi dan dapat dihapus. Pastikan penetapan tim sudah sesuai.';
  renderEmployeeMaster();
