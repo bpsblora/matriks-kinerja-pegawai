@@ -786,7 +786,7 @@ assert(inline.includes("const name=input.value.trim();"),
 // Guided team setup: selecting a team and establishing its roster must
 // precede annual KRO assignment and activity allocation.
 const teamChoose=html.indexOf('<h3>01 · Pilih Tim</h3>');
-const teamRoster=html.indexOf('<h3>02 · Ketua dan Anggota Tim</h3>');
+const teamRoster=html.indexOf('<h3>02 · Ketua dan Anggota Tim Terpilih</h3>');
 const teamKro=html.indexOf('id="teamKroStep"');
 const teamActivity=html.indexOf('id="teamOverviewHeading"');
 const teamActivityAction=html.indexOf('id="teamAdminGoInput"');
@@ -862,9 +862,14 @@ assert(inline.includes("$('annualAddStaff').addEventListener('click'")&&
 assert(html.includes('id="employeeScreen"')&&html.includes('id="annualStaffList"'),
  "Editor dan pemilihan pegawai tahunan tetap harus tersedia");
 const teamStageMarkup=html.slice(teamStageStart,teamStageEnd);
-assert(teamStageMarkup.includes('id="annualTeamSummary" class="annual-team-state hidden"')&&
- teamStageMarkup.includes('id="annualTeamHeadAction"'),
- "Status Tim dan aksi Ubah Anggota harus menyatu dengan kepala kartu Tim");
+const selectedTeamHeading=html.slice(html.indexOf('class="section-top team-roster-heading"'),html.indexOf('id="teamRosterGuide"'));
+assert(selectedTeamHeading.includes('id="annualTeamSummary" class="annual-team-state hidden"')&&
+ selectedTeamHeading.includes('id="annualTeamHeadAction"')&&
+ selectedTeamHeading.includes('id="teamAdminSelectedName"'),
+ "Status dan tombol penetapan harus berada pada panel KETUA/ANGGOTA tim terpilih");
+assert(!teamStageMarkup.includes('id="annualTeamHeadAction"')&&
+ !teamStageMarkup.includes('id="annualTeamSummary"'),
+ "Jangan menaruh status satu tim di kepala ringkasan SELURUH tim");
 assert(teamStageMarkup.includes('id="annualCancelTeam"'),
  "Mode Ubah Tim memerlukan Batal untuk membuang draf");
 const stageRenderStart=inline.indexOf("function renderYearSetup(){");
@@ -1125,5 +1130,33 @@ for(const rule of [
 assert(html.includes('id="annualTeamHeadAction"')&&
  html.includes('id="teamRosterActionSlot"'),
  "Slot header dan slot tombol salin anggota harus ada tepat satu");
+
+
+// The parent team stage represents ALL active teams; identity and confirmation
+// of the selected team are deliberately restricted to the right-hand roster.
+assert(teamStageMarkup.includes('class="team-stage-overall-heading"'),
+ "Judul induk Susunan Tim harus berupa ringkasan seluruh tim");
+assert(!teamStageMarkup.includes('02 · Susunan Tim <span id="annualSelectedTeam"></span></strong><p id="annualTeamStatusNote">Tetapkan ketua'),
+ "Kepala Susunan Tim masih mewarisi penjelasan khusus tim terpilih");
+assert(html.includes('class="team-roster-head-tools"'),
+ "Nama tim terpilih dan aksi terkait harus dikelompokkan di panel kanan");
+assert(inline.includes("$('annualSelectedTeam').textContent='· '+activeYear;"),
+ "Judul induk tidak boleh berubah menjadi nama tim yang dipilih");
+assert(inline.includes("teamStage.classList.toggle('is-confirmed',progress.total>0&&progress.pending.length===0);"),
+ "Warna status induk harus berdasarkan SELURUH tim, bukan satu tim terpilih");
+assert(inline.includes("querySelector('.team-roster-heading')?.classList.toggle('is-confirmed',teamComplete);"),
+ "Status hijau panel kanan harus mengikuti tim yang sedang dipilih");
+assert(inline.includes("progress.ready+' dari '+progress.total+' Tim Aktif sudah ditetapkan"),
+ "Keterangan induk wajib menjelaskan jumlah seluruh tim");
+assert(inline.includes("rosterCard?.scrollIntoView({behavior:'smooth',block:'start'});"),
+ "Ketika memilih tim di layar sempit, formulir tim di bawah harus otomatis terlihat");
+for(const cssRule of [
+ "#pageTeams #annualTeamStage>.annual-stage-head>.team-stage-overall-heading{",
+ "#pageTeams #teamAdminGrid>.team-admin-card .team-roster-heading{",
+ "#pageTeams #teamAdminGrid .team-roster-head-tools{",
+ "#pageTeams #teamAdminGrid .team-roster-head-tools .team-focus-name::before{",
+ "#pageTeams #teamAdminGrid .team-roster-head-tools #annualTeamSummary.is-pending{",
+ "@media(max-width:1050px){"
+])assert(cssPolish.includes(cssRule),"Pemisahan visual seluruh tim vs tim terpilih belum lengkap: "+cssRule);
 
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
