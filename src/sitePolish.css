@@ -3312,3 +3312,168 @@
   padding:8px 9px!important;
  }
 }
+
+/* Susunan Tim: induk adalah cakupan SEMUA tim. Identitas/aksi tim terpilih
+   hanya boleh ada dalam panel kanan, bukan di atas Ringkasan Seluruh Tim. */
+#pageTeams #annualTeamStage>.annual-stage-head{
+ display:flex!important;
+ flex-wrap:wrap!important;
+ align-items:center!important;
+ gap:10px 18px!important;
+ background:#f7fbff;
+}
+#pageTeams #annualTeamStage>.annual-stage-head>.team-stage-overall-heading{
+ flex:1 1 auto;
+ min-width:0;
+}
+#pageTeams #annualTeamStage>.annual-stage-head>.team-stage-overall-heading>strong{
+ display:block;
+ color:#145685;
+ font-size:16px;
+ font-weight:900;
+ line-height:1.35;
+}
+#pageTeams #annualTeamStage>.annual-stage-head>.team-stage-overall-heading p{
+ margin:4px 0 0;
+ color:#547b9b;
+ font-size:11.5px;
+ line-height:1.45;
+}
+#pageTeams #annualTeamStage>.annual-stage-head #annualSelectedTeam{
+ color:#447a9e;
+ font-size:12px;
+ font-weight:850;
+}
+#pageTeams #annualTeamStage.is-confirmed>.annual-stage-head{
+ background:linear-gradient(105deg,#eaf8f0,#f9fefa);
+}
+#pageTeams #annualTeamStage.is-confirmed>.annual-stage-head>.team-stage-overall-heading>strong{
+ color:#186446;
+}
+#pageTeams #annualTeamStage .annual-stage-head>#establishedTeamSummary.team-summary-inline{
+ order:5;
+ flex-basis:100%!important;
+}
+#pageTeams #teamAdminGrid>.team-admin-card .team-roster-heading{
+ display:flex!important;
+ flex-wrap:wrap!important;
+ align-items:center;
+ justify-content:space-between;
+ gap:10px 14px;
+ padding:11px 12px;
+ margin:-2px -2px 12px;
+ border:1px solid #d3e6f4;
+ border-radius:12px;
+ background:linear-gradient(112deg,#f5faff,#fff);
+}
+#pageTeams #teamAdminGrid .team-roster-heading.is-confirmed{
+ border-color:#c5e5d2;
+ background:linear-gradient(110deg,#eaf8ef,#fcfefd);
+}
+#pageTeams #teamAdminGrid .team-roster-heading.is-editing{
+ border-color:#b6d7ed;
+ background:#edf7ff;
+}
+#pageTeams #teamAdminGrid .team-roster-title{
+ flex:1 1 250px;
+ min-width:0;
+}
+#pageTeams #teamAdminGrid .team-roster-title h3{
+ margin:0;
+ color:#164f7b;
+ font-size:13px;
+ font-weight:900;
+ line-height:1.35;
+}
+#pageTeams #teamAdminGrid .team-roster-title p{
+ margin:4px 0 0;
+ font-size:10.5px;
+ line-height:1.45;
+ color:#65839d;
+}
+#pageTeams #teamAdminGrid .team-roster-head-tools{
+ display:flex;
+ align-items:center;
+ justify-content:flex-end;
+ flex:1 1 auto;
+ flex-wrap:wrap;
+ gap:7px;
+ min-width:0;
+}
+#pageTeams #teamAdminGrid .team-roster-head-tools .team-focus-name{
+ box-sizing:border-box;
+ display:inline-flex;
+ max-width:min(100%,245px);
+ min-width:0;
+ align-items:center;
+ overflow-wrap:anywhere;
+ padding:7px 10px;
+ border:1px solid #b2d6f2;
+ border-radius:9px;
+ background:#e5f3ff;
+ color:#155c93;
+ font-size:11px;
+ font-weight:900;
+}
+#pageTeams #teamAdminGrid .team-roster-head-tools .team-focus-name::before{
+ content:"Tim Terpilih: ";
+ padding-right:4px;
+ color:#567d9c;
+ font-weight:750;
+}
+#pageTeams #teamAdminGrid .team-roster-heading.is-confirmed .team-focus-name{
+ border-color:#b4e1c8;
+ background:#e0f5ea;
+ color:#1a6e49;
+}
+#pageTeams #teamAdminGrid .team-roster-head-tools #annualTeamSummary.annual-team-state{
+ margin:0;
+ font-size:10.5px;
+ white-space:normal;
+}
+#pageTeams #teamAdminGrid .team-roster-head-tools #annualTeamSummary.is-pending{
+ background:#fff7e6;
+ border-color:#e8d5a7;
+ color:#89621a;
+}
+#pageTeams #teamAdminGrid .team-roster-head-tools #annualTeamHeadAction{
+ display:flex;
+ align-items:center;
+ justify-content:flex-end;
+ flex-wrap:wrap;
+ gap:6px;
+ margin:0;
+}
+#pageTeams #teamAdminGrid .team-roster-head-tools #annualTeamHeadAction>.btn{
+ min-height:34px!important;
+ font-size:10.5px!important;
+}
+@media(max-width:1380px){
+ #pageTeams #teamAdminGrid .team-roster-head-tools{
+  flex-basis:100%;
+  justify-content:flex-start;
+ }
+ #pageTeams #teamAdminGrid .team-roster-head-tools #annualTeamHeadAction{
+  justify-content:flex-start;
+ }
+}
+@media(max-width:1050px){
+ #pageTeams #teamAdminGrid>.team-admin-card .team-roster-heading{
+  scroll-margin-top:20px;
+ }
+ #pageTeams #teamAdminGrid .team-admin-list .team-directory-list{
+  max-height:min(30dvh,255px)!important;
+ }
+}
+@media(max-width:560px){
+ #pageTeams #teamAdminGrid .team-roster-head-tools{
+  align-items:flex-start;
+  justify-content:flex-start;
+ }
+ #pageTeams #teamAdminGrid .team-roster-head-tools #annualTeamHeadAction{
+  width:100%;
+ }
+ #pageTeams #annualTeamStage>.annual-stage-head>.team-stage-overall-heading>strong{
+  font-size:14px;
+ }
+}
