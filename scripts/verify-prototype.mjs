@@ -668,7 +668,7 @@ for(const token of [
 }
 // Add Team should appear under search and directly above the status filter,
  // not beside the Daftar Tim heading.
-const teamDirStart=html.indexOf('<h3>Daftar Tim</h3>');
+const teamDirStart=html.indexOf('<h3>01 · Pilih Tim</h3>');
 const teamDirEnd=html.indexOf('id="teamAdminDirectoryCount"',teamDirStart);
 assert(teamDirStart>=0&&teamDirEnd>teamDirStart,"Daftar Tim heading/filter markup tidak ditemukan");
 const teamHeaderBlock=html.slice(teamDirStart,teamDirEnd);
