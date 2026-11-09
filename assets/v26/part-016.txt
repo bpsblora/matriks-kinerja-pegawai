@@ -2,12 +2,13 @@ si tahun 2026 · Matriks Kegiatan Pegawai 2026.xlsx (V25): '+BASE.teams.length+'
  summary.classList.toggle('hidden',!isBaseYear);
 
  const teamMembers=$('teamAdminMembers');if(teamMembers&&!$('teamMemberTarget')){const hint=document.createElement('div');hint.id='teamMemberTarget';teamMembers.before(hint)}
- const rosterHost=document.createElement('section');rosterHost.id='establishedTeamSummary';rosterHost.className='panel team-summary-card';
- if(!$('establishedTeamSummary')){
-  if(isBaseYear){if(grid)grid.after(rosterHost);else page.appendChild(rosterHost)}
-  else if(panel)panel.after(rosterHost);
-  else page.appendChild(rosterHost);
- }
+ const rosterHost=$('establishedTeamSummary')||document.createElement('div');
+ rosterHost.id='establishedTeamSummary';
+ rosterHost.className='team-summary-inline';
+ // One status surface: place the overall team counters inside the green
+ // Susunan Tim header. Do not render a second summary card below.
+ const teamHead=$('annualTeamStage')?.querySelector('.annual-stage-head');
+ if(teamHead&&rosterHost.parentElement!==teamHead)teamHead.appendChild(rosterHost);
 
  const legacy=document.createElement('div');legacy.id='kroLegacyInvisible';legacy.style.display='none';
  const oldKro=grid?.querySelector('.team-kro-panel');
@@ -267,21 +268,23 @@ function renderEstablishedTeams(){
  const {list,ready,missing}=establishedTeamSnapshot();
  el.setAttribute('aria-label','Buka Rincian Penetapan Tim '+activeYear);
  el.setAttribute('tabindex','0');
- el.innerHTML=`<div class="section-top team-summary-heading">
-   <div><h3>Ringkasan Penetapan Tim ${activeYear}</h3>
-    <p>Klik kartu atau status di bawah untuk melihat rincian tim.</p></div>
-   <span class="team-summary-open-hint">Lihat Rincian <span aria-hidden="true">↗</span></span>
+ el.innerHTML=`<div class="team-summary-heading">
+   <div><strong>Ringkasan Seluruh Tim</strong><small>Klik status untuk melihat rincian penetapan.</small></div>
+   <button type="button" class="team-summary-open-hint" data-team-summary-open aria-haspopup="dialog" aria-controls="establishedTeamDialog">Lihat Rincian <span aria-hidden="true">↗</span></button>
   </div>
   <div class="team-status-count" role="group" aria-label="Buka rincian berdasarkan status">
    <button type="button" class="team-status-filter" data-team-summary-filter="ready" aria-haspopup="dialog" aria-controls="establishedTeamDialog">✓ ${ready.length} Tim Ditetapkan</button>
    <button type="button" class="team-status-filter" data-team-summary-filter="pending" aria-haspopup="dialog" aria-controls="establishedTeamDialog">◷ ${missing.length} Tim Belum Lengkap</button>
-   <span class="team-summary-total">${list.length} Tim Aktif</span>
   </div>`;
+ el.querySelector('[data-team-summary-open]').onclick=event=>{
+  event.stopPropagation();
+  openEstablishedTeamDialog('ready',event.currentTarget);
+ };
  el.querySelectorAll('[data-team-summary-filter]').forEach(btn=>btn.onclick=()=>{
   openEstablishedTeamDialog(btn.dataset.teamSummaryFilter,btn);
  });
  el.onclick=event=>{
-  if(event.target.closest('[data-team-summary-filter]'))return;
+  if(event.target.closest('[data-team-summary-filter],[data-team-summary-open]'))return;
   openEstablishedTeamDialog('ready',el);
  };
  el.onkeydown=event=>{
