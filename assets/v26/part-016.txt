@@ -281,12 +281,16 @@ function renderTeamDirectory(){
   else if(e.key==='Escape'){e.preventDefault();editingTeamNameId=null;renderTeamDirectory();}
  };
 }
-function selectTeamFromDirectory(tid,edit=false){
+function selectTeamFromDirectory(tid){
  if(currentRole==='ketua'&&String(roleTeamId)!==String(tid))return;
  if(!demoTeams.some(t=>String(t.id)===String(tid)))return;
+ const previous=$('teamAdminSelect').value;
+ if(String(previous)!==String(tid)&&annualEditingTeamId===previous){
+  annualEditingTeamId=null;
+  toast('Perubahan susunan tim sebelumnya belum ditetapkan dan dibatalkan ketika berpindah tim.');
+ }
  $('teamAdminSelect').value=tid;
  renderTeamAdminPage();
- if(edit){const field=$('teamAdminName');field?.scrollIntoView({behavior:'smooth',block:'center'});field?.focus({preventScroll:true});}
 }
 /* One guided path, no duplicate team-name editor or early activity action.
    The team directory owns identity; the right card owns roster and next steps.
