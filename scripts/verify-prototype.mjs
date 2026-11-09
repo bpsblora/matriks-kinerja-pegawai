@@ -492,4 +492,32 @@ for(const label of ["Tim","Pegawai Aktif","Uraian Aktif","Total Jam Alokasi"]){
 }
 assert(dashboardRender.split("<article><small>").length===5,"Dashboard harus tetap memiliki empat KPI, bukan duplikasi atau kartu kosong");
 
+
+// Audit lanjutan 9 November: kartu monitoring tidak boleh menyisakan
+// tinggi paksa, laporan cetak harus menggunakan tahun dan periode aktual.
+assert(cssPolish.includes("height:auto!important; /* natural panel height */"),
+  "Kartu grafik dan detail masih dibatasi tinggi tetap");
+assert(cssPolish.includes("max-height:min(54dvh,440px)!important"),
+  "Daftar perbandingan pegawai harus bergulir dengan tinggi terbatas");
+assert(html.includes('id="barMetricTitle">Jam Kerja</span>'),
+  "Label indikator grafik belum konsisten Kapital Awal Kata");
+const personStart=inline.indexOf("function renderPerson(");
+const personEnd=inline.indexOf("function renderHistory(",personStart);
+assert(personStart>=0&&personEnd>personStart,"Rincian pegawai tidak ditemukan");
+const personCode=inline.slice(personStart,personEnd);
+assert(personCode.includes("const auditMarkup=isBaseYear?"),
+  "Audit acuan 2026 tidak boleh ditampilkan sebagai perbandingan pada tahun berikutnya");
+assert(personCode.includes("${auditMarkup}</div>"),
+  "Ringkasan pegawai belum memakai audit sesuai tahun aktif");
+const printStart=inline.indexOf("function printMonitoringPDF(){");
+const printEnd=inline.indexOf("function exportCSV(){",printStart);
+assert(printStart>=0&&printEnd>printStart,"Cetak laporan monitoring tidak ditemukan");
+const printCode=inline.slice(printStart,printEnd);
+assert(printCode.includes("p==='annual'?'Referensi Tahunan '"),
+  "Periode cetak annual harus ditulis sebagai referensi tahunan, bukan undefined");
+assert(printCode.includes("Dicetak pada ${new Date().toLocaleString('id-ID')}"),
+  "Tanggal cetak belum diisi dinamis");
+assert(!printCode.includes("prototipe '+activeYear+'"),
+  "Laporan cetak masih menampilkan teks tahun yang tidak dievaluasi");
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
