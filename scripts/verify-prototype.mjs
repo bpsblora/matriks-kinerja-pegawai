@@ -1031,6 +1031,48 @@ for(const token of [
  "teamEstablishmentIssue(t.id)",
  "data-team-summary-edit="
 ])assert(teamSummaryCode.includes(token),"Pop-up status Penetapan Tim belum benar: "+token);
+// The full-width detached summary is gone; the existing green Susunan Tim
+// header owns the status controls, but the detail modal is unchanged.
+const teamHostStart=inline.indexOf("const rosterHost=$('establishedTeamSummary')||document.createElement('div');");
+const teamHostEnd=inline.indexOf("const legacy=document.createElement('div');",teamHostStart);
+assert(teamHostStart>=0&&teamHostEnd>teamHostStart,
+ "Ringkasan Penetapan Tim harus dipindah ke kepala kartu Susunan Tim");
+const teamHostCode=inline.slice(teamHostStart,teamHostEnd);
+assert(teamHostCode.includes("rosterHost.className='team-summary-inline';")&&
+ teamHostCode.includes("teamHead.appendChild(rosterHost)"),
+ "Status penetapan wajib berada di dalam header hijau Susunan Tim");
+assert(!teamHostCode.includes("grid.after(rosterHost)")&&
+ !teamHostCode.includes("panel.after(rosterHost)"),
+ "Kartu Ringkasan Penetapan Tim terpisah harus dihilangkan");
+assert(teamSummaryCode.includes("<strong>Ringkasan Seluruh Tim</strong>")&&
+ teamSummaryCode.includes("data-team-summary-open")&&
+ teamSummaryCode.includes("openEstablishedTeamDialog('ready',event.currentTarget);"),
+ "Ringkasan dalam kartu Susunan Tim harus menyediakan tombol lihat rincian");
+assert(teamSummaryCode.includes("const reason=teamEstablishmentIssue(t.id);")&&
+ teamSummaryCode.includes("const complete=reason==='';"),
+ "Jumlah tim ditetapkan harus memakai validasi yang SAMA dengan status tahunan");
+assert(!teamSummaryCode.includes("yearSetup.teams[t.id].leaderId===ro.leaderId"),
+ "Hitungan legacy 2026 tidak boleh bertentangan dengan validasi Finalisasi");
+for(const rule of [
+ "#pageTeams #annualTeamStage>.annual-stage-head{",
+ "#pageTeams #annualTeamStage .annual-stage-head>#establishedTeamSummary.team-summary-inline{",
+ "border-top:1px solid #cce6d8!important;",
+ "#pageTeams #annualTeamStage .team-summary-inline .team-status-count{",
+ "#pageTeams #annualTeamStage .team-summary-inline .team-summary-open-hint{"
+])assert(cssPolish.includes(rule),"Kartu hijau Susunan Tim belum mengintegrasikan ringkasan: "+rule);
+const snapshotStart=teamSummaryCode.indexOf("function establishedTeamSnapshot(){");
+const snapshotEnd=teamSummaryCode.indexOf("function ensureEstablishedTeamDialog()",snapshotStart);
+const snapshotFn=teamSummaryCode.slice(snapshotStart,snapshotEnd);
+const sampleSummary=vm.runInNewContext(snapshotFn+";establishedTeamSnapshot()",{
+ demoTeams:[{id:"A",active:true},{id:"B",active:true},{id:"C",active:false}],
+ demoRoster:{A:{leaderId:"E1",members:["E1"]},B:{leaderId:"E2",members:["E2"]}},
+ BASE:{employees:[{id:"E1",full_name:"Pegawai 1"},{id:"E2",full_name:"Pegawai 2"}]},
+ teamEstablishmentIssue:tid=>tid==="A"?"":"Belum ditetapkan"
+});
+assert.equal(sampleSummary.list.length,2,"Tim nonaktif tidak termasuk ringkasan aktif");
+assert.equal(sampleSummary.ready.length,1,"Ringkasan harus tunduk pada validasi penetapan");
+assert.equal(sampleSummary.missing.length,1,"Tim yang belum ditetapkan muncul di filter belum lengkap");
+
 const compactBody=teamSummaryCode.slice(teamSummaryCode.indexOf("function renderEstablishedTeams(){"));
 assert(!compactBody.includes("team-summary-ready")&&!compactBody.includes("team-summary-pending-list"),
  "Daftar detail tidak boleh tetap tampil di bawah kartu ringkasan");
@@ -1041,7 +1083,7 @@ assert(popupBody.includes("team-summary-ready")&&popupBody.includes("team-summar
 assert(popupBody.includes("Seluruh tim aktif sudah ditetapkan"),
  "Status kosong tetap harus bisa dibuka dan menunjukkan keterangan");
 for(const rule of [
- "#pageTeams #establishedTeamSummary.team-summary-card{",
+ "#pageTeams #annualTeamStage .annual-stage-head>#establishedTeamSummary.team-summary-inline{",
  ".team-establishment-dialog{",
  ".team-establishment-dialog::backdrop{",
  ".team-establishment-dialog .team-establishment-scroll{",
