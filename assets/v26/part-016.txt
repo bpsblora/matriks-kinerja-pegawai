@@ -1252,15 +1252,20 @@ function renderYearUI(){
  const sel=$('yearSelect');if(sel.options.length!==optYears.length)fillSelect(sel,optYears.map(y=>({value:String(y),label:String(y)})),String(activeYear));sel.value=String(activeYear);
  $('yearBadge').textContent='DATA '+activeYear;
  const info=yearInfo(),status=info.status,upcoming=yearIsFuture(),view=currentRole==='pegawai',gated=yearNeedsGate()&&(view||status==='closed');
+ const teamProgress=annualTeamCompletion();
+ const teamBlock=teamProgress.pending.length?teamProgress.pending.slice(0,3).map(t=>t.name).join(', ')+(teamProgress.pending.length>3?' dan '+(teamProgress.pending.length-3)+' tim lainnya':''):'';
  document.body.classList.toggle('year-gated',gated);document.body.classList.toggle('year-new',!isBaseYear);
  const card=$('yearStateStrip');card.classList.toggle('hidden',isBaseYear);card.classList.toggle('draft',status==='draft');card.classList.toggle('approved',status==='approved');
  $('yearPrepare').classList.toggle('hidden',!(status==='closed'&&!isBaseYear&&canPrepareAnnual()));
  $('yearHow').classList.toggle('hidden',!yearWelcomeNeeded());
- $('yearApprove').classList.toggle('hidden',!(status==='draft'&&!isBaseYear&&publishedAllocationCount()>0&&['kepala','admin'].includes(currentRole)));
- $('yearApprove').disabled=!activities.some(a=>a.status==='aktif');
+ $('yearApprove').classList.toggle('hidden',!(status==='draft'&&!isBaseYear&&['kepala','admin'].includes(currentRole)));
+ const canApproveTeams=teamProgress.total>0&&teamProgress.pending.length===0;
+ $('yearApprove').disabled=!canApproveTeams||!staffReady()||!publishedAllocationCount()||!activities.some(a=>a.status==='aktif');
+ $('yearApprove').title=!canApproveTeams?'Menunggu penetapan '+teamProgress.pending.length+' dari '+teamProgress.total+' tim aktif. '+teamBlock:
+  !publishedAllocationCount()?'Tetapkan minimal satu alokasi kegiatan terlebih dahulu.':'Setujui matriks setelah seluruh pemeriksaan tahunan selesai.';
  const pretty=info.approvedAt?new Date(info.approvedAt).toLocaleString('id-ID'):'';
  $('yearStateTitle').textContent=isBaseYear?'2026 · Referensi Matriks Asli':status==='approved'?activeYear+' · Matriks Ditetapkan':status==='draft'?activeYear+' · Draf Penyusunan':activeYear+' · Belum Disiapkan';
- $('yearStateDesc').textContent=isBaseYear?'Data 2026 menjadi acuan penyusunan tahun selanjutnya; temuan alokasi lama tetap perlu diperiksa.':status==='approved'?(pretty?'Ditetapkan '+pretty:'Rencana telah diterbitkan untuk seluruh pegawai.'):status==='draft'?(view?'Menunggu penetapan matriks.':!staffReady()?'Tahap 1: tetapkan daftar pegawai di Kelola Tim.':!anyEstablishedTeam()?'Tahap 2: tetapkan susunan tim di Kelola Tim.':!anyEstablishedKro()?'Tahap 3: tetapkan KRO pada menu Pembagian KRO.':!publishedAllocationCount()?'Tahap 4: input kegiatan dan tetapkan minimal satu alokasi.':'Alokasi sudah ditetapkan. Monitoring dan Rekonsiliasi dapat dibuka.'):(upcoming?'Draf dapat disusun setelah tahun dibuka oleh Admin/Kepala.':'Rencana tahun ini belum tersedia.');
+ $('yearStateDesc').textContent=isBaseYear?'Data 2026 menjadi acuan penyusunan tahun selanjutnya; temuan alokasi lama tetap perlu diperiksa.':status==='approved'?(pretty?'Ditetapkan '+pretty:'Rencana telah diterbitkan untuk seluruh pegawai.'):status==='draft'?(view?'Menunggu penetapan matriks.':!staffReady()?'Tahap 1: tetapkan daftar pegawai di Kelola Tim.':!anyEstablishedTeam()?'Tahap 2: Ketua Tim menetapkan susunan tim masing-masing di Kelola Tim.':teamProgress.pending.length?'Menunggu '+teamProgress.pending.length+' tim aktif ditetapkan ('+teamProgress.ready+'/'+teamProgress.total+'). '+teamBlock:!anyEstablishedKro()?'Tahap 3: tetapkan KRO pada menu Pembagian KRO.':!publishedAllocationCount()?'Tahap 4: input kegiatan dan tetapkan minimal satu alokasi.':'Seluruh '+teamProgress.total+' tim telah ditetapkan. Periksa kesiapan akhir untuk persetujuan Kepala/Admin.'):(upcoming?'Draf dapat disusun setelah tahun dibuka oleh Admin/Kepala.':'Rencana tahun ini belum tersedia.');
  $('yearGateTitle').textContent=status==='draft'?'Rencana '+activeYear+' belum ditetapkan':'Tahun '+activeYear+' belum memiliki rencana';
  $('yearGateText').textContent=status==='draft'?'Ketua tim sedang menyiapkan draf. Data akan terlihat oleh seluruh pegawai setelah Kepala BPS menetapkan rencana tahun '+activeYear+'.':'Tahun ini belum dibuka untuk perencanaan. Admin atau Kepala BPS dapat menyiapkan draf; data hanya ditampilkan setelah ditetapkan.';
  // The year is future and unapproved: no content should appear for anonymous View.
@@ -1272,12 +1277,22 @@ async function prepareAnnual(skipConfirm=false){if(!canPrepareAnnual()||isBaseYe
  if(!skipConfirm&&!await uiConfirm('Buka draf '+activeYear+'? Data '+(activeYear-1)+' hanya menjadi referensi. Setelah membuka draf, tetapkan daftar pegawai, susunan tim, lalu KRO sebelum menginput alokasi.'))return;
  yearCatalog[String(activeYear)]={status:'draft',preparedAt:new Date().toISOString(),preparedBy:roleActor()};saveYearCatalog();renderYearUI();setPage('teams');renderYearSetup();toast('Draf '+activeYear+' dibuka. Mulai dengan menetapkan daftar pegawai.');
 }
-async function approveAnnual(){if(!['kepala','admin'].includes(currentRole)||isBaseYear||yearInfo().status!=='draft')return;if(!publishedAllocationCount())return toast('Tetapkan alokasi kegiatan pada Input Alokasi terlebih dahulu.');if(activeYear>2027)return toast('POK resmi '+activeYear+' belum tersedia; perbarui katalog sebelum menetapkan matriks.');if(!predecessorHasData()||!staffReady())return toast('Data tahun sebelumnya dan daftar pegawai belum lengkap.');const inUse=[...new Set(activities.filter(a=>a.status==='aktif').map(a=>a.team_id))];if(inUse.some(tid=>!yearKroReady(tid)))return toast('Masih ada tim dengan kegiatan aktif yang belum menetapkan anggota dan KRO.');if(activities.some(a=>a.status==='aktif'&&resolveGroupKro(a.team_id,groupName(a))===NO_KRO))return toast('Ada kegiatan aktif yang belum dipetakan pada KRO.');const coverage=kroCoverageSnapshot();if(coverage.krosMissing.length||coverage.assignedTeamCount===0)return showKroCoverageDialog({mode:'final'});
+async function approveAnnual(){
+ if(!['kepala','admin'].includes(currentRole)||isBaseYear||yearInfo().status!=='draft')return;
+ const teams=annualTeamCompletion();
+ if(!teams.total)return toast('Belum ada Tim Aktif yang dapat ditetapkan.');
+ if(teams.pending.length){
+  const names=teams.pending.slice(0,5).map(t=>t.name+' ('+t.reason+')').join('; ');
+  toast('Persetujuan ditunda: '+teams.pending.length+' dari '+teams.total+' Tim Aktif belum ditetapkan. '+names+(teams.pending.length>5?' dan tim lainnya.':'.'));
+  setPage('teams');return;
+ }
+ if(!publishedAllocationCount())return toast('Tetapkan alokasi kegiatan pada Input Alokasi terlebih dahulu.');if(activeYear>2027)return toast('POK resmi '+activeYear+' belum tersedia; perbarui katalog sebelum menetapkan matriks.');if(!predecessorHasData()||!staffReady())return toast('Data tahun sebelumnya dan daftar pegawai belum lengkap.');const inUse=[...new Set(activities.filter(a=>a.status==='aktif').map(a=>a.team_id))];if(inUse.some(tid=>!yearKroReady(tid)))return toast('Masih ada tim dengan kegiatan aktif yang belum menetapkan anggota dan KRO.');if(activities.some(a=>a.status==='aktif'&&resolveGroupKro(a.team_id,groupName(a))===NO_KRO))return toast('Ada kegiatan aktif yang belum dipetakan pada KRO.');const coverage=kroCoverageSnapshot();if(coverage.krosMissing.length||coverage.assignedTeamCount===0)return showKroCoverageDialog({mode:'final'});
  const activeCount=activities.filter(a=>a.status==='aktif').length;
  if(!activeCount){toast('Tambahkan setidaknya satu uraian kegiatan sebelum menetapkan tahun.');return}
  const established=Object.values(state.workflowPlans||{}).filter(w=>w.status==='established').length;
  const delegation=currentRole==='admin'?await uiPrompt('Tuliskan dasar delegasi penetapan dari Kepala BPS (disampaikan secara offline):',''):'';if(currentRole==='admin'&&!delegation?.trim())return toast('Dasar delegasi wajib diisi.');
- if(!await uiConfirm('Tetapkan rencana tahun '+activeYear+' agar bisa dilihat seluruh pegawai?\n\n'+activeCount+' uraian tersedia, '+established+' penetapan alokasi. Draf alokasi yang belum ditetapkan tetap tidak masuk monitoring.'))return;
+ if(!await uiConfirm('Setujui Matriks '+activeYear+' setelah '+teams.ready+' dari '+teams.total+' Tim Aktif ditetapkan?\n\n'+activeCount+' uraian tersedia, '+established+' penetapan alokasi. Draf alokasi yang belum ditetapkan tidak masuk monitoring.'))return;
+ if(annualTeamCompletion().pending.length)return toast('Ada perubahan penetapan tim sebelum persetujuan. Periksa kembali seluruh tim.');
  yearCatalog[String(activeYear)]={...yearInfo(),status:'approved',approvedAt:new Date().toISOString(),approvedBy:roleActor(),delegation:delegation||'',taskCount:activeCount};saveYearCatalog();logChange('Tetapkan rencana tahunan',activeYear+' · '+activeCount+' uraian · '+established+' alokasi ditetapkan');persist();renderYearUI();toast('Rencana '+activeYear+' ditetapkan '+(currentRole==='admin'?'Admin atas delegasi':'Kepala BPS')+' (simulasi lokal).');
 }
 
