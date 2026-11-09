@@ -17,6 +17,8 @@ si tahun 2026 · Matriks Kegiatan Pegawai 2026.xlsx (V25): '+BASE.teams.length+'
  {
   if(hero&&panel)page.insertBefore(hero,panel);
   if(grid)$('annualTeamGridSlot').appendChild(grid);
+  const actions=page.querySelector('#annualTeamStage > .annual-team-actions');
+  if(actions&&$('teamRosterActionSlot'))$('teamRosterActionSlot').appendChild(actions);
   const steps=panel.querySelectorAll('.annual-step');if(steps[2])steps[2].style.display='none';
   const badge=panel.querySelector('.annual-badge');if(badge)badge.textContent='SEBELUM PEMBAGIAN KRO';
   $('annualStaffSearch').addEventListener('input',renderYearStaff);
@@ -303,6 +305,7 @@ function renderTeamWorkflow(){
   (groups.length>3?'<span class="team-overview-chip more">+'+nf(groups.length-3)+' Kegiatan Lainnya</span>':'');
  const goKro=$('teamAdminGoKro'),goInput=$('teamAdminGoInput');
  const kroReady=isBaseYear||yearKroReady(tid);
+ $('teamKroStep')?.classList.toggle('hidden',isBaseYear);
  goKro?.classList.toggle('hidden',isBaseYear);
  if(goKro)goKro.disabled=!active||!ready||!canWrite;
  if(goInput)goInput.disabled=!active||!ready||!kroReady||!canWrite;
