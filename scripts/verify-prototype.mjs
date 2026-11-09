@@ -666,6 +666,21 @@ for(const token of [
  if(token==='data-team-dir-delete')continue;
  assert(html.includes(token),"Daftar Tim belum tersedia: "+token);
 }
+// Add Team should appear under search and directly above the status filter,
+ // not beside the Daftar Tim heading.
+const teamDirStart=html.indexOf('<h3>Daftar Tim</h3>');
+const teamDirEnd=html.indexOf('id="teamAdminDirectoryCount"',teamDirStart);
+assert(teamDirStart>=0&&teamDirEnd>teamDirStart,"Daftar Tim heading/filter markup tidak ditemukan");
+const teamHeaderBlock=html.slice(teamDirStart,teamDirEnd);
+const searchPos=teamHeaderBlock.indexOf('id="teamAdminSearch"');
+const addPos=teamHeaderBlock.indexOf('id="teamAdminNew"');
+const statusPos=teamHeaderBlock.indexOf('id="teamAdminStatus"');
+assert(searchPos>=0&&searchPos<addPos&&addPos<statusPos,
+ "Tombol Tambah Tim wajib tepat di antara Cari Tim Kerja dan Status Tim");
+assert((html.match(/id="teamAdminNew"/g)||[]).length===1,
+ "Tombol Tambah Tim tidak boleh muncul ganda");
+assert(cssPolish.includes("#pageTeams .team-admin-list .team-directory-add{"),
+ "Tombol Tambah Tim belum tampil penuh dan rapi di atas filter status");
 assert(!html.includes('<label>Tim kerja</label><select id="teamAdminSelect"'),
  "Daftar Tim masih memakai dropdown tunggal yang tidak dapat dikelola.");
 for(const token of [
