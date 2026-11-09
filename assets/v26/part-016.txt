@@ -398,19 +398,21 @@ function renderTeamDirectory(){
    reason=teamDeletionReason(t.id),count=(ro.members||[]).length,
    hasActivities=activities.some(a=>String(a.team_id)===String(t.id)),
    inactive=t.active===false,editing=editingTeamNameId===String(t.id);
-  const stateLabel=inactive?'Nonaktif':hasActivities?'Memiliki Kegiatan':yearSetup.teams?.[t.id]?'Sudah Ditetapkan':'Belum Ada Kegiatan';
+  const teamIssue=inactive?'':teamEstablishmentIssue(t.id);
+  const stateLabel=inactive?'Nonaktif':teamIssue?'Belum Ditetapkan':'Sudah Ditetapkan';
+  const activityLabel=hasActivities?'Memiliki Kegiatan':'Belum Ada Kegiatan';
   const actionLabel=inactive?'Aktifkan':reason?'Nonaktifkan':'Hapus';
   const blocked=!!(yearInfo().status==='closed'||(!inactive&&activeTeamList().length<=1));
   const main=editing?
    '<div class="team-directory-inline-edit"><label for="teamRenameInput">Ubah Nama Tim</label><input id="teamRenameInput" type="text" maxlength="120" value="'+esc(t.name)+'" data-team-rename-value="'+esc(String(t.id))+'" aria-label="Nama Tim Kerja"><div><button type="button" data-team-rename-save="'+esc(String(t.id))+'" class="team-directory-action edit">Simpan</button><button type="button" data-team-rename-cancel class="team-directory-action">Batal</button></div></div>':
-   '<button type="button" class="team-directory-pick" data-team-dir-pick="'+esc(String(t.id))+'" aria-pressed="'+selected+'" title="Pilih Tim '+esc(t.name)+'" '+(inactive?'disabled':'')+'><span class="team-directory-symbol" aria-hidden="true">'+(selected?'✓':inactive?'–':'○')+'</span><span class="team-directory-copy"><strong>'+esc(t.name)+'</strong><small>'+nf(count)+' Anggota · '+esc(stateLabel)+'</small></span></button>';
+   '<button type="button" class="team-directory-pick" data-team-dir-pick="'+esc(String(t.id))+'" aria-pressed="'+selected+'" title="Pilih Tim '+esc(t.name)+'" '+(inactive?'disabled':'')+'><span class="team-directory-symbol" aria-hidden="true">'+(selected?'✓':inactive?'–':'○')+'</span><span class="team-directory-copy"><strong>'+esc(t.name)+'</strong><small>'+nf(count)+' Anggota · '+esc(stateLabel)+' · '+esc(activityLabel)+'</small></span></button>';
   const actions=!editing&&canManage?
    '<div class="team-directory-actions"><button type="button" data-team-dir-edit="'+esc(String(t.id))+'" class="team-directory-action edit" aria-label="Edit Nama Tim '+esc(t.name)+'">Edit</button><button type="button" data-team-dir-delete="'+esc(String(t.id))+'" class="team-directory-action '+(inactive?'restore':reason?'archive':'delete')+'" '+(blocked?'disabled':'')+' title="'+esc(blocked?'Minimal satu Tim Aktif wajib tersedia':reason?'Tidak dapat dihapus: '+reason+'. Tim dapat dinonaktifkan.':actionLabel+' Tim '+t.name)+'" aria-label="'+actionLabel+' Tim '+esc(t.name)+'">'+actionLabel+'</button></div>':'';
-  return '<article class="team-directory-row '+(selected?'is-selected ':'')+(inactive?'is-inactive':'')+'">'+main+actions+'</article>';
+  return '<article class="team-directory-row '+(selected?'is-selected ':'')+(inactive?'is-inactive':teamIssue?'is-pending':'is-ready')+'">'+main+actions+'</article>';
  }).join('')||'<div class="team-directory-empty">Tidak ada tim yang sesuai filter.</div>';
  host.scrollTop=scroll;
- const active=activeTeamList().length,inactive=demoTeams.length-active;
- $('teamAdminDirectoryCount').textContent=nf(rows.length)+' Ditampilkan · '+nf(active)+' Aktif · '+nf(inactive)+' Nonaktif · '+activeYear;
+ const active=activeTeamList().length,inactive=demoTeams.length-active,completion=annualTeamCompletion();
+ $('teamAdminDirectoryCount').textContent=nf(rows.length)+' Ditampilkan · '+nf(active)+' Aktif · '+nf(completion.ready)+' Ditetapkan · '+nf(completion.pending.length)+' Belum Ditetapkan · '+nf(inactive)+' Nonaktif';
  host.querySelectorAll('[data-team-dir-pick]').forEach(btn=>btn.onclick=()=>selectTeamFromDirectory(btn.dataset.teamDirPick));
  host.querySelectorAll('[data-team-dir-edit]').forEach(btn=>btn.onclick=()=>renameTeamFromDirectory(btn.dataset.teamDirEdit));
  host.querySelectorAll('[data-team-dir-delete]').forEach(btn=>btn.onclick=async()=>{
