@@ -1358,3 +1358,199 @@
 #pageDashboard .tl-trend-filters :is(#trendTeamFilterWrap,#trendActivityFilterWrap) .trend-picker-choice.trend-picker-all{
  font-weight:900;
 }
+
+/* Audit checklist Tren · rapat, sejajar, dan tidak mewarisi dimensi input
+   form biasa. Checkbox sebelumnya meminjam min-height/padding 44px dari
+   .field input sehingga tiap baris membesar dan teks bergeser. */
+#pageDashboard .tl-trend-filters .trend-picker-popover{
+ max-height:min(77dvh,540px);
+ border-radius:15px;
+}
+#pageDashboard .tl-trend-filters .trend-picker-body{
+ display:flex;
+ flex-direction:column;
+ min-height:0;
+ padding:10px 11px 8px;
+}
+#pageDashboard .tl-trend-filters .trend-picker-body > input[type="search"]{
+ flex:none;
+ width:100%!important;
+ min-height:38px!important;
+ height:38px;
+ padding:8px 11px!important;
+ border-radius:10px;
+ font-size:12px;
+ box-shadow:none;
+}
+#pageDashboard .tl-trend-filters .trend-picker-body > input[type="search"]:focus{
+ outline:2px solid #7db8e8;
+ outline-offset:1px;
+ box-shadow:none!important;
+}
+#pageDashboard .tl-trend-filters .trend-picker-actions{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:7px;
+ margin:8px 0 9px;
+}
+#pageDashboard .tl-trend-filters .trend-picker-actions button{
+ width:100%;
+ min-height:33px;
+ margin:0;
+ padding:7px 9px;
+ border-radius:9px;
+ font-size:11.5px;
+ font-weight:850;
+ line-height:1.3;
+}
+#pageDashboard .tl-trend-filters .trend-picker-list{
+ display:flex!important;
+ flex-direction:column!important;
+ align-items:stretch!important;
+ flex:0 1 auto;
+ gap:3px!important;
+ min-height:0;
+ max-height:min(43dvh,302px);
+ overflow-y:auto!important;
+ overflow-x:hidden;
+ padding:2px 3px 2px 1px!important;
+ scrollbar-gutter:stable;
+}
+#pageDashboard .tl-trend-filters #trendTeamFilterWrap .trend-picker-list > label.trend-picker-choice,
+#pageDashboard .tl-trend-filters #trendActivityFilterWrap .trend-picker-list > label.trend-picker-choice{
+ box-sizing:border-box;
+ display:grid!important;
+ grid-template-columns:18px minmax(0,1fr)!important;
+ grid-template-rows:auto!important;
+ align-items:center!important;
+ align-content:center!important;
+ justify-items:stretch;
+ flex-direction:row!important;
+ column-gap:10px!important;
+ row-gap:0!important;
+ width:100%!important;
+ max-width:100%;
+ height:auto!important;
+ min-height:37px!important;
+ margin:0!important;
+ padding:8px 10px!important;
+ border:1px solid transparent;
+ border-radius:9px;
+ background:#fff;
+ text-align:left;
+ line-height:1.35;
+ cursor:pointer;
+}
+#pageDashboard .tl-trend-filters .trend-picker-list > label.trend-picker-choice input[type="checkbox"]{
+ box-sizing:border-box!important;
+ display:block!important;
+ grid-column:1;
+ grid-row:1;
+ justify-self:start!important;
+ align-self:center!important;
+ appearance:auto;
+ flex:none!important;
+ width:16px!important;
+ min-width:16px!important;
+ max-width:16px!important;
+ height:16px!important;
+ min-height:16px!important;
+ max-height:16px!important;
+ margin:0!important;
+ padding:0!important;
+ border:0;
+ border-radius:4px;
+ outline-offset:2px;
+ box-shadow:none!important;
+ accent-color:#1974bf;
+}
+#pageDashboard .tl-trend-filters .trend-picker-list > label.trend-picker-choice > span{
+ box-sizing:border-box;
+ display:block!important;
+ grid-column:2;
+ grid-row:1;
+ align-self:center!important;
+ min-width:0!important;
+ width:auto!important;
+ padding:0!important;
+ margin:0!important;
+ color:#245478;
+ font-size:12px;
+ font-weight:750;
+ line-height:1.35;
+ text-align:left;
+ white-space:normal;
+ overflow-wrap:break-word;
+}
+#pageDashboard .tl-trend-filters .trend-picker-list > label.trend-picker-choice > span small{
+ display:block;
+ margin:2px 0 0;
+ font-size:10px;
+ line-height:1.3;
+ font-weight:600;
+ color:#708ba1;
+}
+#pageDashboard .tl-trend-filters .trend-picker-list > label.trend-picker-choice:has(input:checked){
+ border-color:#c6e2f7;
+ background:#f0f8ff;
+}
+#pageDashboard .tl-trend-filters .trend-picker-list > label.trend-picker-choice:has(input:checked) > span{
+ color:#0c548e;
+ font-weight:850;
+}
+#pageDashboard .tl-trend-filters .trend-picker-list > label.trend-picker-choice:hover{
+ border-color:#bcdcf2;
+ background:#f5faff;
+}
+#pageDashboard .tl-trend-filters .trend-picker-list > label.trend-picker-choice.trend-picker-all{
+ position:sticky;
+ top:0;
+ z-index:3;
+ min-height:39px!important;
+ margin-bottom:4px!important;
+ border-color:#d1e4f2;
+ border-left:3px solid #237ec5;
+ background:#f1f7fc;
+}
+#pageDashboard .tl-trend-filters .trend-picker-list > label.trend-picker-choice.trend-picker-all > span{
+ font-weight:900;
+}
+#pageDashboard .tl-trend-filters .trend-picker-footer{
+ min-height:51px;
+ padding:9px 12px!important;
+ background:#fbfdff;
+ border-top:1px solid #dfebf6;
+}
+#pageDashboard .tl-trend-filters .trend-picker-footer > span{
+ display:block;
+ min-width:0;
+ color:#2a638e;
+ font-size:11px;
+ font-weight:850;
+ white-space:nowrap;
+}
+#pageDashboard .tl-trend-filters .trend-picker-footer > button{
+ min-height:33px;
+ max-width:68%;
+ border-radius:9px;
+ padding:7px 11px;
+ font-size:11px;
+ white-space:nowrap;
+}
+@media(max-width:460px){
+ #pageDashboard .tl-trend-filters .trend-picker-popover{
+  width:min(390px,calc(100vw - 24px));
+ }
+ #pageDashboard .tl-trend-filters .trend-picker-body{
+  padding:9px 10px 7px;
+ }
+ #pageDashboard .tl-trend-filters .trend-picker-list{
+  max-height:min(40dvh,270px);
+ }
+ #pageDashboard .tl-trend-filters .trend-picker-footer{
+  gap:6px;padding:8px 10px!important;
+ }
+ #pageDashboard .tl-trend-filters .trend-picker-footer > button{
+  padding:8px 9px;font-size:10.5px;
+ }
+}
