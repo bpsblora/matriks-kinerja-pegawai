@@ -144,13 +144,9 @@ function kroRecommendation(k,tid){
 function suggestedKroForTeam(k,tid){return !!kroRecommendation(k,tid)}
 function renderKroChecks(){
  const q=$('teamAdminKroQuery').value.trim().toLocaleLowerCase('id'),tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
- // Show KRO recommended from the previous year's allocation first, but NEVER check automatically.
- const rows=POK_KROS.filter(k=>(k.code+' '+k.name).toLocaleLowerCase('id').includes(q)).sort((a,b)=>{
-   const as=selectedKroCodes.has(a.code),bs=selectedKroCodes.has(b.code);
-   if(as!==bs)return as?-1:1;
-   const ar=suggestedKroForTeam(a,tid),br=suggestedKroForTeam(b,tid);
-   return ar!==br?(ar?-1:1):a.code.localeCompare(b.code,'id');
- });
+ // Consistent ascending KRO-code order. Selected and suggested markers stay visible on each row.
+ const rows=POK_KROS.filter(k=>(k.code+' '+k.name).toLocaleLowerCase('id').includes(q))
+  .sort((a,b)=>compareKroCodes(a.code,b.code));
  const recommended=POK_KROS.filter(k=>suggestedKroForTeam(k,tid));
  $('teamAdminKroSelection').textContent=selectedKroCodes.size+' dari '+POK_KROS.length+' KRO dipilih';
  const note=$('teamKroRecommendation');if(note)note.textContent=activeYear>=2027?
@@ -169,7 +165,8 @@ function renderKroChecks(){
 }
 function renderKroMap(){
  const q=$('teamKroMapQuery').value.trim().toLocaleLowerCase('id');
- const rows=POK_KROS.filter(k=>(k.code+' '+k.name+' '+(k.mappings||[]).map(m=>teamMap.get(m.team_id)?.name||'').join(' ')).toLocaleLowerCase('id').includes(q));
+ const rows=POK_KROS.filter(k=>(k.code+' '+k.name+' '+(k.mappings||[]).map(m=>teamMap.get(m.team_id)?.name||'').join(' ')).toLocaleLowerCase('id').includes(q))
+  .sort((a,b)=>compareKroCodes(a.code,b.code));
  $('teamKroMap').innerHTML=rows.map(k=>{
    const suggested=(k.mappings||[]).map(m=>teamMap.get(m.team_id)?.name||m.team_id);
    const selected=demoTeams.filter(t=>(t.kroCodes||[]).includes(k.code)).map(t=>t.name);
