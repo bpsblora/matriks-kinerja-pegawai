@@ -72,9 +72,23 @@ function addAuthenticatedHeader(html,user){
  const email=safe(user.email),name=safe(user.displayName||user.email.split("@")[0]);
  const header=`<div class="mp-identity" role="group" aria-label="Akun dan akses">
    <span class="mp-user"><strong>${name}</strong><small>${email}</small></span>
-   <span class="mp-role" title="Peran prototipe lokal, bukan izin database bersama">Akses: Penguji</span>
+   <button id="mpRoleMenu" class="mp-role-menu" type="button" aria-haspopup="dialog" aria-controls="mpRoleDialog" title="Lihat atau uji peran prototipe (bukan izin database)">
+     <span class="mp-role-menu-label">Masuk Sebagai</span><strong id="mpCurrentRole">Admin (Simulasi)</strong><span class="mp-role-caret" aria-hidden="true">⌄</span>
+   </button>
    <button id="mpSignOut" type="button" title="Keluar dari akun Google">Keluar</button>
- </div>`;
+ </div>
+ <dialog id="mpRoleDialog" class="mp-role-dialog" aria-labelledby="mpRoleDialogTitle">
+   <div class="mp-role-dialog-head"><div><small>SESI LOGIN</small><h3 id="mpRoleDialogTitle">Masuk Sebagai</h3><p>Uji tampilan dan alur sesuai peran.</p></div><button type="button" id="mpRoleDismiss" class="mp-role-dismiss" aria-label="Tutup pilihan peran">×</button></div>
+   <div class="mp-role-dialog-body">
+     <label for="mpRoleSelect">Peran yang Diuji</label>
+     <select id="mpRoleSelect"><option value="admin">Admin</option><option value="kepala">Kepala BPS</option><option value="ketua">Ketua Tim</option><option value="pegawai">Pegawai (Mode Lihat)</option></select>
+     <label for="mpRoleTeam" id="mpRoleTeamLabel" hidden>Tim yang Dikelola</label>
+     <select id="mpRoleTeam" hidden></select>
+     <p class="mp-role-warning">Peran ini adalah <strong>simulasi prototipe</strong>, bukan hak akses Google atau izin database bersama. Data perubahan masih tersimpan di browser.</p>
+     <p id="mpRoleError" class="mp-role-error" role="alert"></p>
+   </div>
+   <div class="mp-role-dialog-foot"><button type="button" id="mpRoleCancel">Batal</button><button type="button" id="mpRoleApply">Gunakan Peran Ini</button></div>
+ </dialog>`;
  const styles=`<style>
  .rightbar .role-switch,.rightbar #rolePill,.rightbar #sessionUser,.rightbar #btnRoster{display:none!important}
  .mp-identity{display:flex;align-items:center;gap:9px;padding:5px 7px;background:#edf6ff;border:1px solid #d7e9f8;border-radius:12px;flex-wrap:wrap}
@@ -84,6 +98,29 @@ function addAuthenticatedHeader(html,user){
  .mp-role{padding:7px 9px;background:#d7ecff;border-radius:8px;color:#0b5c9d;font:800 11px Nunito,Arial,sans-serif;white-space:nowrap}
  #mpSignOut{border:1px solid #c8dced;border-radius:8px;padding:8px 10px;color:#245b87;background:#fff;font:800 11px Nunito,Arial,sans-serif}
  @media(max-width:800px){.mp-identity{width:100%}.mp-user{flex:1}}
+
+ .mp-role-menu{min-height:39px;display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #b6d7ee;border-radius:9px;background:#fff;color:#175e94;cursor:pointer;white-space:nowrap}
+ .mp-role-menu:hover,.mp-role-menu:focus-visible{background:#e5f3ff;border-color:#76b5e1}
+ .mp-role-menu-label{color:#64839d;font:800 10px Nunito,Arial,sans-serif}
+ #mpCurrentRole{font:900 11px Nunito,Arial,sans-serif;color:#145c90}
+ .mp-role-caret{font-size:16px}
+ .mp-role-dialog{box-sizing:border-box;position:fixed;inset:0;margin:auto;width:min(445px,calc(100vw - 24px));max-width:none;padding:0;border:1px solid #c6dfef;border-radius:17px;background:#fff;color:#1b517b;overflow:hidden;box-shadow:0 24px 76px rgba(13,45,78,.29)}
+ .mp-role-dialog::backdrop{background:rgba(11,41,71,.55);backdrop-filter:blur(3px)}
+ .mp-role-dialog-head{display:flex;justify-content:space-between;gap:14px;padding:17px 19px;background:linear-gradient(110deg,#eef8ff,#fff);border-bottom:1px solid #dceaf6}
+ .mp-role-dialog-head small{font-size:10px;color:#3980ad;font-weight:900;letter-spacing:.07em}
+ .mp-role-dialog-head h3{margin:4px 0;font:900 19px Nunito,Arial,sans-serif;color:#17527f}
+ .mp-role-dialog-head p{margin:0;font-size:11px;color:#6a879e}
+ .mp-role-dismiss{flex:0 0 34px;width:34px;height:34px;border:1px solid #c9dded;border-radius:10px;background:#fff;color:#255f8e;font-size:23px;cursor:pointer}
+ .mp-role-dialog-body{padding:16px 19px;display:flex;flex-direction:column;gap:8px}
+ .mp-role-dialog-body label{font-size:11.5px;font-weight:900;color:#1e5d88;margin-top:6px}
+ .mp-role-dialog-body select{box-sizing:border-box;width:100%;min-height:42px;padding:9px 11px;border:1px solid #c5dded;border-radius:10px;background:#fff;color:#195781;font:800 12px Nunito,Arial,sans-serif}
+ .mp-role-warning{margin:8px 0 0;padding:10px 11px;border:1px solid #d8e0e7;border-radius:9px;background:#f4f6f8;color:#566b7d;font-size:11px;line-height:1.6}
+ .mp-role-error{margin:0;color:#af4254;font-size:11px}
+ .mp-role-dialog-foot{display:flex;justify-content:flex-end;gap:9px;padding:12px 19px;border-top:1px solid #dce9f5;background:#f8fbff}
+ .mp-role-dialog-foot button{min-height:38px;border:1px solid #c3d9ea;border-radius:9px;background:#fff;padding:8px 14px;color:#26608e;font:900 11px Nunito,Arial,sans-serif;cursor:pointer}
+ #mpRoleApply{background:#146ca9;color:#fff;border-color:#146ca9}
+ @media(max-width:1100px){.rightbar{flex-wrap:wrap;justify-content:flex-end}.mp-identity{flex-wrap:wrap}.mp-user{max-width:180px}}
+ @media(max-width:650px){.mp-identity{width:100%}.mp-user{flex:1 1 130px}.mp-role-menu{flex:1;justify-content:center}}
  </style>`;
  if(!html.includes('<div class="rightbar">'))throw new Error("Header prototipe tidak ditemukan.");
  return html.replace("</head>", styles + '<style id="mkp-site-polish">' + sitePolishCss + "</style></head>").replace('<div class="rightbar">','<div class="rightbar">'+header);
