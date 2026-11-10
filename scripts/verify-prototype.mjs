@@ -1602,4 +1602,73 @@ for(const role of ['ketua','kepala','pegawai']){
 
 
 
+
+// GitHub Pages preview header: real Google identity, explicitly SIMULATED role
+// session, and no misleading Import Backup / Reset Uji Coba actions.
+const previewSource=fs.readFileSync("src/publicPreview.js","utf8");
+assert(!html.includes('id="btnImport"')&&!html.includes('id="btnReset"')&&
+ !html.includes('id="importFile"')&&
+ !inline.includes("$('btnImport').onclick")&&!inline.includes("$('btnReset').onclick"),
+ "Header harus bebas dari Impor Backup dan Reset Uji Coba lama");
+assert(html.includes('id="btnExport"')&&inline.includes("$('btnExport').onclick=exportJson"),
+ "Ekspor Perubahan lokal masih diperlukan sebelum migrasi database bersama");
+for(const token of [
+ 'id="mpRoleMenu"',
+ 'id="mpCurrentRole"',
+ 'id="mpRoleDialog"',
+ 'id="mpRoleSelect"',
+ 'id="mpRoleTeam"',
+ 'id="mpRoleApply"',
+ 'id="mpSignOut"',
+ "Masuk Sebagai",
+ "simulasi prototipe",
+ "bukan hak akses Google atau izin database bersama",
+ "function bindAuthenticatedSession(frame){",
+ "__mpPreviewSessionState",
+ "__mpPreviewSwitchRole",
+ 'frame.onload=()=>bindAuthenticatedSession(frame);',
+ "signOut(auth)"
+])assert(previewSource.includes(token),"Sesi Google/peran prototipe tidak lengkap: "+token);
+assert(!previewSource.includes("Akses: Penguji"),
+ "Label penguji generik tidak boleh menyembunyikan peran yang sedang digunakan");
+const previewRoleStart=inline.indexOf("function previewSessionState(){");
+const previewRoleEnd=inline.indexOf("// Master acuan 2026 dari V25",previewRoleStart);
+assert(previewRoleStart>=0&&previewRoleEnd>previewRoleStart,
+ "Jembatan sesi peran dari prototipe belum tersedia");
+const prototypeRoleCode=inline.slice(previewRoleStart,previewRoleEnd);
+for(const token of [
+ "window.__mpPreviewSessionState=previewSessionState;",
+ "window.__mpPreviewSwitchRole=previewSwitchRole;",
+ "if(!['pegawai','admin','kepala','ketua'].includes(role))return null;",
+ "String(t.id)===String(teamId)&&t.active!==false",
+ "selectedTeam=team.id",
+ "renderKroOptions(teamKroCodes(team.id)[0]||NO_KRO)",
+ "syncTeamWorkspace();setPage('dashboard');syncWorkflowControls();renderYearUI();"
+])assert(prototypeRoleCode.includes(token),"Pemilihan sesi simulasi tidak mengubah konteks matriks: "+token);
+const previewRoleElements={teamSelect:{value:''},loginScreen:{classList:{add(){}}}};
+const previewRoleCtx=vm.createContext({
+ window:{},currentRole:'admin',roleTeamId:'T1',sessionUser:'',
+ selectedTeam:'T1',selectedGroup:'',selectedId:null,
+ demoTeams:[{id:'T1',name:'Tim Satu',active:true},{id:'T2',name:'Tim Dua',active:true}],
+ $:id=>previewRoleElements[id],
+ teamKroCodes:()=>['2897.BMA.004'],NO_KRO:'-',
+ renderKroOptions:()=>{},renderGroups:()=>{},syncTeamWorkspace:()=>{},
+ setPage:()=>{},syncWorkflowControls:()=>{},renderYearUI:()=>{},
+ enterView:()=>vm.runInContext("currentRole='pegawai';roleTeamId='';",previewRoleCtx),
+ enterPrototypeEdit:()=>vm.runInContext("currentRole='admin';roleTeamId='';",previewRoleCtx)
+});
+vm.runInContext(prototypeRoleCode,previewRoleCtx);
+assert.equal(vm.runInContext("window.__mpPreviewSessionState().label",previewRoleCtx),"Admin");
+assert.equal(vm.runInContext("window.__mpPreviewSwitchRole('ketua','T2').teamName",previewRoleCtx),"Tim Dua");
+assert.equal(vm.runInContext("window.__mpPreviewSessionState().role",previewRoleCtx),"ketua");
+assert.equal(previewRoleElements.teamSelect.value,"T2");
+assert.equal(vm.runInContext("window.__mpPreviewSwitchRole('ketua','INVALID')",previewRoleCtx),null,
+ "Tidak boleh memilih tim yang tidak tersedia");
+assert.equal(vm.runInContext("window.__mpPreviewSwitchRole('admin').label",previewRoleCtx),"Admin");
+assert.equal(vm.runInContext("window.__mpPreviewSwitchRole('kepala').label",previewRoleCtx),"Kepala BPS");
+assert.equal(vm.runInContext("window.__mpPreviewSwitchRole('pegawai').label",previewRoleCtx),"Pegawai");
+assert.equal(vm.runInContext("window.__mpPreviewSwitchRole('superuser')",previewRoleCtx),null,
+ "Pilihan sesi hanya meliputi peran yang dikenali");
+
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
