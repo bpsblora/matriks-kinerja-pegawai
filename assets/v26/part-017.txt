@@ -140,20 +140,16 @@ function renderKroBoard(){
  const writable=!isBaseYear&&roleCanManageTeam(tid)&&(!locked||editing)&&yearInfo().status!=='closed';
  const suggestions=POK_KROS.map(k=>({k,s:kroRecommendation(k,tid)})).filter(x=>!!x.s);
  const selectedCodes=new Set(selected?.kroCodes||[]);
- const arr=POK_KROS.filter(k=>(k.code+' '+k.name).toLocaleLowerCase('id').includes(query)).sort((a,b)=>{
-  if(kroBoardDraft.has(a.code)!==kroBoardDraft.has(b.code))return kroBoardDraft.has(a.code)?-1:1;
-  const ai=kroRecommendation(a,tid),bi=kroRecommendation(b,tid);
-  if(!!ai!==!!bi)return ai?-1:1;
-  const score=v=>v?.kind==='langsung'?3:v?.kind==='serupa'?2:v?.kind==='pendukung'?1:0;
-  if(score(ai)!==score(bi))return score(bi)-score(ai);
-  return a.code.localeCompare(b.code,'id');
- });
+ // KRO list always follows its numeric-aware code order; checks and recommendations remain highlighted.
+ const arr=POK_KROS.filter(k=>(k.code+' '+k.name).toLocaleLowerCase('id').includes(query))
+  .sort((a,b)=>compareKroCodes(a.code,b.code));
  const teamTitle=selected?.name||'Tim';
  const recSummary=suggestions.length?`<span class="kro-board-reco-count">${suggestions.length} KRO terkait ditemukan</span><span class="kro-reco-detail">Rekomendasi berdasarkan kesesuaian Nama Kegiatan, Nama KRO, atau acuan historis. Semua pilihan perlu dikonfirmasi untuk tahun berjalan.</span>`:`<span class="kro-reco-detail">Belum ditemukan kesesuaian nama yang cukup kuat. Periksa daftar KRO ${activeYear} dan tetapkan secara manual sesuai pekerjaan tim.</span>`;
  const canUse=roleCanManageTeam(tid)&&yearInfo().status!=='closed';
  const canEditMaster=isKroMasterAdmin();
  const masterFilter=kroMasterQuery.trim().toLocaleLowerCase('id');
- const masterRows=POK_KROS.filter(k=>(k.code+' '+k.name).toLocaleLowerCase('id').includes(masterFilter));
+ const masterRows=POK_KROS.filter(k=>(k.code+' '+k.name).toLocaleLowerCase('id').includes(masterFilter))
+  .sort((a,b)=>compareKroCodes(a.code,b.code));
  const masterWasOpen=!!el.querySelector('#kroMasterPopup')?.open;
  const assignmentWasOpen=!!el.querySelector('#kroAssignmentPopup')?.open;
  const modalScroll=el.querySelector('#kroMasterPopup[open] .kro-hub-dialog-body, #kroAssignmentPopup[open] .kro-hub-dialog-body')?.scrollTop||0;
