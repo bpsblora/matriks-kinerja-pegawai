@@ -163,13 +163,15 @@ function syncKroBoardDraftRows(){
 function kroApprovalPanelMarkup(){
  if(currentRole!=='admin')return '';
  const teams=demoTeams.filter(t=>t.active!==false).slice().sort((a,b)=>a.name.localeCompare(b.name,'id'));
- const entries=teams.map(team=>({team,request:kroApprovalRequest(team.id),status:kroApprovalStatus(team.id)}));
+ const allEntries=teams.map(team=>({team,request:kroApprovalRequest(team.id),status:kroApprovalStatus(team.id)}));
+ const entries=allEntries.filter(x=>!!x.request);
  const waiting=entries.filter(x=>x.status==='pending'),approved=entries.filter(x=>x.status==='approved');
+ const unsubmitted=allEntries.length-entries.length;
  const actionable=waiting.filter(x=>isBaseYear||yearTeamReady(x.team.id));
  const names={pending:'Menunggu Persetujuan',approved:'Disetujui Admin',rejected:'Perlu Perbaikan',reference:'Referensi 2026',draft:'Belum Diajukan'};
  return '<section id="kroAdminApprovalPanel" class="panel kro-approval-admin" aria-label="Persetujuan Pembagian KRO oleh Admin">'+
  '<div class="kro-approval-heading"><div><span>WEWENANG ADMIN · TAHUN '+activeYear+'</span><h3>Persetujuan Pembagian KRO</h3><p>Periksa pengajuan dari Ketua Tim. KRO baru ditetapkan setelah Admin menyetujui.</p></div>'+
- '<div class="kro-approval-summary"><b>'+nf(waiting.length)+' Menunggu</b><b>'+nf(approved.length)+' Disetujui</b></div></div>'+
+ '<div class="kro-approval-summary"><b>'+nf(waiting.length)+' Menunggu</b><b>'+nf(approved.length)+' Disetujui</b><b>'+nf(unsubmitted)+' Belum Mengajukan</b></div></div>'+
  '<div class="kro-approval-actions"><button type="button" class="btn primary" id="kroApproveAll" '+(!actionable.length?'disabled':'')+'>✓ Setujui '+nf(actionable.length)+' Pengajuan</button><small>Persetujuan massal hanya untuk pengajuan masuk dan lengkap; tidak termasuk tim yang belum mengajukan.</small></div>'+
  '<div class="kro-approval-list">'+entries.map(({team,request,status})=>{
   const codes=request?.codes||team.kroCodes||[];
@@ -181,7 +183,7 @@ function kroApprovalPanelMarkup(){
    '</div><div class="kro-approval-row-controls"><span class="kro-approval-status '+cls+'">'+(names[status]||'Belum Diajukan')+'</span>'+
    (status==='pending'?'<button type="button" class="btn tiny primary" data-kro-approve="'+esc(team.id)+'" '+(!canApprove?'disabled title="Susunan tim harus ditetapkan"':'')+'>✓ Setujui</button><button type="button" class="btn tiny soft" data-kro-reject="'+esc(team.id)+'">Minta Perbaikan</button>':'')+
    '</div></article>';
- }).join('')+'</div></section>';
+ }).join('')+(entries.length?'':'<p class="kro-approval-empty">Belum ada pengajuan KRO dari Ketua Tim. Status akan muncul di sini setelah diajukan.</p>')+'</div></section>';
 }
 function bindKroApprovalPanel(){
  const panel=$('kroAdminApprovalPanel');
