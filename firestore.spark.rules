@@ -1,29 +1,39 @@
 rules_version = '2';
 
-// Firebase Spark: role credentials are provided by Firebase Authentication
-// Email/Password, not Cloud Functions. Role records are held in Firestore.
-// Deploy only after Firebase Console bootstrap and Emulator rules testing.
-// DENY ALL matrix/business data during this phase. Only role profiles open.
-//
-// Bootstrap: create admin account in Authentication using
-// admin@roles.mkp-bps-blora.invalid; create sparkRoleProfiles/{UID} through the
-// Firebase Console (privileged admin context, not from the browser).
+// Spark only: Passwords in Firebase Authentication; identities in Firestore.
+// NO Cloud Functions, NO public matrix access, NO self-registration privileges.
+// Only deploy AFTER Emulator checks. Google viewer UID is a public identifier,
+// not a password or bearer token.
 service cloud.firestore {
  match /databases/{database}/documents {
+  function profilePath(uid) {
+   return /databases/$(database)/documents/sparkRoleProfiles/$(uid);
+  }
+  function handlePath(username) {
+   return /databases/$(database)/documents/sparkRoleHandles/$(username);
+  }
   function signedInPassword() {
    return request.auth != null
     && request.auth.token.firebase.sign_in_provider == 'password'
     && request.auth.token.email is string;
   }
+  function officeViewer() {
+   return request.auth != null
+    && request.auth.uid == 'AYyTDvPFAWdyjD9WRADKwIRP4in2'
+    && request.auth.token.firebase.sign_in_provider == 'google.com'
+    && request.auth.token.email_verified == true;
+  }
   function ownProfile() {
-   return get(/databases/$(database)/documents/sparkRoleProfiles/$(request.auth.uid)).data;
+   return get(profilePath(request.auth.uid)).data;
   }
   function hasLiveRole() {
    return signedInPassword()
-    && exists(/databases/$(database)/documents/sparkRoleProfiles/$(request.auth.uid))
+    && exists(profilePath(request.auth.uid))
     && ownProfile().active == true
     && ownProfile().username is string
-    && request.auth.token.email == ownProfile().username + '@roles.mkp-bps-blora.invalid';
+    && request.auth.token.email ==
+       ownProfile().get('loginEmail',
+         ownProfile().username + '@roles.mkp-bps-blora.invalid');
   }
   function isAdmin() {
    return hasLiveRole() && ownProfile().role == 'admin';
@@ -31,37 +41,102 @@ service cloud.firestore {
   function properTeamIds(ids) {
    return ids is list && ids.size() > 0 && ids.size() <= 25;
   }
+  function handlePointsTo(uid,username,email) {
+   return getAfter(handlePath(username)).data.uid == uid
+    && getAfter(handlePath(username)).data.authEmail == email;
+  }
   function validKetuaAccount() {
    return request.resource.data.keys().hasOnly([
-     'username','role','teamIds','active','createdAt','createdBy','updatedAt'
+     'username','loginEmail','role','teamIds','active',
+     'createdAt','createdBy','updatedAt'
    ]) && request.resource.data.keys().hasAll([
-     'username','role','teamIds','active','createdAt','createdBy','updatedAt'
+     'username','loginEmail','role','teamIds','active',
+     'createdAt','createdBy','updatedAt'
    ]) && request.resource.data.username is string
     && request.resource.data.username.matches('^[a-z][a-z0-9._-]{2,31}$')
+    && request.resource.data.username != 'admin'
+    && request.resource.data.loginEmail is string
+    && request.resource.data.loginEmail.matches(
+      '^[0-9a-f]{24}@roles[.]mkp-bps-blora[.]invalid$')
     && request.resource.data.role == 'ketua_tim'
     && properTeamIds(request.resource.data.teamIds)
     && request.resource.data.active == true
     && request.resource.data.createdBy == request.auth.uid;
   }
+  function validHandleRecord(username) {
+   return username != 'admin'
+    && request.resource.data.keys().hasOnly([
+      'uid','authEmail','createdBy','createdAt','updatedAt'
+    ])
+    && request.resource.data.keys().hasAll([
+      'uid','authEmail','createdBy','createdAt','updatedAt'
+    ])
+    && request.resource.data.uid is string
+    && request.resource.data.authEmail is string
+    && request.resource.data.authEmail.matches(
+      '^[0-9a-f]{24}@roles[.]mkp-bps-blora[.]invalid$')
+    && getAfter(profilePath(request.resource.data.uid)).data.role == 'ketua_tim'
+    && getAfter(profilePath(request.resource.data.uid)).data.username == username
+    && getAfter(profilePath(request.resource.data.uid)).data.loginEmail ==
+       request.resource.data.authEmail;
+  }
 
   match /sparkRoleProfiles/{uid} {
+   // Each role can see its own profile; Admin can query account directory.
    allow get: if isAdmin() || (signedInPassword() && request.auth.uid == uid);
    allow list: if isAdmin();
-   allow create: if isAdmin() && validKetuaAccount();
+   // A role cannot create its own profile. All Admin writes must accompany
+   // the corresponding username mapping in the SAME atomic Firestore batch.
+   allow create: if isAdmin() && validKetuaAccount()
+    && handlePointsTo(uid,request.resource.data.username,
+         request.resource.data.loginEmail);
    allow update: if isAdmin() && uid != request.auth.uid
     && resource.data.role == 'ketua_tim'
     && request.resource.data.diff(resource.data).affectedKeys()
-       .hasOnly(['teamIds','active','updatedAt'])
-    && request.resource.data.username == resource.data.username
+       .hasOnly(['username','teamIds','active','updatedAt'])
     && request.resource.data.role == resource.data.role
+    && request.resource.data.loginEmail == resource.data.loginEmail
     && request.resource.data.createdBy == resource.data.createdBy
+    && request.resource.data.createdAt == resource.data.createdAt
+    && request.resource.data.username.matches('^[a-z][a-z0-9._-]{2,31}$')
+    && request.resource.data.username != 'admin'
     && request.resource.data.active is bool
-    && properTeamIds(request.resource.data.teamIds);
+    && properTeamIds(request.resource.data.teamIds)
+    && (
+      handlePointsTo(uid,request.resource.data.username,
+        request.resource.data.loginEmail)
+      // Rotation: old profile loses access in same batch that switches handle.
+      || (request.resource.data.active == false
+          && request.resource.data.username == resource.data.username
+          && request.resource.data.teamIds == resource.data.teamIds
+          && getAfter(handlePath(resource.data.username)).data.uid != uid)
+    );
    allow delete: if false;
   }
 
-  // In Spark stage 1, nobody may read or change staff/activity matrices
-  // directly. A separate reviewed ruleset is required for shared workloads.
+  match /sparkRoleHandles/{username} {
+   // The office Google viewer resolves username => opaque Auth email.
+   // Username directory has NO passwords and no real user email addresses.
+   allow get: if officeViewer() || isAdmin();
+   allow list: if isAdmin();
+   allow create: if isAdmin() && validHandleRecord(username);
+   // Password reset replaces Auth UID while atomically revoking old profile.
+   allow update: if isAdmin() && validHandleRecord(username)
+    && request.resource.data.diff(resource.data).affectedKeys()
+      .hasOnly(['uid','authEmail','updatedAt'])
+    && request.resource.data.createdBy == resource.data.createdBy
+    && request.resource.data.createdAt == resource.data.createdAt
+    && request.resource.data.uid != resource.data.uid
+    && getAfter(profilePath(resource.data.uid)).data.active == false
+    && getAfter(profilePath(resource.data.uid)).data.username == username;
+   // Username rename atomically updates the profile and removes old mapping.
+   allow delete: if isAdmin() && username != 'admin'
+    && getAfter(profilePath(resource.data.uid)).data.username != username
+    && getAfter(profilePath(resource.data.uid)).data.loginEmail ==
+         resource.data.authEmail;
+  }
+
+  // No client may access the employee/activity matrix at this stage.
   match /{document=**} {
    allow read, write: if false;
   }
