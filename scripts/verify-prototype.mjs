@@ -1548,7 +1548,7 @@ const panelEnd=inline.indexOf("function renderKroBoard(){",panelStart);
 assert(panelStart>=0&&panelEnd>panelStart,"Menu persetujuan Admin tidak tersedia");
 const panelCode=inline.slice(panelStart,panelEnd);
 for(const token of [
- "if(currentRole!=='admin')return '';",
+ "const adminMode=currentRole==='admin';",
  "data-kro-approve=",
  "data-kro-reject=",
  "id=\"kroApproveAll\"",
@@ -1558,8 +1558,48 @@ for(const token of [
 ])assert(panelCode.includes(token),"Panel review Admin tidak lengkap: "+token);
 assert(cssPolish.includes("#pageKRO .kro-approval-admin{")&&
  cssPolish.includes("#pageKRO .kro-approval-row.is-pending{")&&
- cssPolish.includes("#pageKRO .kro-approval-status.is-approved{"),
- "Status menunggu/disetujui harus ditampilkan dengan jelas");
+ cssPolish.includes("#pageKRO .kro-approval-status.is-approved{")&&
+ cssPolish.includes("#pageKRO #kroAdminApprovalPanel.kro-approval-admin.is-readonly{")&&
+ cssPolish.includes("#pageKRO #kroAdminApprovalPanel.is-readonly :is(button,[data-kro-approve],[data-kro-reject]){"),
+ "Status menunggu/disetujui dan penonaktifan peran non-Admin harus terlihat");
+assert(!panelCode.includes("if(currentRole!=='admin')return '';")&&
+ !panelCode.includes("WEWENANG ADMIN")&&
+ panelCode.includes("TAHAP PERSETUJUAN KRO · TAHUN"),
+ "Panel KRO harus selalu terlihat dengan judul netral, bukan label Wewenang Admin");
+const approvalRenderBody=inline.slice(panelStart,inline.indexOf("function bindKroApprovalPanel(){",panelStart));
+const sampleApprovalData={
+ demoTeams:[{id:'T1',name:'Tim A',active:true,kroCodes:['2897.BMA.004']},{id:'T2',name:'Tim B',active:true,kroCodes:[]}],
+ activeYear:2026,isBaseYear:true,
+ kroApprovalRequest:id=>id==='T1'?{status:'pending',codes:['2897.BMA.004'],submittedBy:'Ketua Tim'}:null,
+ kroApprovalStatus:id=>id==='T1'?'pending':'reference',
+ yearTeamReady:()=>true,
+ nf:n=>String(n),
+ esc:v=>String(v)
+};
+const approvalRender=role=>vm.runInNewContext(approvalRenderBody+";kroApprovalPanelMarkup()",{
+ ...sampleApprovalData,currentRole:role
+});
+const adminApprovalHtml=approvalRender('admin');
+assert(adminApprovalHtml.includes('id="kroAdminApprovalPanel"')&&
+ !adminApprovalHtml.includes('is-readonly')&&
+ adminApprovalHtml.includes('aria-disabled="false"')&&
+ /id="kroApproveAll"\s*>/.test(adminApprovalHtml)&&
+ /data-kro-approve="T1"\s*>/.test(adminApprovalHtml)&&
+ /data-kro-reject="T1"\s*>/.test(adminApprovalHtml),
+ "Mode Admin harus menampilkan panel berwarna normal dengan tindakan aktif");
+for(const role of ['ketua','kepala','pegawai']){
+ const readonlyHtml=approvalRender(role);
+ assert(readonlyHtml.includes('id="kroAdminApprovalPanel"')&&
+  readonlyHtml.includes('is-readonly')&&
+  readonlyHtml.includes('aria-disabled="true"')&&
+  readonlyHtml.includes('TAHAP PERSETUJUAN KRO')&&
+  readonlyHtml.includes('Mode Baca Saja')&&
+  /id="kroApproveAll"\s+disabled/.test(readonlyHtml)&&
+  /data-kro-approve="T1"\s+disabled/.test(readonlyHtml)&&
+  /data-kro-reject="T1"\s+disabled/.test(readonlyHtml),
+  "Mode "+role+" harus melihat panel abu-abu dengan seluruh tombol persetujuan nonaktif");
+}
+
 
 
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
