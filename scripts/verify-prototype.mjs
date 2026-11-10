@@ -1675,6 +1675,29 @@ for(const token of [
  'opener.classList.toggle("is-role-active",!!profile);'
 ])assert(previewSource.includes(token),"Highlight atau animasi status belum lengkap: "+token);
 
+// Secondary role login must have a neutral title and stay disabled in the
+// public preview until a separately approved Firebase backend exists.
+assert(previewSource.includes('<small>AKSES PENGELOLA</small><h3 id="mpRoleDialogTitle">Login Sesuai Peran</h3>'),
+ "Judul pop-up harus Login Sesuai Peran, bukan Login Tahap Kedua");
+assert(!previewSource.includes("LOGIN TAHAP KEDUA"),
+ "Istilah Login Tahap Kedua tidak lagi digunakan pada pop-up");
+const authWorkflow=fs.readFileSync(".github/workflows/deploy-role-login-backend-dev.yml","utf8");
+for(const marker of [
+ "workflow_dispatch:",
+ "inputs.confirmation == 'APPROVE_DEV_ROLE_AUTH'",
+ "vars.FIREBASE_AUTH_DEV_APPROVED == 'true'",
+ "environment: firebase-auth-dev-approved",
+ "functions:usernameSignIn,functions:getAccessContext",
+ "AUTH_LOGIN_ENABLED=true",
+ "ACCESS_ADMIN_ENABLED=false",
+ "MATRIX_BACKEND_ENABLED=false",
+ "allow read, write: if false;"
+])assert(authWorkflow.includes(marker),"Deploy login DEV harus manual dan terproteksi: "+marker);
+assert(!/\n\s+push:/.test(authWorkflow),
+ "Deployment fungsi autentikasi tidak boleh otomatis pada setiap push");
+assert(fs.readFileSync(".env.example","utf8").includes("VITE_ROLE_AUTH_READY=false"),
+ "Website publik tidak boleh mengaktifkan login peran sebelum backend dan akun siap");
+
 const previewRoleStart=inline.indexOf("function previewSessionState(){");
 const previewRoleEnd=inline.indexOf("// Master acuan 2026 dari V25",previewRoleStart);
 assert(previewRoleStart>=0&&previewRoleEnd>previewRoleStart,
