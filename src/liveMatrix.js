@@ -26,12 +26,6 @@ const FIELDS={
  targets:[["teamId","Tim Kerja","team"],["activityId","Uraian","activity"],["month","Bulan (1-12)","number"],["volume","Target Volume","number"]],
  workflow:[["teamId","Tim Kerja","team"],["stage","Tahapan","text"],["status","Status","text"],["notes","Catatan","text"]]
 };
-const req=(name)=>httpsCallable(functions,name,{timeout:60000});
-const api={
- list:req("listMatrixRecords"),year:req("getMatrixYearState"),mutate:req("mutateMatrixRecord"),
- batch:req("saveActivityAllocations"),annual:req("saveAnnualActivityAllocations"),approve:req("changeMatrixYearStatus"),
- init:req("initMatrixYear"),audit:req("listMatrixAudit")
-};
 const node=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=String(text);return el;};
 const button=(label,fn,cls="")=>{const b=node("button",cls,label);b.type="button";b.addEventListener("click",fn);return b;};
 const option=(value,text)=>{const el=node("option","",text);el.value=value;return el;};
@@ -49,7 +43,15 @@ function table(headers,rows){
  t.append(body);wrapper.append(t);return wrapper;
 }
 
-export function createLiveMatrixWorkspace(context) {
+export function createLiveMatrixWorkspace(context,{functionsClient=functions}={}) {
+ // Role backend calls always use the Firebase Auth identity verified for
+ // this workspace; never fall back to the Google viewer for privileged writes.
+ const req=(name)=>httpsCallable(functionsClient,name,{timeout:60000});
+ const api={
+  list:req("listMatrixRecords"),year:req("getMatrixYearState"),mutate:req("mutateMatrixRecord"),
+  batch:req("saveActivityAllocations"),annual:req("saveAnnualActivityAllocations"),approve:req("changeMatrixYearStatus"),
+  init:req("initMatrixYear"),audit:req("listMatrixAudit")
+ };
  const root=node("div","live-matrix");
  const state={year:2026,page:"dashboard",selectedTeam:"",selectedKro:"",selectedGroup:"",activityId:"",
   filter:"",loading:false,yearInfo:null,cache:Object.fromEntries(CATEGORIES.map(k=>[k,[]])),fetched:new Set(),audit:[]};
@@ -459,7 +461,7 @@ export function createLiveMatrixWorkspace(context) {
   else if(state.page==="history")renderHistory();
   else if(state.page==="final")renderFinal();
   else if(state.page==="accounts"&&context.role==="admin")
-    content.append(createAccessAdminView(rows('teams')));
+    content.append(createAccessAdminView(rows('teams'),{functionsClient}));
   if(state.yearInfo?.status==="finalized"){
     content.prepend(node("div","mx-alert","Tahun telah difinalisasi. Semua perubahan data diblokir oleh backend."));
   }
