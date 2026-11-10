@@ -1603,34 +1603,56 @@ for(const role of ['ketua','kepala','pegawai']){
 
 
 
-// GitHub Pages preview header: real Google identity, explicitly SIMULATED role
-// session, and no misleading Import Backup / Reset Uji Coba actions.
+// Two-tier access: Google BPS Blora stays signed in, with VIEW as default.
+// Real Admin/Ketua roles require server-verified username/password, not a
+// free role picker. Backend is intentionally off for the public preview.
 const previewSource=fs.readFileSync("src/publicPreview.js","utf8");
 assert(!html.includes('id="btnImport"')&&!html.includes('id="btnReset"')&&
  !html.includes('id="importFile"')&&
  !inline.includes("$('btnImport').onclick")&&!inline.includes("$('btnReset').onclick"),
- "Header harus bebas dari Impor Backup dan Reset Uji Coba lama");
+ "Header tidak boleh menyediakan impor backup maupun reset uji coba");
 assert(html.includes('id="btnExport"')&&inline.includes("$('btnExport').onclick=exportJson"),
  "Ekspor Perubahan lokal masih diperlukan sebelum migrasi database bersama");
 for(const token of [
- 'id="mpRoleMenu"',
- 'id="mpCurrentRole"',
- 'id="mpRoleDialog"',
- 'id="mpRoleSelect"',
- 'id="mpRoleTeam"',
- 'id="mpRoleApply"',
- 'id="mpSignOut"',
- "Masuk Sebagai",
- "simulasi prototipe",
- "bukan hak akses Google atau izin database bersama",
+ 'id="mpRoleMenu"','id="mpCurrentRole"','id="mpRoleDialog"',
+ 'id="mpRoleLoginForm"','id="mpRoleUsername"','id="mpRolePassword"',
+ 'id="mpRoleApply"','id="mpRoleLogout"','id="mpSignOut"',
+ "Login Peran","Mode Lihat","Google BPS Blora Tetap Terhubung",
+ 'autocomplete="username"','autocomplete="current-password"',
+ "roleLoginReady?","VITE_ROLE_AUTH_READY","VITE_MATRIX_BACKEND_READY",
  "function bindAuthenticatedSession(frame){",
- "__mpPreviewSessionState",
- "__mpPreviewSwitchRole",
- 'frame.onload=()=>bindAuthenticatedSession(frame);',
- "signOut(auth)"
-])assert(previewSource.includes(token),"Sesi Google/peran prototipe tidak lengkap: "+token);
-assert(!previewSource.includes("Akses: Penguji"),
- "Label penguji generik tidak boleh menyembunyikan peran yang sedang digunakan");
+ "function verifiedRoleContext(data){",
+ "async function verifyRoleSession(){",
+ 'await roleSignIn({username:typedUser,password:typedPassword})',
+ "await signInWithCustomToken(roleAuth,response.data.token)",
+ "const profile=await verifyRoleSession()",
+ "preview?.__mpPreviewSwitchRole?.(profile.role,profile.teamId)",
+ "preview?.__mpPreviewSwitchRole?.('pegawai')",
+ "signOut(auth)",
+ "frame.onload=()=>bindAuthenticatedSession(frame);"
+])assert(previewSource.includes(token),"Login Google + role username/password belum lengkap: "+token);
+for(const forbidden of ['id="mpRoleSelect"','id="mpRoleTeam"','Akses: Penguji'])
+ assert(!previewSource.includes(forbidden),"Pilih peran bebas/lama tidak boleh ada: "+forbidden);
+const firstRoleStart=inline.indexOf("function setupRoles(){");
+const firstRoleEnd=inline.indexOf("function previewSessionState(){",firstRoleStart);
+const initRoles=inline.slice(firstRoleStart,firstRoleEnd);
+assert(firstRoleStart>=0&&firstRoleEnd>firstRoleStart&&
+ initRoles.includes("$('btnLoginEdit').onclick=()=>toast(")&&
+ initRoles.includes("enterView();")&&
+ !initRoles.includes("enterPrototypeEdit();"),
+ "Tanpa login peran harus otomatis Mode Lihat, bukan Admin");
+const checkRoleFrom=previewSource.indexOf("function verifiedRoleContext(data){");
+const checkRoleTo=previewSource.indexOf("async function verifyRoleSession(){",checkRoleFrom);
+assert(checkRoleFrom>=0&&checkRoleTo>checkRoleFrom,"Verifikasi peran tidak tersedia");
+const roleParser=previewSource.slice(checkRoleFrom,checkRoleTo);
+const evalRole=data=>vm.runInNewContext(roleParser+";verifiedRoleContext(input)",{input:data});
+assert.equal(evalRole({mode:"role",active:true,role:"admin",username:"admin"}).role,"admin");
+assert.equal(evalRole({mode:"role",active:true,role:"ketua_tim",teamIds:["T1"],username:"katim"}).teamId,"T1");
+assert.equal(evalRole({mode:"role",active:true,role:"kepala",username:"kepala"}).role,"kepala");
+assert.equal(evalRole({mode:"viewer",active:true,role:"admin"}),null);
+assert.equal(evalRole({mode:"role",active:false,role:"admin"}),null);
+assert.equal(evalRole({mode:"role",active:true,role:"ketua_tim",teamIds:[]}),null);
+assert.equal(evalRole({mode:"role",active:true,role:"ketua_tim",teamIds:["T1","T2"]}),null);
 const previewRoleStart=inline.indexOf("function previewSessionState(){");
 const previewRoleEnd=inline.indexOf("// Master acuan 2026 dari V25",previewRoleStart);
 assert(previewRoleStart>=0&&previewRoleEnd>previewRoleStart,
