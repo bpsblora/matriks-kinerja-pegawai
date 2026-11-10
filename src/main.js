@@ -1,8 +1,12 @@
 import "./style.css";
 import "./liveMatrix.css";
-import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithCustomToken, signOut } from "firebase/auth";
-import { httpsCallable } from "firebase/functions";
-import { auth, functions } from "./firebase/client.js";
+import "./adminAccess.css";
+import { GoogleAuthProvider, getAuth, onAuthStateChanged, signInWithPopup, signInWithCustomToken, signOut } from "firebase/auth";
+import { initializeApp } from "firebase/app";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { app, auth, functions } from "./firebase/client.js";
+import { createAccessAdminView } from "./adminAccess.js";
+import ref from "./data/reference2026.json";
 import { createReference2026View } from "./reference2026.js";
 import { createLiveMatrixWorkspace } from "./liveMatrix.js";
 
@@ -20,6 +24,10 @@ import { createLiveMatrixWorkspace } from "./liveMatrix.js";
 const viewerUid = import.meta.env.VITE_VIEWER_GOOGLE_UID || "";
 const roleLoginReady = import.meta.env.VITE_ROLE_AUTH_READY === "true";
 const matrixBackendReady = import.meta.env.VITE_MATRIX_BACKEND_READY === "true";
+const accountsReady = roleLoginReady && import.meta.env.VITE_ACCESS_ADMIN_READY === "true";
+const roleApp = roleLoginReady ? initializeApp(app.options,"matriks-role-session") : null;
+const roleAuth = roleApp ? getAuth(roleApp) : null;
+const roleFunctions = roleApp ? getFunctions(roleApp,import.meta.env.VITE_FIREBASE_FUNCTION_REGION||"us-central1") : null;
 const root = document.querySelector("#app");
 const container = document.createElement("main");
 container.className = "container";
@@ -100,11 +108,15 @@ status.append(statusHeading, statusText, accountInfo);
 const exitButton = document.createElement("button");
 exitButton.type = "button";
 exitButton.className = "secondary";
-exitButton.textContent = "Keluar";
+exitButton.textContent = "Keluar Google";
+const exitRoleButton = document.createElement("button");
+exitRoleButton.type="button";
+exitRoleButton.className="secondary";
+exitRoleButton.textContent="Keluar Peran · Kembali ke Mode Lihat";
 const footer = document.createElement("div");
 footer.className = "meta";
 footer.textContent = "Firebase Preview: login Google terverifikasi · Data referensi anonim. Firestore langsung tetap ditutup; database peran baru digunakan setelah backend server disiapkan dan diaktifkan.";
-container.append(badge, header, intro, googlePanel, viewerPanel, roleForm, privilegedPanel, status, exitButton, footer);
+container.append(badge, header, intro, googlePanel, viewerPanel, roleForm, privilegedPanel, status, exitRoleButton, exitButton, footer);
 const publicDemo = document.createElement("a");
 publicDemo.className = "demo-link";
 publicDemo.href = "./demo.html";
@@ -113,7 +125,7 @@ container.insertBefore(publicDemo, status);
 root.replaceChildren(container);
 
 const roleLogin = httpsCallable(functions, "usernameSignIn", {timeout: 30000});
-const getAccessContext = httpsCallable(functions, "getAccessContext", {timeout: 30000});
+const getAccessContext = roleFunctions ? httpsCallable(roleFunctions, "getAccessContext", {timeout: 30000}) : null;
 let signedMode = "none";
 function report(title, detail, tone = "") {
   statusHeading.textContent = title;
@@ -176,6 +188,8 @@ function render(mode, busy = false) {
   roleForm.hidden = mode !== "viewer";
   privilegedPanel.hidden = mode !== "role";
   exitButton.hidden = mode === "none";
+  exitRoleButton.hidden = mode !== "role";
+  exitRoleButton.disabled=busy;
   googleButton.disabled = busy;
   roleButton.disabled = busy || !roleLoginReady;
   exitButton.disabled = busy;
@@ -206,68 +220,88 @@ googleButton.addEventListener("click", async () => {
     googleButton.disabled = false;
   }
 });
-roleForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  if (!roleLoginReady || signedMode !== "viewer" || auth.currentUser?.uid !== viewerUid) return;
-  const chosenUsername = username.value.trim().toLowerCase();
-  const enteredPassword = password.value;
-  password.value = "";
-  roleButton.disabled = true;
-  try {
-    const response = await roleLogin({username:chosenUsername, password:enteredPassword});
-    if (typeof response?.data?.token !== "string") throw new Error("missing-token");
-    await signInWithCustomToken(auth, response.data.token);
-  } catch {
-    report("Login peran ditolak", "Username/password tidak sesuai atau layanan pengelola belum tersedia.", "error");
-  } finally {
-    roleButton.disabled = !roleLoginReady;
+// Google BPS Blora always remains the view identity, even after a role login.
+// Admin/Ketua sessions live in a separate Firebase Auth instance.
+function approvedGoogle(){
+ return !!viewerUid && auth.currentUser?.uid===viewerUid;
+}
+async function mountVerifiedRole(){
+ if(!approvedGoogle()||!roleAuth?.currentUser||!getAccessContext)return false;
+ try{
+  const reply=await getAccessContext({});
+  const profile=reply?.data;
+  if(profile?.mode!=="role"||profile?.active!==true||!["admin","ketua_tim","kepala"].includes(profile.role))
+   throw new Error("Akun peran tidak valid.");
+  if(profile.role==="ketua_tim"&&(!Array.isArray(profile.teamIds)||!profile.teamIds.length))
+   throw new Error("Akun Ketua Tim tidak memiliki tim.");
+  render("role");
+  privilegedHeading.textContent="Login Sesuai Peran";
+  privilegedText.textContent="Username: "+profile.username+" · Peran: "+profile.role+
+   " · Tim: "+(profile.teamIds||[]).join(", ");
+  if(matrixBackendReady) {
+   liveWorkspace.replaceChildren(createLiveMatrixWorkspace({
+    role:profile.role,teamIds:profile.teamIds||[],username:profile.username
+   },{functionsClient:roleFunctions}));
+  }else if(profile.role==="admin"&&accountsReady){
+   // Account creation is independent of the future shared Matrix database.
+   liveWorkspace.replaceChildren(createAccessAdminView(ref.teams,{functionsClient:roleFunctions}));
+  }else{
+   const note=document.createElement("p");
+   note.className="warning";
+   note.textContent="Akun peran terverifikasi. Database matriks bersama belum diaktifkan oleh pengelola.";
+   liveWorkspace.replaceChildren(note);
   }
+  return true;
+ }catch{
+  await signOut(roleAuth).catch(()=>{});
+  render("viewer");
+  report("Sesi peran belum diizinkan","Gunakan akun peran aktif sesuai tim yang telah ditetapkan Admin.","error");
+  return false;
+ }
+}
+roleForm.addEventListener("submit", async event=>{
+ event.preventDefault();
+ if(!roleLoginReady||signedMode!=="viewer"||!approvedGoogle()||!roleAuth)return;
+ const chosenUsername=username.value.trim().toLowerCase();
+ const enteredPassword=password.value;
+ password.value="";
+ roleButton.disabled=true;
+ try{
+  const response=await roleLogin({username:chosenUsername,password:enteredPassword});
+  if(typeof response?.data?.token!=="string")throw new Error("Login peran belum tersedia.");
+  await signInWithCustomToken(roleAuth,response.data.token);
+  if(!await mountVerifiedRole())throw new Error("Peran belum terdaftar.");
+ }catch{
+  render("viewer");
+  report("Login peran ditolak","Username/password tidak cocok, atau layanan pengelola belum aktif.","error");
+ }finally{roleButton.disabled=!roleLoginReady;}
 });
-exitButton.addEventListener("click", async () => {
-  try {
-    await signOut(auth);
-    // Google viewer login and the role session are separate; logout requires
-    // authenticating again through the Google gate.
-  } catch {
-    report("Gagal keluar", "Silakan coba kembali.", "error");
-  }
+exitRoleButton.addEventListener("click",async()=>{
+ if(roleAuth)await signOut(roleAuth).catch(()=>{});
+ render("viewer");
 });
-
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    render("none");
-    return;
+exitButton.addEventListener("click",async()=>{
+ if(roleAuth)await signOut(roleAuth).catch(()=>{});
+ await signOut(auth).catch(()=>{});
+ render("none");
+});
+onAuthStateChanged(auth,async user=>{
+ if(!user){
+  if(roleAuth)await signOut(roleAuth).catch(()=>{});
+  render("none");return;
+ }
+ try{
+  const token=await user.getIdTokenResult();
+  if(auth.currentUser?.uid!==user.uid)return;
+  if(token.signInProvider!=="google.com"||!viewerUid||user.uid!==viewerUid||
+     token.claims?.email_verified!==true){
+   if(roleAuth)await signOut(roleAuth).catch(()=>{});
+   showPendingGoogle(user);return;
   }
-  try {
-    const token = await user.getIdTokenResult();
-    if (auth.currentUser?.uid !== user.uid) return;
-    const provider = token.signInProvider;
-    if (provider === "google.com") {
-      if (viewerUid && user.uid === viewerUid && token.claims?.email_verified === true) {
-        render("viewer");
-      } else {
-        showPendingGoogle(user);
-      }
-      return;
-    }
-    if (provider === "custom" && roleLoginReady) {
-      // Frontend never trusts its own role buttons or a custom token alone.
-      // Only the trusted backend can validate an active role and team scope.
-      const response = await getAccessContext({});
-      if (auth.currentUser?.uid !== user.uid) return;
-      const profile = response?.data;
-      if (profile?.mode !== "role" || !profile.active) throw Error("role-not-authorized");
-      render("role");
-      privilegedText.textContent = "Akun peran: " + profile.username + " · Peran: " + profile.role + " · Tim: " + (profile.teamIds||[]).join(", ");
-      liveWorkspace.replaceChildren(createLiveMatrixWorkspace({
-        role: profile.role, teamIds: profile.teamIds || [], username: profile.username || "akun_peran"
-      }));
-      return;
-    }
-    await signOut(auth);
-    report("Akses ditolak", "Identitas akun tidak sesuai dengan kebijakan akses kantor.", "warning");
-  } catch {
-    await signOut(auth).catch(() => {});
-    report("Sesi belum dapat diverifikasi", "Silakan login kembali.", "error");
-  }
+  if(roleAuth)await roleAuth.authStateReady();
+  if(!roleAuth?.currentUser||!await mountVerifiedRole())render("viewer");
+ }catch{
+  if(roleAuth)await signOut(roleAuth).catch(()=>{});
+  render("viewer");
+ }
 });
