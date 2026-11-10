@@ -1619,7 +1619,7 @@ for(const token of [
  'id="mpRoleApply"','id="mpRoleLogout"','id="mpSignOut"',
  "Login Peran","Mode Lihat","Google BPS Blora · Mode Lihat",
  'autocomplete="username"','autocomplete="current-password"',
- "roleLoginReady?","VITE_ROLE_AUTH_READY","VITE_MATRIX_BACKEND_READY",
+ "roleLoginReady?","VITE_ROLE_AUTH_READY","VITE_ACCESS_ADMIN_READY",
  "function bindAuthenticatedSession(frame){",
  "function verifiedRoleContext(data){",
  "async function verifyRoleSession(){",
@@ -1647,12 +1647,90 @@ assert(checkRoleFrom>=0&&checkRoleTo>checkRoleFrom,"Verifikasi peran tidak terse
 const roleParser=previewSource.slice(checkRoleFrom,checkRoleTo);
 const evalRole=data=>vm.runInNewContext(roleParser+";verifiedRoleContext(input)",{input:data});
 assert.equal(evalRole({mode:"role",active:true,role:"admin",username:"admin"}).role,"admin");
-assert.equal(evalRole({mode:"role",active:true,role:"ketua_tim",teamIds:["T1"],username:"katim"}).teamId,"T1");
+assert.equal(evalRole({mode:"role",active:true,role:"ketua_tim",teamIds:["T001"],username:"katim"}).teamId,"T001");
 assert.equal(evalRole({mode:"role",active:true,role:"kepala",username:"kepala"}).role,"kepala");
 assert.equal(evalRole({mode:"viewer",active:true,role:"admin"}),null);
 assert.equal(evalRole({mode:"role",active:false,role:"admin"}),null);
 assert.equal(evalRole({mode:"role",active:true,role:"ketua_tim",teamIds:[]}),null);
-assert.equal(evalRole({mode:"role",active:true,role:"ketua_tim",teamIds:["T1","T2"]}),null);
+assert.equal(Array.from(evalRole({mode:"role",active:true,role:"ketua_tim",teamIds:["T001","T002"]}).teamIds).length,2,
+ "Ketua Tim yang diberi dua tim oleh Admin harus dapat login dan berpindah tim");
+assert.equal(evalRole({mode:"role",active:true,role:"ketua_tim",teamIds:["T1"]}),null,
+ "Kode tim yang tidak sesuai schema backend tidak boleh dianggap terverifikasi");
+// Account creation is Admin-only and uses a verified ROLE Firebase session.
+// Public Google auth alone must never be allowed to call createAccessAccount.
+const adminSource=fs.readFileSync("src/adminAccess.js","utf8");
+const shellCss=fs.readFileSync("src/adminAccess.css","utf8");
+const mainSource=fs.readFileSync("src/main.js","utf8");
+const matrixSource=fs.readFileSync("src/liveMatrix.js","utf8");
+for(const token of [
+ 'import {createAccessAdminView} from "./adminAccess.js";',
+ 'id="mpManageAccounts"',
+ 'id="mpAccountsDialog"',
+ 'id="mpAccountsContent"',
+ 'profile?.role!=="admin"',
+ 'if(!accountsReady||liveRole?.role!=="admin"||!roleAuth?.currentUser||!roleFunctions)return;',
+ 'createAccessAdminView(teams,{functionsClient:roleFunctions})',
+ 'accountButton.hidden=profile?.role!=="admin";',
+ 'closeAccounts();',
+ 'const roleLoginReady=import.meta.env.VITE_ROLE_AUTH_READY==="true";',
+ 'const accountsReady=roleLoginReady&&import.meta.env.VITE_ACCESS_ADMIN_READY==="true";',
+ 'assignedTeam.addEventListener("change",()=>{',
+ 'liveRole.teamIds?.includes(tid)',
+ 'accountButton.disabled=profile?.role!=="admin"||!accountsReady;'
+])assert(previewSource.includes(token),"Kelola Akun Admin tidak terhubung dengan sesi terverifikasi: "+token);
+for(const token of [
+ 'export function createAccessAdminView(teams = [], options = {}) {',
+ 'const roleFunctions=options.functionsClient||functions;',
+ 'httpsCallable(roleFunctions,name,',
+ 'api("createAccessAccount")',
+ 'api("updateAccessAccount")',
+ 'api("resetAccessPassword")',
+ 'api("setAccessAccountStatus")',
+ 'api("listAccessAccounts")',
+ 'const teamGroup=E("div");teamGroup.className="account-team-checks";',
+ 'check.type="checkbox"',
+ 'const passwordOk=value=>',
+ 'const selected=new Set(a.teamIds||[])',
+ 'if(values.role==="ketua_tim"&&values.teamIds.length===0)'
+])assert(adminSource.includes(token),"Fungsi pembuatan akun Admin tidak lengkap: "+token);
+assert(!adminSource.includes("Ctrl+klik"),
+ "Pemilihan tim harus menggunakan checkbox, bukan Ctrl klik");
+for(const token of [
+ '.admin-access .account-team-checks{',
+ '.admin-access .account-team-option:has(input:checked){',
+ '.mp-accounts-dialog{',
+ '#mpAccountsClose{'
+])assert(shellCss.includes(token),"Tampilan Admin Kelola Akun belum siap: "+token);
+assert(mainSource.includes("const roleAuth = roleApp ? getAuth(roleApp) : null;")&&
+ mainSource.includes("if(!approvedGoogle()||!roleAuth?.currentUser||!getAccessContext)return false;")&&
+ mainSource.includes("createAccessAdminView(ref.teams,{functionsClient:roleFunctions})")&&
+ mainSource.includes("await signInWithCustomToken(roleAuth,response.data.token)")&&
+ mainSource.includes("await signOut(roleAuth)")&&
+ !mainSource.includes("await signInWithCustomToken(auth,response.data.token)"),
+ "Aplikasi Firebase harus mempertahankan akun Google saat Admin login peran");
+assert(matrixSource.includes("createLiveMatrixWorkspace(context,{functionsClient=functions}={})")&&
+ matrixSource.includes("httpsCallable(functionsClient,name,")&&
+ matrixSource.includes("createAccessAdminView(rows('teams'),{functionsClient})"),
+ "Data matriks dan akun harus memakai Firebase Functions dengan identitas peran");
+const adminWorkflow=fs.readFileSync(".github/workflows/deploy-admin-accounts-backend-dev.yml","utf8");
+for(const token of [
+ "workflow_dispatch:",
+ "vars.FIREBASE_ACCOUNT_ADMIN_DEV_APPROVED == 'true'",
+ "vars.MATRIX_ADMIN_BOOTSTRAP_DONE == 'true'",
+ "environment: firebase-account-dev-approved",
+ "functions:createAccessAccount,functions:updateAccessAccount,functions:resetAccessPassword,functions:setAccessAccountStatus",
+ "ACCESS_ADMIN_ENABLED=true",
+ "ALLOW_ELEVATED_ROLE_MANAGEMENT=false",
+ "MATRIX_BACKEND_ENABLED=false",
+ "allow read, write: if false;"
+])assert(adminWorkflow.includes(token),"Deployment akun DEV harus ditinjau dan terproteksi: "+token);
+assert(!/\n\s+push:/.test(adminWorkflow),"Kelola Akun backend tidak boleh otomatis di-deploy pada push");
+const exampleEnv=fs.readFileSync(".env.example","utf8");
+assert(exampleEnv.includes("VITE_ROLE_AUTH_READY=false")&&
+ exampleEnv.includes("VITE_ACCESS_ADMIN_READY=false")&&
+ exampleEnv.includes("VITE_MATRIX_BACKEND_READY=false"),
+ "Semua akses produksi tetap nonaktif sebelum aktivasi backend yang disetujui");
+
 // Role/Mode Lihat header styling: highlight is accessible, animated but
 // respects reduced-motion; chevron is drawn with CSS, not an uneven v glyph.
 assert(previewSource.includes('id="mpRoleMenu"')&&
