@@ -59,6 +59,20 @@ Beberapa hasil konversi jam adalah perkiraan `volume × standar jam` yang **perl
 10. Uji dua browser terpisah: perubahan Admin terlihat setelah sinkronisasi, Ketua Tim tidak bisa mengubah tim lain, Kepala dapat memfinalisasi dan seluruh perubahan tahun terkunci.
 11. Pastikan audit seluruh fitur lama (ekspor laporan, detail kalender, rekonsiliasi lanjutan, input data lintas tahun) selesai sebelum rilis resmi. **Kode sekarang bukan kloning penuh seluruh perilaku v2.6**.
 
+## Persiapan aktivasi login peran pada Firebase DEV (10 November 2026)
+
+Pop-up sekarang berjudul **Login Sesuai Peran**. Google BPS Blora membuka **Mode Lihat**; username dan password Admin/Ketua Tim tetap wajib diverifikasi oleh Cloud Function `usernameSignIn` dan identitas peran wajib diperiksa ulang melalui `getAccessContext`.
+
+Workflow **[`deploy-role-login-backend-dev.yml`](../.github/workflows/deploy-role-login-backend-dev.yml)** telah ditambahkan sebagai jalur deployment **manual saja**. Workflow tidak berjalan pada push dan tidak mengaktifkan akses data matriks/Firestore. Prasyarat:
+
+1. Persetujuan TI untuk akun viewer, penyimpanan data simulasi di DEV `nam5`, dan penggunaan Cloud Functions/biaya Blaze. Jangan gunakan data pegawai asli di DEV.
+2. Variabel GitHub pada lingkungan yang disetujui: `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_DEPLOY_SERVICE_ACCOUNT`, `VIEWER_GOOGLE_UID`, dan `FIREBASE_AUTH_DEV_APPROVED=true`. Konfigurasikan proteksi environment `firebase-auth-dev-approved` beserta review.
+3. Jalankan **Actions → Deploy Role Login Backend — Firebase DEV → Run workflow**, isikan konfirmasi `APPROVE_DEV_ROLE_AUTH`. Backend DEV akan men-deploy hanya `usernameSignIn` dan `getAccessContext`; `MATRIX_BACKEND_ENABLED=false`, `ACCESS_ADMIN_ENABLED=false`, dan aturan Firestore tetap deny-all.
+4. Bootstrap Admin pertama dari Cloud Shell tepercaya menggunakan `functions/bootstrapAdmin.cjs`, lalu uji login benar/salah, rate limit, penguncian akun, isolasi Ketua Tim dan pembatalan sesi. Password tidak boleh dikirim ke GitHub/chat.
+5. **Hanya setelah hasil pengujian aman**, aktifkan frontend `VITE_ROLE_AUTH_READY=true` dan `VITE_MATRIX_BACKEND_READY=true` melalui build khusus lingkungan yang disetujui. Website publik GitHub Pages tetap **Mode Lihat** sampai seluruh prasyarat lengkap.
+
+**Status sekarang:** workflow siap diperiksa, **belum dijalankan**. Backend peran **belum aktif**; keberhasilan tes GitHub saja bukan bukti fungsi telah dideploy atau akun peran telah dibuat. Database bersama belum diaktifkan.
+
 ## Mengapa belum langsung deploy Cloud Functions sekarang?
 - Akun Firebase DEV masih **Spark**, belum disetujui upgrade Blaze;
 - database DEV berada di **AS (nam5)** dan data pegawai asli belum disetujui diproses di sana;
