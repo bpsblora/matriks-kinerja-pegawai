@@ -16,7 +16,7 @@ import {
  updatePassword
 } from "firebase/auth";
 import {
- getFirestore,collection,doc,getDoc,getDocs,updateDoc,writeBatch,serverTimestamp
+ getFirestore,collection,doc,getDoc,getDocs,updateDoc,writeBatch,serverTimestamp,onSnapshot
 } from "firebase/firestore";
 import {app,auth,db} from "./firebase/client.js";
 
@@ -113,6 +113,15 @@ export async function restoreSparkRole(){
 }
 export async function logoutSparkRole(){
  if(sparkRoleAuth?.currentUser)await signOut(sparkRoleAuth);
+}
+export function watchSparkRoleRevocation(onRevoked){
+ const user=sparkRoleAuth?.currentUser;
+ if(!user)return ()=>{};
+ // When Admin resets/deactivates a role, immediately end the role session
+ // on other open tabs; no page reload is required.
+ return onSnapshot(doc(roleDb,"sparkRoleProfiles",user.uid),snap=>{
+  if(!snap.exists()||!validProfile(snap.data(),user))onRevoked();
+ },()=>onRevoked());
 }
 async function requireAdmin(){
  const profile=await getSparkRoleProfile();
