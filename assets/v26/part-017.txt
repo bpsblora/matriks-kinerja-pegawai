@@ -129,6 +129,8 @@ function showKroActivityMap(){
 
 function renderKroBoard(){
  const el=$('kroBoardMain');if(!el)return;
+ // Keep the audit card section alive while the KRO dashboard rerenders.
+ const auditPanel=$('kroAuditPanel');
  const canCentral=currentRole==='admin'||currentRole==='kepala';
  const oldTeam=el.dataset.team||'';
  const tid=currentRole==='ketua'?roleTeamId:($('kroBoardTeam')?.value||selectedTeam);
@@ -153,7 +155,8 @@ function renderKroBoard(){
  const masterWasOpen=!!el.querySelector('#kroMasterPopup')?.open;
  const assignmentWasOpen=!!el.querySelector('#kroAssignmentPopup')?.open;
  const modalScroll=el.querySelector('#kroMasterPopup[open] .kro-hub-dialog-body, #kroAssignmentPopup[open] .kro-hub-dialog-body')?.scrollTop||0;
- el.innerHTML=`<section class="monitor-hero kro-hub-heading"><div><h2>Pembagian KRO ${activeYear}</h2><p>Kelola daftar induk dan peta penugasan melalui dua menu di bawah ini.</p></div></section>
+ el.innerHTML=`<section class="monitor-hero kro-hub-heading"><div><h2>Pembagian KRO ${activeYear}</h2><p>Periksa status penetapan melalui kartu pemantauan, lalu buka menu pengelolaan yang dibutuhkan.</p></div></section>
+ <div id="kroAuditSlot" class="kro-audit-slot"></div>
  <div class="kro-hub-grid" aria-label="Menu pembagian KRO">
   <button type="button" class="kro-hub-card" id="kroHubMaster"><span class="kro-hub-icon">▤</span><span class="kro-hub-card-content"><strong>Daftar Induk KRO</strong><small>Tambah, ubah, hapus, dan cari KRO tahun ${activeYear}.</small><span class="kro-hub-card-meta">${POK_KROS.length} KRO terdaftar</span></span><span class="kro-hub-arrow">↗</span></button>
   <button type="button" class="kro-hub-card" id="kroHubMap"><span class="kro-hub-icon">◫</span><span class="kro-hub-card-content"><strong>Peta KRO – Tim</strong><small>Lihat peta penugasan dan atur KRO untuk setiap tim.</small><span class="kro-hub-card-meta">${demoTeams.length} Tim kerja · ${POK_KROS.length} KRO</span></span><span class="kro-hub-arrow">↗</span></button>
@@ -165,10 +168,11 @@ function renderKroBoard(){
  <dialog id="kroAssignmentPopup" class="kro-hub-dialog" aria-labelledby="kroAssignmentModalTitle"><div class="kro-hub-dialog-head"><div><span class="kro-modal-eyebrow">PEMBAGIAN KRO</span><h2 id="kroAssignmentModalTitle">Penetapan KRO per Tim</h2><p>Perubahan hanya tersimpan setelah tombol Tetapkan KRO dipilih.</p></div><button type="button" class="kro-hub-close" data-close-kro-assignment aria-label="Tutup Pengaturan KRO Tim">✕</button></div><div class="kro-hub-dialog-body"><section class="panel combined-kro-panel"><div class="section-top"><div><h3>Atur KRO per Tim</h3><p>Pilih KRO yang berlaku untuk tim pada tahun ini. Pemetaan tiap Kegiatan tersedia pada kartu tersendiri.</p></div><span class="badge">${kroBoardDraft.size} KRO dipilih</span></div>
  <div class="combined-kro-controls"><label>Tim <select id="kroBoardTeam" ${canCentral?'':'disabled'}>${teamList.map(t=>`<option value="${esc(t.id)}" ${t.id===tid?'selected':''}>${esc(t.name)}</option>`).join('')}</select></label><label>Pencarian <input type="search" id="kroBoardSearch" placeholder="Kode atau nama KRO" value="${esc(query)}"></label>
  <div class="combined-kro-actions"><button class="btn soft" type="button" id="kroBoardRecommended" ${!writable||!suggestions.length?'disabled':''}>+ Centang ${suggestions.length} Rekomendasi</button>
- ${locked&&!editing?`<button class="btn primary" type="button" id="kroBoardEdit" ${!canUse||isBaseYear?'disabled':''}>${isBaseYear?'Referensi 2026':'✎ Ubah Pilihan KRO'}</button>`:`<button class="btn primary" type="button" id="kroBoardConfirm" ${!canUse||isBaseYear?'disabled':''}>✓ ${editing?'Simpan & Tetapkan Ulang':'Tetapkan KRO'}</button>`}
+ ${locked&&!editing?`<button class="btn primary" type="button" id="kroBoardEdit" ${!canUse||isBaseYear?'disabled':''}>${isBaseYear?'Referensi 2026':'✎ Edit KRO yang Ditetapkan'}</button>`:`<button class="btn primary" type="button" id="kroBoardConfirm" ${!canUse||isBaseYear?'disabled':''}>✓ ${editing?'Simpan & Tetapkan Ulang':'Tetapkan KRO'}</button>`}
  ${editing?'<button class="btn soft" type="button" id="kroBoardCancel">Batal Perubahan</button>':''}</div></div>
  <div class="kro-board-recommendation">${recSummary}</div>
  <div id="kroBoardList" class="combined-kro-list">${arr.map(k=>{const r=kroRecommendation(k,tid);return `<label class="combined-kro-row ${r?'kro-suggested-'+r.kind:''}"><input type="checkbox" data-board-kro="${esc(k.code)}" ${kroBoardDraft.has(k.code)?'checked':''} ${!writable?'disabled':''}><span><b>${esc(k.code)}</b><small>${esc(k.name)}</small>${r?`<small class="kro-suggestion-reason">${esc(r.reason)}</small>`:''}</span>${r?`<em class="kro-hint-kind ${r.kind}">${esc(r.label)}</em>`:''}</label>`}).join('')||'<p class="combined-context">Tidak ada KRO sesuai pencarian.</p>'}</div></section></div></dialog>`;
+ if(auditPanel)el.querySelector('#kroAuditSlot')?.appendChild(auditPanel);
  const showBoardDialog=(id)=>{const d=$(id);if(!d)return; if(!d.open)d.showModal();d.querySelector('.kro-hub-dialog-body').scrollTop=modalScroll;};
  if(masterWasOpen)showBoardDialog('kroMasterPopup');
  if(assignmentWasOpen)showBoardDialog('kroAssignmentPopup');
