@@ -922,18 +922,16 @@ function confirmTeamYear(){
  if(isBaseYear)return;
  selectedTeam=tid;const main=$('kroBoardMain');if(main)main.dataset.team='';setPage('kro');
 }
-function confirmKroYear(){
+async function confirmKroYear(){
  const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
  if(!roleCanManageTeam(tid)||yearInfo().status==='closed')return;
+ if(kroApprovalStatus(tid)==='pending')return toast('Pengajuan KRO sedang menunggu persetujuan Admin.');
  const chosen=new Set(selectedKroCodes);
- showKroCoverageDialog({tid,selectedCodes:chosen,onSave:()=>{
-  if(!yearTeamReady(tid)||!chosen.size)throw new Error('Tetapkan susunan tim dan pilih minimal satu KRO.');
-  saveTeamAdmin();
-  const codes=teamKroCodes(tid);if(!codes.length)throw new Error('Pilihan KRO belum disimpan.');
-  yearSetup.kros[tid]=[...codes].sort();annualEditingKroId=null;storeYearSetup();
-  logChange('Tetapkan KRO Tim '+activeYear,(teamMap.get(tid)?.name||tid)+' · '+codes.length+' KRO');persist();
-  renderTeamAdminPage();renderKroChecks();renderKroAudit();
- }});
+ if(!chosen.size||(!isBaseYear&&!yearTeamReady(tid)))return toast('Tetapkan susunan tim dan pilih minimal satu KRO sebelum mengajukan.');
+ if(!await uiConfirm('Kirim '+chosen.size+' pilihan KRO untuk disetujui Admin? KRO belum berlaku sampai Admin menyetujui.'))return;
+ if(!submitKroProposal(tid,chosen))return toast('Pengajuan KRO gagal. Periksa penetapan tim dan pilihan KRO.');
+ annualEditingKroId=null;renderYearSetup();renderTeamAdminPage();renderKroChecks();renderKroBoard();renderKroAudit();
+ toast('Pengajuan KRO dikirim. Menunggu Persetujuan Admin.');
 }
 function setupYearStages(){
  // V25 tetap basis: elemen HTML dipindahkan, bukan dihapus. Pembagian KRO hanya ada di menu Pembagian KRO.
