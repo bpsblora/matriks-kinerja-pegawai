@@ -139,52 +139,113 @@ function addAuthenticatedHeader(html,user){
  if(!html.includes('<div class="rightbar">'))throw new Error("Header prototipe tidak ditemukan.");
  return html.replace("</head>", styles + '<style id="mkp-site-polish">' + sitePolishCss + "</style></head>").replace('<div class="rightbar">','<div class="rightbar">'+header);
 }
+/* A Google login only opens Mode Lihat. The second (independent) Firebase
+   auth instance holds a verified role account and never replaces the Google
+   BPS Blora identity. No client-side role picker can grant an edit role. */
+function verifiedRoleContext(data){
+ if(!data||data.mode!=="role"||data.active!==true)return null;
+ const roles={admin:"admin",ketua_tim:"ketua",kepala:"kepala"};
+ const role=roles[data.role];
+ if(!role)return null;
+ const teamIds=Array.isArray(data.teamIds)?data.teamIds.filter(t=>typeof t==="string"):[];
+ if(role==="ketua"&&teamIds.length!==1)return null;
+ return {role,teamId:role==="ketua"?teamIds[0]:"",username:String(data.username||"")};
+}
+async function verifyRoleSession(){
+ if(!roleLoginReady||!roleAuth?.currentUser||!readRoleProfile)return null;
+ try{
+  const reply=await readRoleProfile({});
+  const verified=verifiedRoleContext(reply?.data);
+  if(!verified)throw new Error("Peran belum diizinkan");
+  return verified;
+ }catch{
+  await signOut(roleAuth).catch(()=>{});
+  return null;
+ }
+}
 function bindAuthenticatedSession(frame){
  const doc=frame.contentDocument,preview=frame.contentWindow;
  if(!doc)return;
  const get=id=>doc.getElementById(id);
- get("mpSignOut")?.addEventListener("click",()=>signOut(auth));
  const dialog=get("mpRoleDialog"),opener=get("mpRoleMenu"),
-  select=get("mpRoleSelect"),team=get("mpRoleTeam"),
-  teamLabel=get("mpRoleTeamLabel"),badge=get("mpCurrentRole"),
-  warning=get("mpRoleError");
- if(!dialog||!opener||!select||!team||!teamLabel||!badge)return;
- const state=()=>preview?.__mpPreviewSessionState?.()||null;
- const showTeamChoice=()=>{
-  const isTeam=select.value==="ketua";
-  team.hidden=!isTeam;teamLabel.hidden=!isTeam;team.disabled=!isTeam;
- };
- function refresh(info=state()){
-  if(!info){opener.disabled=true;badge.textContent="Peran Tidak Tersedia";return;}
-  opener.disabled=false;
-  badge.textContent=info.label+(info.teamName?" · "+info.teamName:"")+" (Simulasi)";
-  select.value=info.role;
-  const savedTeam=team.value;
-  team.replaceChildren(...(info.teams||[]).map(t=>{
-   const option=doc.createElement("option");
-   option.value=t.id;option.textContent=t.name;
-   return option;
-  }));
-  team.value=info.teamId||savedTeam||info.teams?.[0]?.id||"";
-  showTeamChoice();
+  form=get("mpRoleLoginForm"),username=get("mpRoleUsername"),
+  password=get("mpRolePassword"),apply=get("mpRoleApply"),
+  badge=get("mpCurrentRole"),warning=get("mpRoleError"),roleLogout=get("mpRoleLogout");
+ if(!dialog||!opener||!form||!username||!password||!apply||!badge||!warning||!roleLogout)return;
+ let liveRole=null,busy=false;
+ function renderRole(profile){
+  liveRole=profile;
+  const state=preview?.__mpPreviewSessionState?.();
+  const display=profile?(state?.label||"Pengelola")+(state?.teamName?" · "+state.teamName:""):"Mode Lihat";
+  badge.textContent=display;
+  opener.disabled=!!profile;
+  roleLogout.hidden=!profile;
+  roleLogout.disabled=!profile;
+  opener.setAttribute("aria-label",profile?"Masuk sebagai "+display:"Login Peran untuk mengelola data");
  }
- refresh();
- opener.addEventListener("click",()=>{
-  refresh();warning.textContent="";
-  if(!dialog.open)dialog.showModal();
-  select.focus({preventScroll:true});
+ async function exitRole(){
+  if(busy)return;
+  busy=true;roleLogout.disabled=true;
+  try{if(roleAuth)await signOut(roleAuth);}
+  finally{
+   preview?.__mpPreviewSwitchRole?.("pegawai");
+   renderRole(null);
+   busy=false;
+  }
+ }
+ renderRole(null);
+ get("mpSignOut")?.addEventListener("click",async()=>{
+  if(roleAuth)await signOut(roleAuth).catch(()=>{});
+  await signOut(auth);
  });
- select.addEventListener("change",showTeamChoice);
+ roleLogout.addEventListener("click",exitRole);
+ opener.addEventListener("click",()=>{
+  if(liveRole)return;
+  warning.textContent="";
+  password.value="";
+  if(!dialog.open)dialog.showModal();
+  username.focus({preventScroll:true});
+ });
  get("mpRoleDismiss")?.addEventListener("click",()=>dialog.close());
  get("mpRoleCancel")?.addEventListener("click",()=>dialog.close());
  dialog.addEventListener("click",e=>{if(e.target===dialog)dialog.close();});
- get("mpRoleApply")?.addEventListener("click",()=>{
-  const targetTeam=select.value==="ketua"?team.value:"";
-  const updated=preview?.__mpPreviewSwitchRole?.(select.value,targetTeam);
-  if(!updated){warning.textContent="Peran atau tim belum valid. Pilih kembali.";return;}
-  dialog.close();refresh(updated);
-  opener.focus({preventScroll:true});
+ form.addEventListener("submit",async event=>{
+  event.preventDefault();
+  if(busy)return;
+  if(!roleLoginReady||!roleSignIn||!roleAuth){
+   warning.textContent="Login peran belum aktif. Mode Lihat tetap tersedia sampai layanan backend disiapkan.";
+   return;
+  }
+  const typedUser=username.value.trim().toLowerCase(),typedPassword=password.value;
+  if(!typedUser||!typedPassword)return;
+  busy=true;apply.disabled=true;warning.textContent="";
+  try{
+   if(!auth.currentUser)throw new Error("Login Google BPS Blora harus aktif.");
+   const response=await roleSignIn({username:typedUser,password:typedPassword});
+   if(typeof response?.data?.token!=="string")throw new Error("Token login peran tidak tersedia.");
+   await signInWithCustomToken(roleAuth,response.data.token);
+   const profile=await verifyRoleSession();
+   if(!profile)throw new Error("Akun peran tidak diizinkan.");
+   const changed=preview?.__mpPreviewSwitchRole?.(profile.role,profile.teamId);
+   if(!changed){await signOut(roleAuth);throw new Error("Tim akun peran belum tersedia dalam matriks.");}
+   renderRole(profile);
+   dialog.close();
+   password.value="";
+  }catch(error){
+   warning.textContent="Login gagal: "+(error?.message?.includes("not available")?"Layanan belum diaktifkan.":"Periksa username, password, atau akses akun peran.");
+   password.value="";
+  }finally{busy=false;apply.disabled=!roleLoginReady;}
  });
+ // Restore a verified second-stage session only after Google and the iframe
+ // have loaded. A stale/unverified role session is cleared to Mode Lihat.
+ if(roleAuth)roleAuth.authStateReady().then(async()=>{
+  if(frame.contentWindow!==preview||!auth.currentUser)return;
+  const profile=await verifyRoleSession();
+  if(!profile)return;
+  const changed=preview?.__mpPreviewSwitchRole?.(profile.role,profile.teamId);
+  if(changed)renderRole(profile);
+  else await signOut(roleAuth).catch(()=>{});
+ }).catch(()=>{renderRole(null)});
 }
 async function openPrototype(user,run){
  try{
