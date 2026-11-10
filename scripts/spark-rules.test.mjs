@@ -74,7 +74,7 @@ try{
  rename.delete(h(admin,"katim_ppid"));
  rename.update(p(admin,oldUid),{username:"katim_keuangan",updatedAt:serverTimestamp()});
  await assertSucceeds(rename.commit());
- await assertFails(getDoc(h(viewerDb,"katim_ppid")));
+ assert.equal((await assertSucceeds(getDoc(h(viewerDb,"katim_ppid")))).exists(),false);
  assert.equal((await assertSucceeds(getDoc(h(viewerDb,"katim_keuangan")))).data().uid,oldUid);
 
  // A password reset rotates the underlying auth UID, keeps the username,
