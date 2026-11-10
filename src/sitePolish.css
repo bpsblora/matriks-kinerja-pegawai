@@ -4835,3 +4835,155 @@
 @media(prefers-reduced-motion:reduce){
  #pageKRO #kroAssignmentSection #kroBoardEdit{transition:none;transform:none!important}
 }
+
+
+/* KRO approval: team submits, Admin reviews, and only approval unlocks inputs. */
+#pageKRO .kro-approval-admin{
+ box-sizing:border-box;
+ width:100%;
+ margin:15px 0!important;
+ padding:17px 19px!important;
+ border:1px solid #c8dfef;
+ border-radius:15px;
+ background:linear-gradient(130deg,#f5fbff,#fff 55%);
+}
+#pageKRO .kro-approval-heading{
+ display:flex;align-items:center;justify-content:space-between;
+ flex-wrap:wrap;gap:12px;
+ margin-bottom:12px;
+}
+#pageKRO .kro-approval-heading>div{min-width:0;flex:1}
+#pageKRO .kro-approval-heading span{
+ display:block;color:#3579aa;font-size:10px;font-weight:900;
+ letter-spacing:.07em;
+}
+#pageKRO .kro-approval-heading h3{
+ margin:4px 0 5px;font-size:17px;font-weight:900;
+ color:#14517d;
+}
+#pageKRO .kro-approval-heading p{
+ font-size:11.5px;color:#66849c;line-height:1.5;margin:0;
+}
+#pageKRO .kro-approval-summary{
+ display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+#pageKRO .kro-approval-summary b{
+ padding:8px 11px;
+ border:1px solid #c5dfef;border-radius:10px;
+ background:#e8f5ff;color:#155b8b;
+ font-size:11.5px;white-space:nowrap;
+}
+#pageKRO .kro-approval-summary b:first-child{
+ border-color:#efd8b0;background:#fff3e1;color:#965b17;
+}
+#pageKRO .kro-approval-actions{
+ display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+ margin-bottom:12px;padding:11px 13px;
+ border:1px solid #d7e7f4;border-radius:11px;background:#f4f9ff;
+}
+#pageKRO .kro-approval-actions .btn{
+ font-size:11.5px;min-height:38px;font-weight:900;
+}
+#pageKRO .kro-approval-actions small{
+ color:#6c859b;font-size:11px;line-height:1.4;
+ flex:1;min-width:180px;
+}
+#pageKRO .kro-approval-list{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:9px;min-width:0;
+}
+#pageKRO .kro-approval-row{
+ box-sizing:border-box;min-width:0;
+ display:flex;justify-content:space-between;align-items:flex-start;
+ gap:11px;padding:12px 13px;
+ border:1px solid #dce8f3;border-left:3px solid #b4cadd;
+ border-radius:11px;background:#fff;
+}
+#pageKRO .kro-approval-row.is-pending{
+ border-color:#f0d8b4;border-left-color:#d58c2b;background:#fffaf2;
+}
+#pageKRO .kro-approval-row.is-approved{
+ border-color:#c5e6d7;border-left-color:#2c9b75;background:#f6fcf9;
+}
+#pageKRO .kro-approval-row.is-rejected{
+ border-color:#f1c9cb;border-left-color:#cd6270;background:#fff8f9;
+}
+#pageKRO .kro-approval-row-info{
+ flex:1;min-width:0;
+ display:flex;flex-direction:column;gap:5px;
+}
+#pageKRO .kro-approval-row-info>strong{
+ color:#1b5581;font-size:12px;font-weight:900;line-height:1.4;
+ overflow-wrap:anywhere;
+}
+#pageKRO .kro-approval-row-info>small{
+ font-size:10.5px;color:#66829b;line-height:1.4;
+ overflow-wrap:anywhere;
+}
+#pageKRO .kro-approval-code-list{
+ display:flex;gap:4px;flex-wrap:wrap;align-items:center;
+}
+#pageKRO .kro-approval-code-list>span{
+ display:inline-flex;padding:3px 7px;
+ border:1px solid #d7e7f3;background:#f2f8fe;
+ color:#3a729b;border-radius:7px;
+ font-size:10px;font-weight:850;
+}
+#pageKRO .kro-approval-row-controls{
+ display:flex;align-items:flex-end;flex-direction:column;
+ gap:6px;max-width:160px;
+}
+#pageKRO .kro-approval-row-controls .btn{
+ min-height:30px;padding:6px 10px;font-size:10.5px;
+ white-space:nowrap;
+}
+#pageKRO .kro-approval-status{
+ display:inline-flex;
+ border:1px solid #d5e2ee;border-radius:9px;
+ padding:5px 8px;font-size:10.5px;
+ color:#547b98;background:#f2f7fc;
+ line-height:1.35;text-align:center;
+ font-weight:900;
+}
+#pageKRO .kro-approval-status.is-pending{
+ border-color:#edcf99;background:#fff0d5;color:#9b6117;
+}
+#pageKRO .kro-approval-status.is-approved{
+ border-color:#afe0c7;background:#e6f9ee;color:#1b7453;
+}
+#pageKRO .kro-approval-status.is-rejected{
+ border-color:#edbdc4;background:#ffedef;color:#a14151;
+}
+#pageKRO .kro-approval-reason{
+ padding:6px 8px;border:1px solid #eed0d5;border-radius:8px;
+ background:#fff2f4;color:#a54856!important;
+ font-weight:850!important;
+}
+#pageKRO .kro-assignment-inline-state>span.is-pending{
+ border-color:#ebcf9e;background:#fff0d8;color:#936016;
+}
+#pageKRO .kro-assignment-inline-state>span.is-approved{
+ border-color:#b8e5cc;background:#e9f9f1;color:#187555;
+}
+#pageKRO #kroAssignmentSection .kro-approval-wait-note,
+#pageKRO #kroAssignmentSection .kro-approval-rejected-note{
+ display:block;margin-top:6px;padding:8px 10px;
+ border:1px solid #ebd4ad;border-radius:8px;
+ background:#fff6e8;color:#94621d;
+ font-size:11px;font-weight:850;line-height:1.5;
+}
+#pageKRO #kroAssignmentSection .kro-approval-rejected-note{
+ background:#fff4f5;color:#a34655;border-color:#edc1c9;
+}
+@media(max-width:1050px){
+ #pageKRO .kro-approval-list{grid-template-columns:1fr}
+}
+@media(max-width:620px){
+ #pageKRO .kro-approval-admin{padding:13px!important}
+ #pageKRO .kro-approval-row{flex-direction:column}
+ #pageKRO .kro-approval-row-controls{
+  max-width:none;align-items:flex-start;flex-direction:row;
+  flex-wrap:wrap;
+ }
+ #pageKRO .kro-approval-actions .btn{width:100%}
+}
