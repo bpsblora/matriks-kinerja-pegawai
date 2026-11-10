@@ -1617,7 +1617,7 @@ for(const token of [
  'id="mpRoleMenu"','id="mpCurrentRole"','id="mpRoleDialog"',
  'id="mpRoleLoginForm"','id="mpRoleUsername"','id="mpRolePassword"',
  'id="mpRoleApply"','id="mpRoleLogout"','id="mpSignOut"',
- "Login Peran","Mode Lihat","Google BPS Blora Tetap Terhubung",
+ "Login Peran","Mode Lihat","Google BPS Blora · Mode Lihat",
  'autocomplete="username"','autocomplete="current-password"',
  "roleLoginReady?","VITE_ROLE_AUTH_READY","VITE_MATRIX_BACKEND_READY",
  "function bindAuthenticatedSession(frame){",
