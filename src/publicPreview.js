@@ -133,6 +133,19 @@ function addAuthenticatedHeader(html,user){
  .mp-role-dialog-foot{display:flex;justify-content:flex-end;gap:9px;padding:12px 19px;border-top:1px solid #dce9f5;background:#f8fbff}
  .mp-role-dialog-foot button{min-height:38px;border:1px solid #c3d9ea;border-radius:9px;background:#fff;padding:8px 14px;color:#26608e;font:900 11px Nunito,Arial,sans-serif;cursor:pointer}
  #mpRoleApply{background:#146ca9;color:#fff;border-color:#146ca9}
+
+ .mp-role-dialog-body input{box-sizing:border-box;width:100%;min-height:42px;padding:9px 11px;border:1px solid #c5dded;border-radius:10px;background:#fff;color:#195781;font:800 12px Nunito,Arial,sans-serif}
+ .mp-role-dialog-body input:focus-visible{outline:3px solid #85c5f2;outline-offset:1px}
+ .mp-role-dialog-body input::placeholder{font-weight:600;color:#829caf}
+ .mp-role-connected{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border:1px solid #cce5f5;border-radius:10px;background:#f0f8ff}
+ .mp-role-connected strong{font:900 12px Nunito,Arial,sans-serif;color:#195f91}
+ .mp-role-connected small{font:650 10.5px/1.5 Nunito,Arial,sans-serif;color:#64839b}
+ #mpRoleLoginForm{display:block;margin:0;padding:0}
+ #mpRoleApply:disabled{opacity:.48;cursor:not-allowed;box-shadow:none}
+ #mpRoleLogout{border:1px solid #bcd9ed;border-radius:8px;padding:8px 10px;background:#eaf5ff;color:#175c92;font:900 11px Nunito,Arial,sans-serif;cursor:pointer}
+ #mpRoleLogout[hidden]{display:none!important}
+ .mp-role-dialog-body .mp-role-warning{color:#526779}
+
  @media(max-width:1100px){.rightbar{flex-wrap:wrap;justify-content:flex-end}.mp-identity{flex-wrap:wrap}.mp-user{max-width:180px}}
  @media(max-width:650px){.mp-identity{width:100%}.mp-user{flex:1 1 130px}.mp-role-menu{flex:1;justify-content:center}}
  </style>`;
