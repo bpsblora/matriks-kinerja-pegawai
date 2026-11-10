@@ -134,6 +134,30 @@ function showKroActivityMap(){
  if(!dialog.open)dialog.showModal();
 }
 
+/* Keep the editor scrolled in place when checkbox selections change.
+   Checked rows are first, then natural KRO-code order in each segment. */
+function syncKroBoardDraftRows(){
+ const list=$('kroBoardList');
+ if(!list)return;
+ const currentFocus=document.activeElement;
+ const rows=[...list.querySelectorAll('[data-board-kro]')].map(box=>({
+  box,code:box.dataset.boardKro,row:box.closest('.combined-kro-row')
+ })).filter(x=>x.row);
+ rows.sort((a,b)=>{
+  const aChosen=kroBoardDraft.has(a.code),bChosen=kroBoardDraft.has(b.code);
+  return aChosen===bChosen?compareKroCodes(a.code,b.code):aChosen?-1:1;
+ });
+ for(const {box,code,row} of rows){
+  box.checked=kroBoardDraft.has(code);
+  row.classList.toggle('is-draft-selected',box.checked);
+  list.appendChild(row);
+ }
+ const state=$('kroAssignmentSection')?.querySelector('.kro-assignment-inline-state>strong');
+ if(state)state.textContent=nf(kroBoardDraft.size)+' KRO Dipilih';
+ if(currentFocus?.matches?.('[data-board-kro]')&&currentFocus.isConnected){
+  currentFocus.focus({preventScroll:true});
+ }
+}
 function renderKroBoard(){
  const el=$('kroBoardMain');if(!el)return;
  // Keep the audit card section alive while the KRO dashboard rerenders.
@@ -146,12 +170,18 @@ function renderKroBoard(){
  const query=($('kroBoardSearch')?.value||'').trim().toLocaleLowerCase('id');
  if(!el.querySelector('#kroBoardList')||oldTeam!==tid){kroBoardDraft=new Set(selected?.kroCodes||[]);el.dataset.team=tid;kroBoardEditTeam=''}
  const locked=!!yearKroReady(tid),editing=kroBoardEditTeam===tid;
- const writable=!isBaseYear&&roleCanManageTeam(tid)&&(!locked||editing)&&yearInfo().status!=='closed';
+ // 2026 remains a read-only seed, but authorized users may store an audited
+ // override for the team's KRO selection without modifying the source dataset.
+ const writable=roleCanManageTeam(tid)&&(!locked||editing)&&yearInfo().status!=='closed';
  const suggestions=POK_KROS.map(k=>({k,s:kroRecommendation(k,tid)})).filter(x=>!!x.s);
  const selectedCodes=new Set(selected?.kroCodes||[]);
- // KRO list always follows its numeric-aware code order; checks and recommendations remain highlighted.
+ // Only this team's assignment editor prioritizes checked KRO codes.
+ // Within checked / unchecked sections, retain ascending natural code order.
  const arr=POK_KROS.filter(k=>(k.code+' '+k.name).toLocaleLowerCase('id').includes(query))
-  .sort((a,b)=>compareKroCodes(a.code,b.code));
+  .sort((a,b)=>{
+   const checkedA=kroBoardDraft.has(a.code),checkedB=kroBoardDraft.has(b.code);
+   return checkedA===checkedB?compareKroCodes(a.code,b.code):checkedA?-1:1;
+  });
  const teamTitle=selected?.name||'Tim';
  const recSummary=suggestions.length?`<span class="kro-board-reco-count">${suggestions.length} KRO terkait ditemukan</span><span class="kro-reco-detail">Rekomendasi berdasarkan kesesuaian Nama Kegiatan, Nama KRO, atau acuan historis. Semua pilihan perlu dikonfirmasi untuk tahun berjalan.</span>`:`<span class="kro-reco-detail">Belum ditemukan kesesuaian nama yang cukup kuat. Periksa daftar KRO ${activeYear} dan tetapkan secara manual sesuai pekerjaan tim.</span>`;
  const canUse=roleCanManageTeam(tid)&&yearInfo().status!=='closed';
@@ -176,10 +206,10 @@ function renderKroBoard(){
   <div class="kro-assignment-inline-content">
  <div class="combined-kro-controls"><label>Tim <select id="kroBoardTeam" ${canCentral?'':'disabled'}>${teamList.map(t=>`<option value="${esc(t.id)}" ${t.id===tid?'selected':''}>${esc(t.name)}</option>`).join('')}</select></label><label>Pencarian <input type="search" id="kroBoardSearch" placeholder="Kode atau nama KRO" value="${esc(query)}"></label>
  <div class="combined-kro-actions"><button class="btn soft" type="button" id="kroBoardRecommended" ${!writable||!suggestions.length?'disabled':''}>+ Centang ${suggestions.length} Rekomendasi</button>
- ${locked&&!editing?`<button class="btn primary" type="button" id="kroBoardEdit" ${!canUse||isBaseYear?'disabled':''}>${isBaseYear?'Referensi 2026':'✎ Edit KRO yang Ditetapkan'}</button>`:`<button class="btn primary" type="button" id="kroBoardConfirm" ${!canUse||isBaseYear?'disabled':''}>✓ ${editing?'Simpan & Tetapkan Ulang':'Tetapkan KRO'}</button>`}
+ ${locked&&!editing?`<button class="btn primary" type="button" id="kroBoardEdit" ${!canUse?'disabled':''}>✎ Edit Ketetapan KRO</button>`:`<button class="btn primary" type="button" id="kroBoardConfirm" ${!canUse?'disabled':''}>✓ ${editing?'Simpan Perubahan KRO':'Tetapkan KRO'}</button>`}
  ${editing?'<button class="btn soft" type="button" id="kroBoardCancel">Batal Perubahan</button>':''}</div></div>
- <div class="kro-board-recommendation">${recSummary}</div>
- <div id="kroBoardList" class="combined-kro-list">${arr.map(k=>{const r=kroRecommendation(k,tid),assigned=locked&&selectedCodes.has(k.code);return `<label class="combined-kro-row ${assigned?'is-assigned ':''}${r?'kro-suggested-'+r.kind:''}"><input type="checkbox" data-board-kro="${esc(k.code)}" ${kroBoardDraft.has(k.code)?'checked':''} ${!writable?'disabled':''}><span><b>${esc(k.code)}</b><small>${esc(k.name)}</small>${assigned?'<small class="kro-assignment-confirmed">✓ KRO Ditetapkan untuk Tim Ini</small>':''}${r?`<small class="kro-suggestion-reason">${esc(r.reason)}</small>`:''}</span>${r?`<em class="kro-hint-kind ${r.kind}">${esc(r.label)}</em>`:''}</label>`}).join('')||'<p class="combined-context">Tidak ada KRO sesuai pencarian.</p>'}</div></div></section>`;
+ <div class="kro-board-recommendation">${recSummary}${isBaseYear?'<span class="kro-reference-note">Penyesuaian ketetapan KRO 2026 disimpan terpisah dari data sumber asli.</span>':''}</div>
+ <div id="kroBoardList" class="combined-kro-list">${arr.map(k=>{const r=kroRecommendation(k,tid),assigned=locked&&selectedCodes.has(k.code);return `<label class="combined-kro-row ${assigned?'is-assigned ':''}${kroBoardDraft.has(k.code)?'is-draft-selected ':''}${r?'kro-suggested-'+r.kind:''}"><input type="checkbox" data-board-kro="${esc(k.code)}" ${kroBoardDraft.has(k.code)?'checked':''} ${!writable?'disabled':''}><span><b>${esc(k.code)}</b><small>${esc(k.name)}</small>${assigned?'<small class="kro-assignment-confirmed">✓ KRO Ditetapkan untuk Tim Ini</small>':''}${r?`<small class="kro-suggestion-reason">${esc(r.reason)}</small>`:''}</span>${r?`<em class="kro-hint-kind ${r.kind}">${esc(r.label)}</em>`:''}</label>`}).join('')||'<p class="combined-context">Tidak ada KRO sesuai pencarian.</p>'}</div></div></section>`;
  if(auditPanel)el.querySelector('#kroAuditSlot')?.appendChild(auditPanel);
  const showBoardDialog=(id)=>{const d=$(id);if(!d)return;if(!d.open)d.showModal();d.querySelector('.kro-hub-dialog-body').scrollTop=masterScroll;};
  if(masterWasOpen)showBoardDialog('kroMasterPopup');
@@ -197,19 +227,29 @@ function renderKroBoard(){
   selectedTeam=nextId;el.dataset.team='';kroBoardEditTeam='';renderTeamAdminPage();renderKroBoard();
  };
  $('kroBoardSearch').oninput=()=>{const cursor=$('kroBoardSearch').selectionStart;renderKroBoard();const node=$('kroBoardSearch');node.focus();try{node.setSelectionRange(cursor,cursor)}catch(e){}};
- el.querySelectorAll('[data-board-kro]').forEach(box=>box.onchange=()=>{if(!writable)return;if(box.checked)kroBoardDraft.add(box.dataset.boardKro);else kroBoardDraft.delete(box.dataset.boardKro);renderKroBoard()});
- $('kroBoardRecommended').onclick=()=>{if(!writable)return;for(const {k} of suggestions)kroBoardDraft.add(k.code);renderKroBoard();toast('Rekomendasi ditambahkan sebagai draf. Periksa dan tetapkan KRO secara manual.')};
+ el.querySelectorAll('[data-board-kro]').forEach(box=>box.onchange=()=>{
+  if(!writable)return;
+  if(box.checked)kroBoardDraft.add(box.dataset.boardKro);
+  else kroBoardDraft.delete(box.dataset.boardKro);
+  syncKroBoardDraftRows();
+ });
+ $('kroBoardRecommended').onclick=()=>{
+  if(!writable)return;
+  for(const {k} of suggestions)kroBoardDraft.add(k.code);
+  syncKroBoardDraftRows();
+  toast('Rekomendasi dicentang sebagai draf. Periksa pilihan sebelum menyimpan.');
+ };
  if($('kroBoardEdit'))$('kroBoardEdit').onclick=()=>{if(!canUse)return;kroBoardEditTeam=tid;renderKroBoard();toast('Silakan tambah atau kurangi pilihan KRO, lalu klik Simpan & Tetapkan Ulang.')};
  if($('kroBoardCancel'))$('kroBoardCancel').onclick=()=>{kroBoardEditTeam='';kroBoardDraft=new Set(selectedCodes);renderKroBoard();toast('Perubahan draf dibatalkan. Penetapan sebelumnya tetap berlaku.')};
  if($('kroBoardConfirm'))$('kroBoardConfirm').onclick=()=>{
-  if(!canUse||isBaseYear)return;
+  if(!canUse)return;
   const chosen=new Set(kroBoardDraft);
   showKroCoverageDialog({tid,selectedCodes:chosen,onSave:()=>{
    const team=demoTeams.find(t=>t.id===tid);if(!team)throw new Error('Tim tidak ditemukan.');
    if(!yearTeamReady(tid)||!chosen.size)throw new Error('Susunan tim dan pilihan KRO harus lengkap.');
-   team.kroCodes=[...chosen].sort();saveTeamStore();
+   team.kroCodes=[...chosen].sort(compareKroCodes);saveTeamStore();
    yearSetup.kros[tid]=[...team.kroCodes];annualEditingKroId=null;kroBoardEditTeam='';storeYearSetup();
-   logChange('Tetapkan KRO tim '+activeYear,teamTitle+' · '+team.kroCodes.length+' KRO');persist();
+   logChange((editing?'Ubah Ketetapan KRO tim ':'Tetapkan KRO tim ')+activeYear,teamTitle+' · '+team.kroCodes.length+' KRO');persist();
    renderTeamAdminPage();renderKroBoard();renderKroAudit();
   }});
  };
