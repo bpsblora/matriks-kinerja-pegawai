@@ -125,15 +125,59 @@ function addAuthenticatedHeader(html,user){
  if(!html.includes('<div class="rightbar">'))throw new Error("Header prototipe tidak ditemukan.");
  return html.replace("</head>", styles + '<style id="mkp-site-polish">' + sitePolishCss + "</style></head>").replace('<div class="rightbar">','<div class="rightbar">'+header);
 }
+function bindAuthenticatedSession(frame){
+ const doc=frame.contentDocument,preview=frame.contentWindow;
+ if(!doc)return;
+ const get=id=>doc.getElementById(id);
+ get("mpSignOut")?.addEventListener("click",()=>signOut(auth));
+ const dialog=get("mpRoleDialog"),opener=get("mpRoleMenu"),
+  select=get("mpRoleSelect"),team=get("mpRoleTeam"),
+  teamLabel=get("mpRoleTeamLabel"),badge=get("mpCurrentRole"),
+  warning=get("mpRoleError");
+ if(!dialog||!opener||!select||!team||!teamLabel||!badge)return;
+ const state=()=>preview?.__mpPreviewSessionState?.()||null;
+ const showTeamChoice=()=>{
+  const isTeam=select.value==="ketua";
+  team.hidden=!isTeam;teamLabel.hidden=!isTeam;team.disabled=!isTeam;
+ };
+ function refresh(info=state()){
+  if(!info){opener.disabled=true;badge.textContent="Peran Tidak Tersedia";return;}
+  opener.disabled=false;
+  badge.textContent=info.label+(info.teamName?" · "+info.teamName:"")+" (Simulasi)";
+  select.value=info.role;
+  const savedTeam=team.value;
+  team.replaceChildren(...(info.teams||[]).map(t=>{
+   const option=doc.createElement("option");
+   option.value=t.id;option.textContent=t.name;
+   return option;
+  }));
+  team.value=info.teamId||savedTeam||info.teams?.[0]?.id||"";
+  showTeamChoice();
+ }
+ refresh();
+ opener.addEventListener("click",()=>{
+  refresh();warning.textContent="";
+  if(!dialog.open)dialog.showModal();
+  select.focus({preventScroll:true});
+ });
+ select.addEventListener("change",showTeamChoice);
+ get("mpRoleDismiss")?.addEventListener("click",()=>dialog.close());
+ get("mpRoleCancel")?.addEventListener("click",()=>dialog.close());
+ dialog.addEventListener("click",e=>{if(e.target===dialog)dialog.close();});
+ get("mpRoleApply")?.addEventListener("click",()=>{
+  const targetTeam=select.value==="ketua"?team.value:"";
+  const updated=preview?.__mpPreviewSwitchRole?.(select.value,targetTeam);
+  if(!updated){warning.textContent="Peran atau tim belum valid. Pilih kembali.";return;}
+  dialog.close();refresh(updated);
+  opener.focus({preventScroll:true});
+ });
+}
 async function openPrototype(user,run){
  try{
    const html=addAuthenticatedHeader(await loadPrototype(),user);
    if(run!==runId)return;
    const frame=$("mpFrame");
-   frame.onload=()=>{
-     const doc=frame.contentDocument;
-     doc?.getElementById("mpSignOut")?.addEventListener("click",()=>signOut(auth));
-   };
+   frame.onload=()=>bindAuthenticatedSession(frame);
    frame.srcdoc=html;
    $("mpEntry").hidden=true;$("mpView").hidden=false;
  }catch(err){
