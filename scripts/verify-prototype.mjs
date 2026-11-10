@@ -1351,4 +1351,65 @@ assert(inline.slice(kroBoardStart,kroBoardEnd).includes(
  "const arr=POK_KROS.filter"),
  "Daftar induk dan daftar penetapan KRO harus tetap tersedia");
 
+
+// KRO audit: three issue categories open modal, and a fourth action opens
+// the role-scoped assignment editor without bypassing annual validation.
+for(const id of [
+ "kroAuditOpenTeams","kroAuditOpenUnassigned",
+ "kroAuditOpenActivities","kroAuditOpenManage",
+ "kroAuditTeamsDialog","kroAuditUnassignedDialog","kroAuditActivitiesDialog",
+ "kroAuditNoKroTeamsRows","kroAuditNoTeamRows","kroAuditNoTaskRows"
+])assert(html.includes('id="'+id+'"'),"Tombol atau pop-up KRO belum lengkap: "+id);
+const auditHtmlFrom=html.indexOf('id="kroAuditPanel"');
+const auditHtmlEnd=html.indexOf('id="kroAuditStatus"',auditHtmlFrom);
+assert(auditHtmlFrom>=0&&auditHtmlEnd>auditHtmlFrom,
+ "Kartu audit Pembagian KRO tidak ditemukan");
+const auditMarkup=html.slice(auditHtmlFrom,auditHtmlEnd);
+assert((auditMarkup.match(/class="kro-audit-kpi kro-audit-action/g)||[]).length===4,
+ "Harus ada tiga kartu temuan dan satu kartu pengelolaan yang berdampingan");
+assert(!html.includes('<details open class="kro-audit-issues"'),
+ "Rincian audit tidak boleh lagi memenuhi ruang halaman utama");
+const auditFnsFrom=inline.indexOf("function closeKroAuditDialogs(){");
+const auditFnsTo=inline.indexOf("// V1.8:",auditFnsFrom);
+assert(auditFnsFrom>=0&&auditFnsTo>auditFnsFrom,
+ "Logika pop-up KRO tidak ditemukan");
+const auditFns=inline.slice(auditFnsFrom,auditFnsTo);
+for(const token of [
+ "function bindKroAuditDialogs(){",
+ "dialog.showModal();",
+ "dialog.close()",
+ "manage.onclick=()=>",
+ "$('kroAssignmentPopup')",
+ "card.classList.toggle('has-issues',count>0)",
+ "card.classList.toggle('is-complete',count===0)",
+ "closeKroAuditDialogs();",
+ "renderKroBoard();"
+])assert(auditFns.includes(token),"Kartu audit KRO belum interaktif: "+token);
+const boardFrom=inline.indexOf("function renderKroBoard(){");
+const boardTo=inline.indexOf("function renderFinalBoard(){",boardFrom);
+assert(boardFrom>=0&&boardTo>boardFrom,"Pengelolaan KRO tidak ditemukan");
+const boardCode=inline.slice(boardFrom,boardTo);
+assert(boardCode.includes("const auditPanel=$('kroAuditPanel');")&&
+ boardCode.includes('id="kroAuditSlot"')&&
+ boardCode.includes("el.querySelector('#kroAuditSlot')?.appendChild(auditPanel);"),
+ "Empat kartu audit harus terletak di atas tiga menu pengelolaan KRO");
+assert(boardCode.includes("✎ Edit KRO yang Ditetapkan")&&
+ boardCode.includes("kroBoardEditTeam=tid;renderKroBoard()"),
+ "KRO yang telah ditetapkan perlu menyediakan mode Edit");
+assert(boardCode.includes("assigned=locked&&selectedCodes.has(k.code)")&&
+ boardCode.includes("kro-assignment-confirmed"),
+ "Hanya KRO yang telah ditetapkan boleh ditandai selesai");
+assert(boardCode.includes("yearInfo().status!=='closed'")&&
+ boardCode.includes("roleCanManageTeam(tid)"),
+ "Edit penetapan KRO harus tetap dibatasi peran dan tahun");
+for(const token of [
+ "#pageKRO #kroAuditPanel .kro-audit-kpis-four{",
+ "grid-template-columns:repeat(4,minmax(0,1fr))!important;",
+ "#pageKRO #kroAuditPanel dialog.kro-audit-dialog{",
+ "#pageKRO #kroAuditPanel .kro-audit-action.has-issues{",
+ "#pageKRO .combined-kro-list .combined-kro-row.is-assigned{",
+ ".kro-master-usage .kro-master-team-name{"
+])assert(cssPolish.includes(token),"Penekanan visual KRO belum lengkap: "+token);
+
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
