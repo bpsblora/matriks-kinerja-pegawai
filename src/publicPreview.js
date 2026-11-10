@@ -80,24 +80,28 @@ async function loadPrototype(){
 function addAuthenticatedHeader(html,user){
  // Existing demo role controls are hidden: they are NOT Firebase authorization.
  const email=safe(user.email),name=safe(user.displayName||user.email.split("@")[0]);
- const header=`<div class="mp-identity" role="group" aria-label="Akun dan akses">
+ const header=`<div class="mp-identity" role="group" aria-label="Google BPS Blora dan sesi login peran">
    <span class="mp-user"><strong>${name}</strong><small>${email}</small></span>
-   <button id="mpRoleMenu" class="mp-role-menu" type="button" aria-haspopup="dialog" aria-controls="mpRoleDialog" title="Lihat atau uji peran prototipe (bukan izin database)">
-     <span class="mp-role-menu-label">Masuk Sebagai</span><strong id="mpCurrentRole">Admin (Simulasi)</strong><span class="mp-role-caret" aria-hidden="true">⌄</span>
+   <button id="mpRoleMenu" class="mp-role-menu" type="button" aria-haspopup="dialog" aria-controls="mpRoleDialog" title="Masuk dengan username dan password Admin atau Ketua Tim">
+     <span class="mp-role-menu-label">Login Peran</span><strong id="mpCurrentRole">Mode Lihat</strong><span class="mp-role-caret" aria-hidden="true">⌄</span>
    </button>
-   <button id="mpSignOut" type="button" title="Keluar dari akun Google">Keluar</button>
+   <button id="mpRoleLogout" type="button" hidden title="Keluar dari sesi peran, kembali ke Mode Lihat">Keluar Peran</button>
+   <button id="mpSignOut" type="button" title="Keluar dari akun Google BPS Blora">Keluar Google</button>
  </div>
  <dialog id="mpRoleDialog" class="mp-role-dialog" aria-labelledby="mpRoleDialogTitle">
-   <div class="mp-role-dialog-head"><div><small>SESI LOGIN</small><h3 id="mpRoleDialogTitle">Masuk Sebagai</h3><p>Uji tampilan dan alur sesuai peran.</p></div><button type="button" id="mpRoleDismiss" class="mp-role-dismiss" aria-label="Tutup pilihan peran">×</button></div>
-   <div class="mp-role-dialog-body">
-     <label for="mpRoleSelect">Peran yang Diuji</label>
-     <select id="mpRoleSelect"><option value="admin">Admin</option><option value="kepala">Kepala BPS</option><option value="ketua">Ketua Tim</option><option value="pegawai">Pegawai (Mode Lihat)</option></select>
-     <label for="mpRoleTeam" id="mpRoleTeamLabel" hidden>Tim yang Dikelola</label>
-     <select id="mpRoleTeam" hidden></select>
-     <p class="mp-role-warning">Peran ini adalah <strong>simulasi prototipe</strong>, bukan hak akses Google atau izin database bersama. Data perubahan masih tersimpan di browser.</p>
-     <p id="mpRoleError" class="mp-role-error" role="alert"></p>
-   </div>
-   <div class="mp-role-dialog-foot"><button type="button" id="mpRoleCancel">Batal</button><button type="button" id="mpRoleApply">Gunakan Peran Ini</button></div>
+   <div class="mp-role-dialog-head"><div><small>LOGIN TAHAP KEDUA</small><h3 id="mpRoleDialogTitle">Login Peran</h3><p>Gunakan akun Admin atau Ketua Tim yang telah ditetapkan.</p></div><button type="button" id="mpRoleDismiss" class="mp-role-dismiss" aria-label="Tutup pilihan peran">×</button></div>
+   <form id="mpRoleLoginForm">
+     <div class="mp-role-dialog-body">
+       <div class="mp-role-connected"><strong>Google BPS Blora Tetap Terhubung</strong><small>Sesi Google digunakan untuk Mode Lihat. Login Peran diperlukan hanya jika akan mengelola matriks.</small></div>
+       <label for="mpRoleUsername">Username Peran</label>
+       <input id="mpRoleUsername" name="username" autocomplete="username" minlength="3" maxlength="32" required placeholder="Admin atau username Ketua Tim">
+       <label for="mpRolePassword">Password Peran</label>
+       <input id="mpRolePassword" name="password" type="password" autocomplete="current-password" required placeholder="Masukkan password peran">
+       <p class="mp-role-warning">${roleLoginReady?'Akses edit diperiksa oleh server sesuai peran dan tim akun.':'Login Admin dan Ketua Tim belum diaktifkan pada preview ini. Setelah login Google, akses tetap Mode Lihat sampai backend peran diaktifkan.'}</p>
+       <p id="mpRoleError" class="mp-role-error" role="alert"></p>
+     </div>
+     <div class="mp-role-dialog-foot"><button type="button" id="mpRoleCancel">Batal</button><button type="submit" id="mpRoleApply" ${roleLoginReady?'':'disabled'}>Masuk Peran</button></div>
+   </form>
  </dialog>`;
  const styles=`<style>
  .rightbar .role-switch,.rightbar #rolePill,.rightbar #sessionUser,.rightbar #btnRoster{display:none!important}
