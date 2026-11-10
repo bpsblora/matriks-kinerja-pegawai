@@ -201,6 +201,7 @@ export async function resetSparkAccountPassword(uid,newPassword){
  const oldRef=profileDoc(uid),oldSnap=await getDoc(oldRef);
  if(!oldSnap.exists()||oldSnap.data().role!=="ketua_tim")throw Error("Hanya akun Ketua Tim yang dapat direset.");
  const old=oldSnap.data();
+ if(old.active!==true)throw Error("Aktifkan akun dahulu sebelum mereset password.");
  const current=await getDoc(handleDoc(old.username));
  if(!current.exists()||current.data().uid!==uid)throw Error("Akun sudah diganti. Muat ulang daftar akun.");
  validPassword(newPassword);
