@@ -709,7 +709,7 @@ function saveTeamAdmin(){
  demoRoster[tid]={leaderId,leaderName,members:[...adminMemberWorking]};
  if(!isBaseYear||yearSetup.staff?.confirmed){const rosterChanged=!equalIds(oldMembers,[...adminMemberWorking])||oldLeader!==leaderId;
   if(rosterChanged){delete yearSetup.teams[tid]; /* Hak KRO tidak berubah hanya karena susunan personel berubah. */}
-  if(!equalIds(oldKro,team.kroCodes)){delete yearSetup.kros[tid];}
+  if(!equalIds(oldKro,team.kroCodes)){delete yearSetup.kros[tid];if(yearSetup.kroRequests)delete yearSetup.kroRequests[tid];}
   storeYearSetup();}
 
  if(oldName!==name){
