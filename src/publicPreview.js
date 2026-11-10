@@ -116,7 +116,7 @@ function addAuthenticatedHeader(html,user){
        <input id="mpRoleUsername" name="username" autocomplete="username" minlength="3" maxlength="32" required placeholder="Admin atau username Ketua Tim">
        <label for="mpRolePassword">Password Peran</label>
        <input id="mpRolePassword" name="password" type="password" autocomplete="current-password" required placeholder="Masukkan password peran">
-       <p class="mp-role-warning">${roleLoginReady?'Akses edit diperiksa oleh server sesuai peran dan tim akun.':'Layanan autentikasi peran belum aktif pada preview ini. Mode Lihat tetap tersedia hingga konfigurasi Firebase dan akun peran selesai diverifikasi.'}</p>
+       <p class="mp-role-warning">${sparkRoleReady?'Login melalui Firebase Authentication paket Spark. Hak akses Admin dan Ketua Tim diperiksa oleh Firestore Security Rules.':'Layanan autentikasi peran belum aktif. Mode Lihat tetap tersedia.'}</p>
        <p id="mpRoleError" class="mp-role-error" role="alert"></p>
      </div>
      <div class="mp-role-dialog-foot"><button type="button" id="mpRoleCancel">Batal</button><button type="submit" id="mpRoleApply" ${roleLoginReady?'':'disabled'}>Masuk Peran</button></div>
