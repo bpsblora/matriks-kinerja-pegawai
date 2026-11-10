@@ -89,15 +89,15 @@ function addAuthenticatedHeader(html,user){
    <button id="mpSignOut" type="button" title="Keluar dari akun Google BPS Blora">Keluar Google</button>
  </div>
  <dialog id="mpRoleDialog" class="mp-role-dialog" aria-labelledby="mpRoleDialogTitle">
-   <div class="mp-role-dialog-head"><div><small>LOGIN TAHAP KEDUA</small><h3 id="mpRoleDialogTitle">Login Peran</h3><p>Gunakan akun Admin atau Ketua Tim yang telah ditetapkan.</p></div><button type="button" id="mpRoleDismiss" class="mp-role-dismiss" aria-label="Tutup pilihan peran">×</button></div>
+   <div class="mp-role-dialog-head"><div><small>AKSES PENGELOLA</small><h3 id="mpRoleDialogTitle">Login Sesuai Peran</h3><p>Masukkan username dan password Admin atau Ketua Tim sesuai kewenangan.</p></div><button type="button" id="mpRoleDismiss" class="mp-role-dismiss" aria-label="Tutup pilihan peran">×</button></div>
    <form id="mpRoleLoginForm">
      <div class="mp-role-dialog-body">
-       <div class="mp-role-connected"><strong>Google BPS Blora Tetap Terhubung</strong><small>Sesi Google digunakan untuk Mode Lihat. Login Peran diperlukan hanya jika akan mengelola matriks.</small></div>
+       <div class="mp-role-connected"><strong>Google BPS Blora · Mode Lihat</strong><small>Akses pengelolaan hanya terbuka setelah login peran berhasil diverifikasi.</small></div>
        <label for="mpRoleUsername">Username Peran</label>
        <input id="mpRoleUsername" name="username" autocomplete="username" minlength="3" maxlength="32" required placeholder="Admin atau username Ketua Tim">
        <label for="mpRolePassword">Password Peran</label>
        <input id="mpRolePassword" name="password" type="password" autocomplete="current-password" required placeholder="Masukkan password peran">
-       <p class="mp-role-warning">${roleLoginReady?'Akses edit diperiksa oleh server sesuai peran dan tim akun.':'Login Admin dan Ketua Tim belum diaktifkan pada preview ini. Setelah login Google, akses tetap Mode Lihat sampai backend peran diaktifkan.'}</p>
+       <p class="mp-role-warning">${roleLoginReady?'Akses edit diperiksa oleh server sesuai peran dan tim akun.':'Layanan autentikasi peran belum aktif pada preview ini. Mode Lihat tetap tersedia hingga konfigurasi Firebase dan akun peran selesai diverifikasi.'}</p>
        <p id="mpRoleError" class="mp-role-error" role="alert"></p>
      </div>
      <div class="mp-role-dialog-foot"><button type="button" id="mpRoleCancel">Batal</button><button type="submit" id="mpRoleApply" ${roleLoginReady?'':'disabled'}>Masuk Peran</button></div>
