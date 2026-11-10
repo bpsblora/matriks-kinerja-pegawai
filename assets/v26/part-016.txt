@@ -1688,13 +1688,6 @@ function bindKroAuditDialogs(){
    if(back?.isConnected)back.focus({preventScroll:true});
   });
  }
- const manage=$('kroAuditOpenManage');
- if(manage)manage.onclick=()=>{
-  closeKroAuditDialogs();
-  const d=$('kroAssignmentPopup');
-  if(!d)return toast('Pengelolaan KRO belum siap. Muat ulang menu Pembagian KRO.');
-  if(!d.open)d.showModal();
- };
 }
 function renderKroAudit(){
  if(!$('kroAuditPanel')||activePage!=='kro')return;
