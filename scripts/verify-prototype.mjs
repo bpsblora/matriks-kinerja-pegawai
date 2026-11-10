@@ -1729,34 +1729,46 @@ for(const token of [
  'const legacyRoleReady=!sparkRoleReady&&import.meta.env.VITE_ROLE_AUTH_READY==="true";'
 ])assert(previewSource.includes(token),"Jalur login Spark belum lengkap: "+token);
 for(const token of [
- 'signInWithEmailAndPassword(sparkRoleAuth,sparkLoginEmail(username),password)',
- 'createUserWithEmailAndPassword(creatorAuth,sparkLoginEmail(name),password)',
+ 'signInWithEmailAndPassword(sparkRoleAuth,loginEmail,password)',
+ 'getDoc(doc(db,"sparkRoleHandles",name))',
  'getDoc(doc(roleDb,"sparkRoleProfiles",user.uid))',
- 'setDoc(doc(roleDb,"sparkRoleProfiles",registered.user.uid)',
+ 'writeBatch(roleDb)',
+ 'batch.set(profileDoc(uid)',
+ 'batch.set(handleDoc(name)',
+ 'batch.update(target,{username:name,teamIds:[...teamIds],active,updatedAt:serverTimestamp()})',
+ 'batch.delete(handleDoc(old.username))',
+ 'batch.update(handleDoc(old.username),{uid:newUid,authEmail:mail,updatedAt:serverTimestamp()})',
+ 'batch.update(oldRef,{active:false,updatedAt:serverTimestamp()})',
+ 'createUserWithEmailAndPassword(creatorAuth,email,validPassword(password))',
  'await requireAdmin()',
- 'updateDoc(target,{teamIds:[...teamIds],active,updatedAt:serverTimestamp()})',
- 'deleteUser(registered.user)',
+ 'await cleanupFailedIdentity(replacement)',
  'reauthenticateWithCredential(user,EmailAuthProvider.credential(user.email,currentPassword))',
  'updatePassword(user,newPassword)'
-])assert(sparkRoleSource.includes(token),"Spark Auth/Firestore untuk akun belum lengkap: "+token);
+])assert(sparkRoleSource.includes(token),"Spark Auth/Firestore untuk edit/reset akun belum lengkap: "+token);
 for(const token of [
- 'createSparkKetuaAccount({username:name,password:pass,teamIds:tids})',
- 'updateSparkAccount(account.uid,{teamIds:tids,active:active.checked})',
- 'changeSparkOwnPassword(oldPwd,newPwd)',
+ 'createSparkKetuaAccount({username:name,password:pw,teamIds:tids})',
+ 'updateSparkAccount(account.uid,{',
+ 'resetSparkAccountPassword(account.uid,pw)',
+ 'changeSparkOwnPassword(current,next)',
  'check.type="checkbox"',
- 'const teams=(teams||[]).filter('
-].filter(t=>t!=='const teams=(teams||[]).filter('))
- assert(sparkAdminSource.includes(token),"Tampilan akun Spark belum lengkap: "+token);
+ 'function openEdit(account){',
+ 'function openReset(account){',
+ 'const username=n("input");username.value=account.username;'
+])assert(sparkAdminSource.includes(token),"Admin harus bisa mengedit username dan mengganti password: "+token);
 assert(sparkConfig.firestore.rules==="firestore.spark.rules");
 for(const token of [
  "match /sparkRoleProfiles/{uid}",
+ "match /sparkRoleHandles/{username}",
  "function isAdmin()",
- "allow create: if isAdmin() && validKetuaAccount();",
+ "allow create: if isAdmin() && validKetuaAccount()",
  "allow update: if isAdmin()",
+ "getAfter(handlePath(username))",
+ "getAfter(profilePath(request.resource.data.uid))",
+ "batch",
  "resource.data.role == 'ketua_tim'",
  "allow delete: if false;",
  "allow read, write: if false;"
-])assert(sparkRules.includes(token),"Spark Firestore Rules belum aman: "+token);
+].filter(t=>t!=="batch"))assert(sparkRules.includes(token),"Spark Firestore Rules akun belum aman: "+token);
 assert(fs.readFileSync(".env.example","utf8").includes("VITE_SPARK_ROLE_AUTH_READY=true"),
  "Build GitHub Pages harus menggunakan jalur Auth Spark");
 
