@@ -1,8 +1,18 @@
-import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import { auth } from "./firebase/client.js";
+import { GoogleAuthProvider, getAuth, onAuthStateChanged, signInWithPopup, signInWithCustomToken, signOut } from "firebase/auth";
+import { initializeApp } from "firebase/app";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { auth, functions } from "./firebase/client.js";
 import sitePolishCss from "./sitePolish.css?raw";
 
 // GitHub Pages is a preview. Real roles and shared writes remain disabled.
+// Google BPS Blora stays the viewer identity. Role credentials are checked by
+// the server separately and never inferred from a client-side role selection.
+const roleLoginReady=import.meta.env.VITE_ROLE_AUTH_READY==="true"&&import.meta.env.VITE_MATRIX_BACKEND_READY==="true";
+const roleApp=roleLoginReady?initializeApp(auth.app.options,"matriks-role-session"):null;
+const roleAuth=roleApp?getAuth(roleApp):null;
+const roleFunctions=roleApp?getFunctions(roleApp,import.meta.env.VITE_FIREBASE_FUNCTION_REGION||"us-central1"):null;
+const roleSignIn=roleLoginReady?httpsCallable(functions,"usernameSignIn",{timeout:30000}):null;
+const readRoleProfile=roleFunctions?httpsCallable(roleFunctions,"getAccessContext",{timeout:30000}):null;
 const root=document.getElementById("app");
 const logo="https://bpsblora.github.io/bolo-inpek/logo-bps-blora.jpg";
 const googleIcon="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg";
