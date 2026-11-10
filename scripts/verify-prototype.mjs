@@ -1352,11 +1352,11 @@ assert(inline.slice(kroBoardStart,kroBoardEnd).includes(
  "Daftar induk dan daftar penetapan KRO harus tetap tersedia");
 
 
-// KRO audit: three issue categories open modal, and a fourth action opens
-// the role-scoped assignment editor without bypassing annual validation.
+// KRO audit: three compact clickable status cards open issue dialogs.
+// The assigned KRO editor itself must stay visible at the bottom of the page.
 for(const id of [
  "kroAuditOpenTeams","kroAuditOpenUnassigned",
- "kroAuditOpenActivities","kroAuditOpenManage",
+ "kroAuditOpenActivities",
  "kroAuditTeamsDialog","kroAuditUnassignedDialog","kroAuditActivitiesDialog",
  "kroAuditNoKroTeamsRows","kroAuditNoTeamRows","kroAuditNoTaskRows"
 ])assert(html.includes('id="'+id+'"'),"Tombol atau pop-up KRO belum lengkap: "+id);
@@ -1365,8 +1365,10 @@ const auditHtmlEnd=html.indexOf('id="kroAuditStatus"',auditHtmlFrom);
 assert(auditHtmlFrom>=0&&auditHtmlEnd>auditHtmlFrom,
  "Kartu audit Pembagian KRO tidak ditemukan");
 const auditMarkup=html.slice(auditHtmlFrom,auditHtmlEnd);
-assert((auditMarkup.match(/class="kro-audit-kpi kro-audit-action/g)||[]).length===4,
- "Harus ada tiga kartu temuan dan satu kartu pengelolaan yang berdampingan");
+assert((auditMarkup.match(/class="kro-audit-kpi kro-audit-action/g)||[]).length===3,
+ "Hanya tiga kartu temuan yang harus berjajar di atas");
+assert(!html.includes('id="kroAuditOpenManage"'),
+ "Tombol Kelola KRO tidak boleh lagi memenuhi area monitoring");
 assert(!html.includes('<details open class="kro-audit-issues"'),
  "Rincian audit tidak boleh lagi memenuhi ruang halaman utama");
 const auditFnsFrom=inline.indexOf("function closeKroAuditDialogs(){");
@@ -1378,8 +1380,6 @@ for(const token of [
  "function bindKroAuditDialogs(){",
  "dialog.showModal();",
  "dialog.close()",
- "manage.onclick=()=>",
- "$('kroAssignmentPopup')",
  "card.classList.toggle('has-issues',count>0)",
  "card.classList.toggle('is-complete',count===0)",
  "closeKroAuditDialogs();",
@@ -1392,7 +1392,27 @@ const boardCode=inline.slice(boardFrom,boardTo);
 assert(boardCode.includes("const auditPanel=$('kroAuditPanel');")&&
  boardCode.includes('id="kroAuditSlot"')&&
  boardCode.includes("el.querySelector('#kroAuditSlot')?.appendChild(auditPanel);"),
- "Empat kartu audit harus terletak di atas tiga menu pengelolaan KRO");
+ "Kartu audit harus berada di atas menu pengelolaan KRO");
+assert(boardCode.includes('id="kroAssignmentSection"')&&
+ boardCode.includes('class="panel kro-assignment-inline"')&&
+ boardCode.includes('id="kroAssignmentHeading"')&&
+ boardCode.indexOf('id="kroAssignmentSection"')>boardCode.indexOf('id="kroHubActivity"'),
+ "Kelola KRO wajib menjadi kartu tersendiri di paling bawah, setelah tiga menu");
+assert(!boardCode.includes('<dialog id="kroAssignmentPopup"'),
+ "Kelola KRO tidak boleh berada di pop-up lagi");
+assert(!boardCode.includes("assignmentWasOpen")&&!boardCode.includes("showBoardDialog('kroAssignmentPopup')"),
+ "Tidak boleh membuka ulang pop-up Kelola KRO saat rendering");
+const inlineOpenStart=inline.indexOf("function openKroAssignmentPopup(){");
+const inlineOpenEnd=inline.indexOf("/* KRO and activity groups",inlineOpenStart);
+assert(inlineOpenStart>=0&&inlineOpenEnd>inlineOpenStart,
+ "Akses Kelola KRO tidak ditemukan");
+const inlineOpenCode=inline.slice(inlineOpenStart,inlineOpenEnd);
+assert(inlineOpenCode.includes("card.scrollIntoView({behavior:'smooth',block:'start'})")&&
+ inlineOpenCode.includes("heading.focus({preventScroll:true})")&&
+ !inlineOpenCode.includes("showModal()"),
+ "Akses Kelola KRO harus menuju kartu permanen tanpa pop-up");
+assert(boardCode.includes("if($('kroBoardEdit'))")&&boardCode.includes("if($('kroBoardConfirm'))"),
+ "Mode Edit dan Simpan Penetapan KRO harus tetap berfungsi");
 assert(boardCode.includes("✎ Edit KRO yang Ditetapkan")&&
  boardCode.includes("kroBoardEditTeam=tid;renderKroBoard()"),
  "KRO yang telah ditetapkan perlu menyediakan mode Edit");
@@ -1403,8 +1423,10 @@ assert(boardCode.includes("yearInfo().status!=='closed'")&&
  boardCode.includes("roleCanManageTeam(tid)"),
  "Edit penetapan KRO harus tetap dibatasi peran dan tahun");
 for(const token of [
- "#pageKRO #kroAuditPanel .kro-audit-kpis-four{",
- "grid-template-columns:repeat(4,minmax(0,1fr))!important;",
+ "#pageKRO #kroAuditPanel .kro-audit-kpis-compact{",
+ "grid-template-columns:repeat(3,minmax(0,1fr))!important;",
+ "#pageKRO #kroAssignmentSection.kro-assignment-inline{",
+ "#pageKRO .kro-assignment-inline-content #kroBoardList{",
  "#pageKRO #kroAuditPanel dialog.kro-audit-dialog{",
  "#pageKRO #kroAuditPanel .kro-audit-action.has-issues{",
  "#pageKRO .combined-kro-list .combined-kro-row.is-assigned{",
