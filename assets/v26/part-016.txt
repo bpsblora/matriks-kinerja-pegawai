@@ -464,6 +464,15 @@ function teamActivityAccessIssue(tid){
  if(!staffReady())return 'Tetapkan Daftar Pegawai tahun '+activeYear+' sebelum mengelola kegiatan.';
  const issue=teamEstablishmentIssue(tid);
  if(issue)return 'Tetapkan Ketua dan Anggota Tim terlebih dahulu: '+issue+'.';
+ if(String(annualEditingTeamId)===String(tid))return 'Simpan atau batalkan mode Ubah Susunan Tim sebelum mengelola kegiatan.';
+ const currentTid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect')?.value;
+ if(String(currentTid)===String(tid)){
+  const saved=demoRoster[tid]||{members:[],leaderId:''};
+  const chosenMembers=adminMemberWorking instanceof Set?[...adminMemberWorking]:saved.members||[];
+  const chosenLeader=$('teamAdminLeader')?.value||'';
+  if(!equalIds(chosenMembers,saved.members||[])||chosenLeader!==(saved.leaderId||''))
+   return 'Simpan atau batalkan perubahan Ketua dan Anggota Tim sebelum mengelola kegiatan.';
+ }
  if(!isBaseYear&&!yearKroReady(tid))return 'Tetapkan Pembagian KRO tim ini sebelum mengelola kegiatan.';
  if(!stageAccess('input'))return stageBlockReason('input');
  return '';
