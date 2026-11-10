@@ -4769,3 +4769,69 @@
   width:100%;
  }
 }
+
+
+/* KRO editor: explicit edit mode, checked-first order, visible selection. */
+#pageKRO #kroAssignmentSection #kroBoardEdit{
+ display:inline-flex!important;
+ align-items:center;
+ justify-content:center;
+ gap:8px;
+ padding:10px 17px!important;
+ min-height:42px!important;
+ border:1px solid #1267a7!important;
+ border-radius:10px!important;
+ background:linear-gradient(120deg,#136eae,#0a5693)!important;
+ color:#fff!important;
+ box-shadow:0 4px 13px rgba(19,91,152,.18);
+ font-size:12px!important;
+ font-weight:900!important;
+}
+#pageKRO #kroAssignmentSection #kroBoardEdit:not(:disabled):hover{
+ background:linear-gradient(120deg,#0e5e9b,#09487d)!important;
+ transform:translateY(-1px);
+}
+#pageKRO #kroAssignmentSection #kroBoardConfirm{
+ min-height:42px!important;
+ font-size:12px!important;
+ font-weight:900!important;
+}
+#pageKRO #kroAssignmentSection #kroBoardCancel{
+ min-height:42px!important;
+ font-size:11.5px!important;
+}
+#pageKRO #kroAssignmentSection .kro-reference-note{
+ display:block;
+ margin-top:5px;
+ padding-top:7px;
+ border-top:1px solid #d8e8f4;
+ color:#487a9b;
+ font-size:11px;
+ line-height:1.5;
+ font-weight:800;
+}
+#pageKRO #kroAssignmentSection .combined-kro-row.is-draft-selected{
+ border-color:#83b8e6!important;
+ border-left:3px solid #2278b8!important;
+ background:linear-gradient(115deg,#e9f5ff,#f8fcff)!important;
+ box-shadow:0 2px 8px rgba(31,107,178,.06);
+}
+#pageKRO #kroAssignmentSection .combined-kro-row.is-draft-selected.is-assigned{
+ border-color:#9fd8c7!important;
+ border-left-color:#209675!important;
+ background:linear-gradient(115deg,#ecfaf2,#fff)!important;
+}
+#pageKRO #kroAssignmentSection .combined-kro-row.is-draft-selected b{
+ color:#115a96;
+ font-weight:950;
+}
+#pageKRO #kroAssignmentSection .combined-kro-row.is-draft-selected.is-assigned b{
+ color:#186c54;
+}
+#pageKRO #kroAssignmentSection .combined-kro-row:focus-within{
+ outline:2px solid #7cbaef;
+ outline-offset:1px;
+}
+@media(prefers-reduced-motion:reduce){
+ #pageKRO #kroAssignmentSection #kroBoardEdit{transition:none;transform:none!important}
+}
