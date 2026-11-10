@@ -234,6 +234,30 @@ function addAuthenticatedHeader(html,user){
    .mp-role-menu,.mp-role-menu::after,.mp-role-caret{transition:none!important}
    #mpCurrentRole::before{animation:none!important}
  }
+
+ .mp-accounts-trigger{
+   display:inline-flex;align-items:center;justify-content:center;
+   min-height:38px;padding:8px 12px;
+   border:1px solid #a9d8c6;border-radius:10px;
+   background:linear-gradient(120deg,#e8f9ef,#f5fcf8);
+   color:#177650;font:900 11px Nunito,Arial,sans-serif;
+   white-space:nowrap;cursor:pointer;transition:background .15s,transform .15s;
+ }
+ .mp-accounts-trigger:hover:not(:disabled){background:#d8f4e6;transform:translateY(-1px)}
+ .mp-accounts-trigger:disabled{background:#eef2f6;color:#7890a4;border-color:#dbe3ec;cursor:not-allowed}
+ .mp-accounts-trigger[hidden]{display:none!important}
+ .mp-assigned-team{
+   display:flex;align-items:center;gap:6px;white-space:nowrap;
+   color:#4c7090;font:850 10.5px Nunito,Arial,sans-serif;
+ }
+ .mp-assigned-team select{
+   max-width:165px;min-height:35px;padding:6px 9px;border-radius:9px;
+   border:1px solid #bcd9ed;background:#fff;color:#195a8e;
+   font:850 11px Nunito,Arial,sans-serif;cursor:pointer;
+ }
+ .mp-assigned-team[hidden]{display:none!important}
+ .mp-accounts-trigger:focus-visible,.mp-assigned-team select:focus-visible{outline:3px solid #92d0f5;outline-offset:1px}
+ @media(max-width:660px){.mp-assigned-team{flex:1 1 100%;justify-content:flex-end}}
  </style>`;
  if(!html.includes('<div class="rightbar">'))throw new Error("Header prototipe tidak ditemukan.");
  return html.replace("</head>", styles + '<style id="mkp-site-polish">' + sitePolishCss + "</style></head>").replace('<div class="rightbar">','<div class="rightbar">'+header);
