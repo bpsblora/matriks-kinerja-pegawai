@@ -4987,3 +4987,39 @@
  }
  #pageKRO .kro-approval-actions .btn{width:100%}
 }
+
+
+/* Persetujuan KRO remains visible in every role: non-Admin modes are grey and disabled. */
+#pageKRO #kroAdminApprovalPanel.kro-approval-admin.is-readonly{
+ background:#f2f4f7!important;
+ border-color:#cdd5dd!important;
+ box-shadow:none!important;
+ filter:grayscale(1);
+}
+#pageKRO #kroAdminApprovalPanel.is-readonly :is(.kro-approval-heading h3,.kro-approval-heading span,.kro-approval-heading p){
+ color:#526273!important;
+}
+#pageKRO #kroAdminApprovalPanel.is-readonly .kro-approval-actions{
+ background:#edf1f5!important;
+ border-color:#d1d9e0!important;
+}
+#pageKRO #kroAdminApprovalPanel.is-readonly .kro-approval-actions small{
+ color:#465663!important;
+ font-weight:800;
+}
+#pageKRO #kroAdminApprovalPanel.is-readonly :is(button,[data-kro-approve],[data-kro-reject]){
+ pointer-events:none!important;
+ cursor:not-allowed!important;
+ box-shadow:none!important;
+ opacity:.6!important;
+ filter:grayscale(1);
+}
+#pageKRO #kroAdminApprovalPanel.is-readonly .kro-approval-row{
+ background:#f7f8fa!important;
+ border-color:#d2d9df!important;
+}
+#pageKRO #kroAdminApprovalPanel.is-readonly .kro-approval-status{
+ background:#e7ebee!important;
+ border-color:#ced5dd!important;
+ color:#53616e!important;
+}
