@@ -7,7 +7,7 @@ import {createAccessAdminView} from "./adminAccess.js";
 import {createSparkAccessAdminView} from "./sparkAccessAdmin.js";
 import {
  sparkRoleReady,sparkRoleAuth,loginSparkRole,restoreSparkRole,logoutSparkRole,
- changeSparkOwnPassword
+ watchSparkRoleRevocation
 } from "./sparkRoleAuth.js";
 import "./adminAccess.css";
 
@@ -304,7 +304,7 @@ function bindAuthenticatedSession(frame){
   accountContent=$("mpAccountsContent"),assignedTeam=get("mpAssignedTeam"),
   assignedTeamLabel=get("mpAssignedTeamLabel");
  if(!dialog||!opener||!form||!username||!password||!apply||!badge||!warning||!roleLogout||!accountButton||!accountDialog||!accountContent||!assignedTeam||!assignedTeamLabel)return;
- let liveRole=null,busy=false;
+ let liveRole=null,busy=false,stopRoleWatch=null;
  const closeAccounts=()=>{
   if(accountDialog.open)accountDialog.close();
   accountContent.replaceChildren();
@@ -327,7 +327,15 @@ function bindAuthenticatedSession(frame){
  });
 
  function renderRole(profile){
+  if(stopRoleWatch){stopRoleWatch();stopRoleWatch=null;}
   liveRole=profile;
+  if(sparkRoleReady&&profile){
+   stopRoleWatch=watchSparkRoleRevocation(()=>{
+    // Server-backed profile revocation overrides any local UI edit mode.
+    if(stopRoleWatch){stopRoleWatch();stopRoleWatch=null;}
+    void exitRole();
+   });
+  }
   const state=preview?.__mpPreviewSessionState?.();
   const display=profile?(state?.label||"Pengelola")+(state?.teamName?" · "+state.teamName:""):"Mode Lihat";
   badge.textContent=display;
@@ -337,7 +345,7 @@ function bindAuthenticatedSession(frame){
   roleLogout.disabled=!profile;
   accountButton.hidden=profile?.role!=="admin";
   accountButton.disabled=profile?.role!=="admin"||!accountsReady;
-  accountButton.title=accountsReady?"Kelola akun akses Ketua Tim melalui backend":"Pengelolaan akun belum diaktifkan oleh operator Firebase";
+  accountButton.title=accountsReady?"Kelola username, password dan tim melalui Firebase Spark":"Kelola akun belum diaktifkan di Firebase";
   const assigned=profile?.role==="ketua"?profile.teamIds||[]:[];
   const options=(state?.teams||[]).filter(t=>assigned.includes(t.id));
   assignedTeamLabel.hidden=options.length<=1;
@@ -365,6 +373,7 @@ function bindAuthenticatedSession(frame){
  renderRole(null);
  get("mpSignOut")?.addEventListener("click",async()=>{
   closeAccounts();
+  if(stopRoleWatch){stopRoleWatch();stopRoleWatch=null;}
   if(sparkRoleReady)await logoutSparkRole().catch(()=>{});
   else if(roleAuth)await signOut(roleAuth).catch(()=>{});
   await signOut(auth);
