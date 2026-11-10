@@ -1702,12 +1702,13 @@ for(const token of [
  '#mpAccountsClose{'
 ])assert(shellCss.includes(token),"Tampilan Admin Kelola Akun belum siap: "+token);
 assert(mainSource.includes("const roleAuth = roleApp ? getAuth(roleApp) : null;")&&
- mainSource.includes("if(!approvedGoogle()||!roleAuth?.currentUser||!getAccessContext)return false;")&&
- mainSource.includes("createAccessAdminView(ref.teams,{functionsClient:roleFunctions})")&&
+ mainSource.includes("sparkRoleReady?!sparkRoleAuth?.currentUser:!roleAuth?.currentUser||!getAccessContext")&&
+ mainSource.includes("createSparkAccessAdminView(ref.teams)")&&
+ mainSource.includes("await loginSparkRole(chosenUsername,enteredPassword)")&&
+ mainSource.includes("await logoutSparkRole()")&&
  mainSource.includes("await signInWithCustomToken(roleAuth,response.data.token)")&&
- mainSource.includes("await signOut(roleAuth)")&&
  !mainSource.includes("await signInWithCustomToken(auth,response.data.token)"),
- "Aplikasi Firebase harus mempertahankan akun Google saat Admin login peran");
+ "Aplikasi Firebase harus mempertahankan akun Google dan menggunakan sesi Spark terpisah");
 assert(matrixSource.includes("createLiveMatrixWorkspace(context,{functionsClient=functions}={})")&&
  matrixSource.includes("httpsCallable(functionsClient,name,")&&
  matrixSource.includes("createAccessAdminView(rows('teams'),{functionsClient})"),
