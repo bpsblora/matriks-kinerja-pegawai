@@ -1441,14 +1441,13 @@ const actualOrder=vm.runInNewContext(
 assert.deepEqual(Array.from(actualOrder),
  ['2886.EBA.956','2897.BMA.004','2886.EBA.962','2896.BMA.004','2900.QMA.006'],
  "KRO terpilih harus tampil pertama, lalu yang lain menurut kode");
-assert(boardCode.includes("const writable=roleCanManageTeam(tid)&&(!locked||editing)&&yearInfo().status!=='closed';")&&
- !boardCode.includes("if(!canUse||isBaseYear)return;")&&
- !boardCode.includes("!canUse||isBaseYear?'disabled'"),
- "Tombol Edit KRO 2026 harus bekerja untuk peran yang berwenang tanpa membuka seluruh fitur edit data historis");
-assert(boardCode.includes("yearSetup.kros[tid]=[...team.kroCodes]")&&
- boardCode.includes("team.kroCodes=[...chosen].sort(compareKroCodes);saveTeamStore();")&&
- boardCode.includes("Penyesuaian ketetapan KRO 2026 disimpan terpisah dari data sumber asli."),
- "KRO 2026 harus disimpan sebagai penyesuaian, tidak menimpa sumber historis");
+assert(boardCode.includes("const writable=roleCanManageTeam(tid)&&approvalStatus!=='pending'&&(!locked||editing)&&yearInfo().status!=='closed';")&&
+ !boardCode.includes("if(!canUse||isBaseYear)return;"),
+ "KRO 2026 dapat diajukan oleh pengelola, sedangkan pengajuan menunggu tidak dapat diedit");
+assert(boardCode.includes("submitKroProposal(tid,chosen)")&&
+ !boardCode.includes("yearSetup.kros[tid]=[...team.kroCodes]")&&
+ boardCode.includes("Penyesuaian KRO 2026 disimpan terpisah dari sumber asli."),
+ "Ketua Tim tidak boleh menetapkan langsung ataupun mengubah data sumber KRO 2026");
 const draftOrderStart=inline.indexOf("function syncKroBoardDraftRows(){");
 const draftOrderEnd=inline.indexOf("function renderKroBoard(){",draftOrderStart);
 assert(draftOrderStart>=0&&draftOrderEnd>draftOrderStart,
@@ -1483,6 +1482,84 @@ for(const token of [
  "#pageKRO .combined-kro-list .combined-kro-row.is-assigned{",
  ".kro-master-usage .kro-master-team-name{"
 ])assert(cssPolish.includes(token),"Penekanan visual KRO belum lengkap: "+token);
+
+
+
+// Two-stage KRO approval: submitting must never unlock the team; only Admin
+// approval may mark it ready. Rejected proposals return to editable status.
+const kroApprovalStart=inline.indexOf("function kroApprovalRequest(tid){");
+const kroApprovalEnd=inline.indexOf("function allowYearTask(tid){",kroApprovalStart);
+assert(kroApprovalStart>=0&&kroApprovalEnd>kroApprovalStart,
+ "Status pengajuan dan persetujuan KRO oleh Admin belum tersedia");
+const approvalFns=inline.slice(kroApprovalStart,kroApprovalEnd);
+const approvalCtx=vm.createContext({
+ currentRole:'ketua',roleTeamId:'T1',activeYear:2027,isBaseYear:false,
+ yearSetup:{kros:{},kroRequests:{}},
+ demoTeams:[{id:'T1',active:true,name:'Tim Uji',kroCodes:[]}],
+ POK_KROS:[{code:'2897.BMA.004'},{code:'2886.EBA.956'}],
+ roleCanManageTeam:tid=>tid==='T1',
+ yearInfo:()=>({status:'draft'}),yearTeamReady:()=>true,
+ roleActor:()=> 'Pengguna Uji',
+ saveTeamStore:()=>{},storeYearSetup:()=>{},logChange:()=>{},persist:()=>{},
+ compareKroCodes:(a,b)=>a.localeCompare(b,'id',{numeric:true}),
+ equalIds:(a,b)=>[...new Set(a||[])].sort().join('|')===[...new Set(b||[])].sort().join('|')
+});
+vm.runInContext(approvalFns,approvalCtx);
+assert.equal(vm.runInContext("kroApprovalStatus('T1')",approvalCtx),'draft');
+assert.equal(vm.runInContext("yearKroReady('T1')",approvalCtx),false,
+ "KRO belum diajukan tidak boleh dianggap disetujui");
+assert.equal(vm.runInContext("submitKroProposal('T1',['2897.BMA.004'])",approvalCtx),true,
+ "Ketua Tim harus dapat mengajukan pilihan KRO");
+assert.equal(vm.runInContext("kroApprovalStatus('T1')",approvalCtx),'pending');
+assert.equal(vm.runInContext("yearKroReady('T1')",approvalCtx),false,
+ "Mengajukan KRO tidak boleh langsung membuka Input Alokasi");
+assert.equal(vm.runInContext("yearSetup.kros['T1']",approvalCtx),undefined,
+ "Pengajuan tidak boleh mengisi data KRO yang telah disetujui");
+assert.equal(vm.runInContext("submitKroProposal('T1',['2897.BMA.004'])",approvalCtx),false,
+ "Pengajuan yang sedang menunggu Admin tidak boleh diajukan ulang");
+vm.runInContext("currentRole='pegawai'",approvalCtx);
+assert.equal(vm.runInContext("decideKroProposal('T1',true)",approvalCtx),false,
+ "Pegawai tidak berhak menyetujui KRO");
+vm.runInContext("currentRole='kepala'",approvalCtx);
+assert.equal(vm.runInContext("decideKroProposal('T1',true)",approvalCtx),false,
+ "Persetujuan KRO tahap ini hanya untuk Admin");
+vm.runInContext("currentRole='admin'",approvalCtx);
+assert.equal(vm.runInContext("decideKroProposal('T1',true)",approvalCtx),true);
+assert.equal(vm.runInContext("yearKroReady('T1')",approvalCtx),true,
+ "Setelah Admin menyetujui, KRO tim baru boleh dianggap ditetapkan");
+vm.runInContext("currentRole='ketua'",approvalCtx);
+assert.equal(vm.runInContext("submitKroProposal('T1',['2886.EBA.956'])",approvalCtx),true,
+ "Mengubah KRO yang telah disetujui harus diajukan kembali");
+assert.equal(vm.runInContext("yearKroReady('T1')",approvalCtx),false,
+ "Pengajuan revisi harus membatalkan izin dari persetujuan lama");
+vm.runInContext("currentRole='admin'",approvalCtx);
+assert.equal(vm.runInContext("decideKroProposal('T1',false,'Sesuaikan kode KRO')",approvalCtx),true);
+assert.equal(vm.runInContext("kroApprovalStatus('T1')",approvalCtx),'rejected');
+assert.equal(vm.runInContext("yearKroReady('T1')",approvalCtx),false);
+assert.equal(vm.runInContext("yearSetup.kroRequests['T1'].note",approvalCtx),'Sesuaikan kode KRO');
+assert(boardCode.includes("kroApprovalPanelMarkup()")&&
+ boardCode.includes("approvalStatus==='pending'")&&
+ boardCode.includes("⏳ Menunggu Persetujuan Admin")&&
+ boardCode.includes("submitKroProposal(tid,chosen)")&&
+ !boardCode.includes("showKroCoverageDialog({tid,selectedCodes:chosen,onSave"),
+ "Tombol Ketua Tim harus membuat pengajuan, bukan langsung menetapkan KRO");
+const panelStart=inline.indexOf("function kroApprovalPanelMarkup(){");
+const panelEnd=inline.indexOf("function syncKroBoardDraftRows(){",panelStart);
+assert(panelStart>=0&&panelEnd>panelStart,"Menu persetujuan Admin tidak tersedia");
+const panelCode=inline.slice(panelStart,panelEnd);
+for(const token of [
+ "if(currentRole!=='admin')return '';",
+ "data-kro-approve=",
+ "data-kro-reject=",
+ "id=\"kroApproveAll\"",
+ "decideKroProposal(tid,true)",
+ "decideKroProposal(tid,false,note)",
+ "decideKroProposal(t.id,true)"
+])assert(panelCode.includes(token),"Panel review Admin tidak lengkap: "+token);
+assert(cssPolish.includes("#pageKRO .kro-approval-admin{")&&
+ cssPolish.includes("#pageKRO .kro-approval-row.is-pending{")&&
+ cssPolish.includes("#pageKRO .kro-approval-status.is-approved{"),
+ "Status menunggu/disetujui harus ditampilkan dengan jelas");
 
 
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
