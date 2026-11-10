@@ -643,7 +643,7 @@ const seedKroForTeam=(tid)=>activeYear===2026?POK_KROS.filter(k=>k.mappings.some
 let demoTeams=(()=>{try{const saved=JSON.parse(localStorage.getItem(TEAM_STORE_KEY));if(Array.isArray(saved)&&saved.length)return saved.map(t=>({...t,kroCodes:Array.isArray(t.kroCodes)?t.kroCodes:seedKroForTeam(t.id)}))}catch(e){}return BASE.teams.map(t=>({id:t.id,name:t.name,kroCodes:seedKroForTeam(t.id)}))})();
 // V1.7: formal establishment stages are stored per year. Original V25 navigation and monitoring stay intact.
 const YEAR_SETUP_KEY='bps-blora-year-setup-v17-'+activeYear;
-const emptyYearSetup=()=>({staff:{confirmed:false,ids:[],at:'',by:''},teams:{},kros:{}});
+const emptyYearSetup=()=>({staff:{confirmed:false,ids:[],at:'',by:''},teams:{},kros:{},kroRequests:{}});
 let yearSetup=(()=>{try{const data=JSON.parse(localStorage.getItem(YEAR_SETUP_KEY));return data&&typeof data==='object'?{...emptyYearSetup(),...data}:emptyYearSetup()}catch(e){return emptyYearSetup()}})();
 let staffDraft=new Set(yearSetup.staff?.ids?.length?yearSetup.staff.ids:employeeMaster.filter(e=>e.type==='pegawai'&&e.active!==false).map(e=>e.id));
 
@@ -723,7 +723,61 @@ function annualTeamCompletion(){
  const pending=all.map(t=>({id:t.id,name:t.name,reason:teamEstablishmentIssue(t.id)})).filter(x=>x.reason);
  return {total:all.length,ready:all.length-pending.length,pending};
 }
-function yearKroReady(tid){if(isBaseYear)return true;const record=yearSetup.kros[tid],team=demoTeams.find(t=>t.id===tid);return yearTeamReady(tid)&&!!record&&record.length>0&&equalIds(record,team?.kroCodes||[])}
+/* Ketua Tim proposes their KRO allocation; only Admin can approve it.
+   Request state belongs to the active-year workspace. 2026 historical
+   reference is still usable until an explicit replacement is submitted. */
+function kroApprovalRequest(tid){return yearSetup.kroRequests?.[tid]||null}
+function kroApprovalStatus(tid){
+ const request=kroApprovalRequest(tid),team=demoTeams.find(t=>String(t.id)===String(tid));
+ if(!team||team.active===false)return 'inactive';
+ if(!request)return isBaseYear?'reference':'draft';
+ if(request.status==='pending')return equalIds(request.codes,team.kroCodes||[])?'pending':'draft';
+ if(request.status==='rejected')return 'rejected';
+ const approved=yearSetup.kros?.[tid]||[];
+ return request.status==='approved'&&approved.length>0&&
+  equalIds(approved,request.codes)&&equalIds(approved,team.kroCodes||[])?'approved':'draft';
+}
+function yearKroReady(tid){
+ if(isBaseYear&&!kroApprovalRequest(tid))return true;
+ if(!isBaseYear&&!yearTeamReady(tid))return false;
+ return kroApprovalStatus(tid)==='approved';
+}
+function submitKroProposal(tid,chosen){
+ if(!roleCanManageTeam(tid)||yearInfo().status==='closed')return false;
+ const team=demoTeams.find(t=>String(t.id)===String(tid));
+ if(!team||team.active===false)return false;
+ if(!isBaseYear&&!yearTeamReady(tid))return false;
+ const codes=[...new Set(chosen||[])].filter(code=>POK_KROS.some(k=>k.code===code)).sort(compareKroCodes);
+ if(!codes.length)return false;
+ const previous=kroApprovalRequest(tid);
+ if(previous?.status==='pending')return false;
+ team.kroCodes=codes;saveTeamStore();
+ if(!yearSetup.kroRequests)yearSetup.kroRequests={};
+ delete yearSetup.kros[tid];
+ yearSetup.kroRequests[tid]={status:'pending',codes,submittedAt:new Date().toISOString(),submittedBy:roleActor(),reviewedAt:'',reviewedBy:'',note:''};
+ storeYearSetup();
+ logChange('Ajukan Persetujuan KRO '+activeYear,team.name+' · '+codes.length+' KRO · Menunggu Admin');
+ persist();
+ return true;
+}
+function decideKroProposal(tid,approved,note=''){
+ if(currentRole!=='admin'||yearInfo().status==='closed')return false;
+ const request=kroApprovalRequest(tid);
+ const team=demoTeams.find(t=>String(t.id)===String(tid));
+ if(!team||!request||request.status!=='pending'||team.active===false)return false;
+ if(!request.codes?.length||!equalIds(request.codes,team.kroCodes||[]))return false;
+ if(!isBaseYear&&!yearTeamReady(tid))return false;
+ request.status=approved?'approved':'rejected';
+ request.reviewedAt=new Date().toISOString();
+ request.reviewedBy=roleActor();
+ request.note=String(note||'').trim();
+ if(approved)yearSetup.kros[tid]=[...request.codes];
+ else delete yearSetup.kros[tid];
+ storeYearSetup();
+ logChange((approved?'Setujui':'Kembalikan')+' Pengajuan KRO '+activeYear,team.name+' · '+request.codes.length+' KRO');
+ persist();
+ return true;
+}
 function allowYearTask(tid){if(demoTeams.find(t=>t.id===tid)?.active===false){toast('Tim sedang nonaktif. Aktifkan kembali melalui Kelola Tim sebelum input alokasi baru.');setPage('teams');return false}if(isBaseYear)return true;if(!predecessorHasData()){toast('Isi dan simpan Matriks '+(activeYear-1)+' terlebih dahulu.');return false}if(yearInfo().status==='closed'){toast('Siapkan draf '+activeYear+' dari panel periode tahun.');return false}if(!staffReady()){toast('Tetapkan daftar pegawai '+activeYear+' terlebih dahulu di Kelola Tim.');setPage('teams');return false}if(!yearTeamReady(tid)){toast('Tetapkan ketua dan anggota tim '+activeYear+' dahulu.');setPage('teams');return false}if(!yearKroReady(tid)){toast('Tetapkan pilihan KRO tim ini di menu Pembagian KRO sebelum menginput kegiatan.');setPage('kro');return false}return true}
 function renderYearStaff(){
  const host=$('annualStaffList');if(!host)return;
@@ -749,7 +803,7 @@ function renderYearSetup(){
  const allReady=isBaseYear?!!(yearSetup.staff?.confirmed&&yearSetup.staff.ids?.length):staffReady();
  const roNow=yearRosterRecord(tid),stageTeam=yearSetup.teams[tid];
  const teamOk=allReady&&teamEstablishmentIssue(tid)==='';
- const kroOk=isBaseYear?true:yearKroReady(tid),staffEditing=annualEditingStaff,teamEditing=annualEditingTeamId===tid,kroEditing=annualEditingKroId===tid;
+ const kroOk=yearKroReady(tid),staffEditing=annualEditingStaff,teamEditing=annualEditingTeamId===tid,kroEditing=annualEditingKroId===tid;
  const prevReady=predecessorHasData(),canCentral=currentRole==='admin'||currentRole==='kepala',canTeam=roleCanManageTeam(tid),writable=yearInfo().status!=='closed';
  $('annualSetupTitle').textContent='Penetapan Pegawai dan Tim '+activeYear;
  $('annualPreviousInfo').textContent=isBaseYear?
@@ -759,7 +813,7 @@ function renderYearSetup(){
  $('annualStaffState').textContent=allReady&&!staffEditing?'✓ Ditetapkan · '+yearSetup.staff.ids.length+' pegawai':'1. Perlu penetapan';
  const progress=annualTeamCompletion();
  $('annualTeamState').textContent=progress.ready+' / '+progress.total+' Tim Ditetapkan';
- $('annualKroState').textContent=kroOk&&!kroEditing?'✓ Ditetapkan':'3. Perlu penetapan';
+ $('annualKroState').textContent=kroOk&&!kroEditing?'✓ Disetujui Admin':kroApprovalStatus(tid)==='pending'?'Menunggu Persetujuan Admin':'3. Perlu pengajuan';
  const steps=panel.querySelectorAll('.annual-step');
  steps.forEach((step,i)=>{const done=[allReady&&!staffEditing,teamOk&&!teamEditing,kroOk&&!kroEditing][i];const current=i===0?!done:(i===1?allReady&&!staffEditing&&!done:teamOk&&!teamEditing&&!done);const locked=(i===1&&!allReady)||(i===2&&!teamOk);step.classList.toggle('is-done',done);step.classList.toggle('is-current',current);step.classList.toggle('is-locked',locked)});
  $('annualSelectedTeam').textContent='· '+activeYear;
@@ -814,12 +868,12 @@ function renderYearSetup(){
  kroStage.classList.toggle('is-complete',kroComplete);
  $('annualKroPanelSlot').classList.toggle('is-complete',kroComplete);
  $('annualKroSummary').classList.toggle('hidden',!kroComplete);
- $('annualKroSummary').textContent=kroComplete?'✓ '+(yearSetup.kros[tid]||[]).length+' KRO ditetapkan untuk tim ini. Input Alokasi sudah dapat dilakukan.':'';
+ $('annualKroSummary').textContent=kroComplete?'✓ '+nf((yearSetup.kros[tid]||teamKroCodes(tid)).length)+' KRO disetujui untuk tim ini.':kroApprovalStatus(tid)==='pending'?'Pengajuan KRO sedang menunggu persetujuan Admin.':'';
  $('annualConfirmKro').classList.toggle('hidden',kroComplete);
- $('annualConfirmKro').disabled=!teamOk||!canTeam||!writable;
+ $('annualConfirmKro').disabled=!teamOk||!canTeam||!writable||kroApprovalStatus(tid)==='pending';
  $('annualEditKro').classList.toggle('hidden',!kroComplete||!canTeam||!writable);
  $('annualGoInput').classList.toggle('hidden',!kroComplete);
- $('annualKroNote').textContent=activeYear>2027?'Pastikan kode sesuai POK '+activeYear+' sebelum penetapan.':'Pilih KRO berdasarkan POK 2027. Rekomendasi tahun sebelumnya tidak otomatis ditetapkan.';
+ $('annualKroNote').textContent=kroApprovalStatus(tid)==='pending'?'Pengajuan telah dikirim. Tunggu persetujuan Admin sebelum melanjutkan Input Alokasi.':activeYear>2027?'Periksa kode POK '+activeYear+' sebelum mengajukan.':'Pilih KRO berdasarkan POK tahun berjalan; Admin menyetujui pengajuan Ketua Tim.';
  // Tombol simpan V25 tetap dipakai secara internal saat penetapan, tidak perlu mengulang dua klik.
  $('teamAdminSave').classList.add('hidden');
  renderYearStaff();
