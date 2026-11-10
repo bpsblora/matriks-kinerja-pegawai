@@ -1544,7 +1544,7 @@ assert(boardCode.includes("kroApprovalPanelMarkup()")&&
  !boardCode.includes("showKroCoverageDialog({tid,selectedCodes:chosen,onSave"),
  "Tombol Ketua Tim harus membuat pengajuan, bukan langsung menetapkan KRO");
 const panelStart=inline.indexOf("function kroApprovalPanelMarkup(){");
-const panelEnd=inline.indexOf("function syncKroBoardDraftRows(){",panelStart);
+const panelEnd=inline.indexOf("function renderKroBoard(){",panelStart);
 assert(panelStart>=0&&panelEnd>panelStart,"Menu persetujuan Admin tidak tersedia");
 const panelCode=inline.slice(panelStart,panelEnd);
 for(const token of [
