@@ -942,6 +942,47 @@ function setupRoles(){
  $('btnLogout').onclick=()=>{enterView();toast('Mode lihat aktif.');};
  enterPrototypeEdit();
 }
+/* Public PREVIEW-ONLY role selector, for testing UI flows inside the local
+   prototype. These roles are not Firebase claims or shared DB permissions. */
+function previewSessionState(){
+ const team=demoTeams.find(t=>String(t.id)===String(roleTeamId));
+ return {
+  role:currentRole,
+  label:currentRole==='admin'?'Admin':currentRole==='kepala'?'Kepala BPS':currentRole==='ketua'?'Ketua Tim':'Pegawai',
+  teamId:currentRole==='ketua'?roleTeamId:'',
+  teamName:currentRole==='ketua'?(team?.name||'Tim belum dipilih'):'',
+  teams:demoTeams.filter(t=>t.active!==false).map(t=>({id:String(t.id),name:String(t.name)}))
+ };
+}
+function previewSwitchRole(role,teamId=''){
+ if(!['pegawai','admin','kepala','ketua'].includes(role))return null;
+ if(role==='ketua'){
+  const team=demoTeams.find(t=>String(t.id)===String(teamId)&&t.active!==false);
+  if(!team)return null;
+  currentRole='ketua';
+  roleTeamId=team.id;
+  sessionUser='Mode Uji Prototipe';
+  selectedTeam=team.id;selectedGroup='';selectedId=null;
+  $('teamSelect').value=team.id;
+  renderKroOptions(teamKroCodes(team.id)[0]||NO_KRO);
+  renderGroups();
+  $('loginScreen').classList.add('hidden');
+  syncTeamWorkspace();setPage('dashboard');syncWorkflowControls();renderYearUI();
+ }else if(role==='pegawai'){
+  enterView();
+ }else if(role==='admin'){
+  enterPrototypeEdit();
+ }else{
+  currentRole='kepala';
+  roleTeamId='';
+  sessionUser='Mode Uji Prototipe';
+  $('loginScreen').classList.add('hidden');
+  syncTeamWorkspace();setPage('dashboard');syncWorkflowControls();renderYearUI();
+ }
+ return previewSessionState();
+}
+window.__mpPreviewSessionState=previewSessionState;
+window.__mpPreviewSwitchRole=previewSwitchRole;
 
 // Master acuan 2026 dari V25. Standar tahun aktif disimpan sebagai versi/overlay.
 function standardEnabled(r){return state.masterEdits?.[r.id]?.active!==false}
