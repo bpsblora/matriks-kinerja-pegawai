@@ -3,6 +3,8 @@ import { initializeApp } from "firebase/app";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { auth, functions } from "./firebase/client.js";
 import sitePolishCss from "./sitePolish.css?raw";
+import {createAccessAdminView} from "./adminAccess.js";
+import "./adminAccess.css";
 
 // GitHub Pages is a preview. Real roles and shared writes remain disabled.
 // Google BPS Blora stays the viewer identity. Role credentials are checked by
@@ -36,7 +38,14 @@ root.innerHTML=`
     
   </section>
 </section>
-<section class="mp-frame-wrap" id="mpView" hidden><iframe id="mpFrame" title="Matriks Kinerja Pegawai BPS Blora" referrerpolicy="no-referrer"></iframe></section>`;
+<section class="mp-frame-wrap" id="mpView" hidden><iframe id="mpFrame" title="Matriks Kinerja Pegawai BPS Blora" referrerpolicy="no-referrer"></iframe></section>
+<dialog id="mpAccountsDialog" class="mp-accounts-dialog" aria-labelledby="mpAccountsTitle">
+  <div class="mp-accounts-shell">
+    <header class="mp-accounts-header"><div><span>KHUSUS ADMIN</span><h2 id="mpAccountsTitle">Kelola Akun Akses</h2><p>Buat akun Ketua Tim dan kelola kewenangannya melalui server.</p></div>
+    <button id="mpAccountsClose" type="button" aria-label="Tutup Kelola Akun">×</button></header>
+    <div id="mpAccountsContent" class="mp-accounts-content"></div>
+  </div>
+</dialog>`;
 const $=id=>document.getElementById(id);
 function revealWelcome(){
  $("mpSplash").classList.add("is-done");
@@ -85,6 +94,7 @@ function addAuthenticatedHeader(html,user){
    <button id="mpRoleMenu" class="mp-role-menu" type="button" aria-haspopup="dialog" aria-controls="mpRoleDialog" aria-expanded="false" title="Masuk dengan username dan password Admin atau Ketua Tim">
      <span class="mp-role-menu-label">Login Peran</span><strong id="mpCurrentRole">Mode Lihat</strong><span class="mp-role-caret" aria-hidden="true"></span>
    </button>
+   <button id="mpManageAccounts" class="mp-accounts-trigger" type="button" hidden title="Kelola username, password dan tim Ketua Tim">Kelola Akun Akses</button>
    <button id="mpRoleLogout" type="button" hidden title="Keluar dari sesi peran, kembali ke Mode Lihat">Keluar Peran</button>
    <button id="mpSignOut" type="button" title="Keluar dari akun Google BPS Blora">Keluar Google</button>
  </div>
@@ -256,9 +266,26 @@ function bindAuthenticatedSession(frame){
  const dialog=get("mpRoleDialog"),opener=get("mpRoleMenu"),
   form=get("mpRoleLoginForm"),username=get("mpRoleUsername"),
   password=get("mpRolePassword"),apply=get("mpRoleApply"),
-  badge=get("mpCurrentRole"),warning=get("mpRoleError"),roleLogout=get("mpRoleLogout");
- if(!dialog||!opener||!form||!username||!password||!apply||!badge||!warning||!roleLogout)return;
+  badge=get("mpCurrentRole"),warning=get("mpRoleError"),roleLogout=get("mpRoleLogout"),
+  accountButton=get("mpManageAccounts"),accountDialog=$("mpAccountsDialog"),
+  accountContent=$("mpAccountsContent");
+ if(!dialog||!opener||!form||!username||!password||!apply||!badge||!warning||!roleLogout||!accountButton||!accountDialog||!accountContent)return;
  let liveRole=null,busy=false;
+ const closeAccounts=()=>{
+  if(accountDialog.open)accountDialog.close();
+  accountContent.replaceChildren();
+ };
+ $("mpAccountsClose")?.addEventListener("click",closeAccounts);
+ accountDialog.addEventListener("click",e=>{if(e.target===accountDialog)closeAccounts();});
+ accountButton.addEventListener("click",()=>{
+  // UI visibility is convenience only; server enforces requireAdmin()
+  // for every operation and checks Firebase custom role credentials.
+  if(liveRole?.role!=="admin"||!roleAuth?.currentUser||!roleFunctions)return;
+  const teams=preview?.__mpPreviewSessionState?.()?.teams||[];
+  accountContent.replaceChildren(createAccessAdminView(teams,{functionsClient:roleFunctions}));
+  if(!accountDialog.open)accountDialog.showModal();
+ });
+
  function renderRole(profile){
   liveRole=profile;
   const state=preview?.__mpPreviewSessionState?.();
@@ -268,10 +295,14 @@ function bindAuthenticatedSession(frame){
   opener.disabled=!!profile;
   roleLogout.hidden=!profile;
   roleLogout.disabled=!profile;
+  accountButton.hidden=profile?.role!=="admin";
+  accountButton.disabled=profile?.role!=="admin";
+  if(profile?.role!=="admin")closeAccounts();
   opener.setAttribute("aria-label",profile?"Masuk sebagai "+display:"Login Peran untuk mengelola data");
  }
  async function exitRole(){
   if(busy)return;
+  closeAccounts();
   busy=true;roleLogout.disabled=true;
   try{if(roleAuth)await signOut(roleAuth);}
   finally{
@@ -282,6 +313,7 @@ function bindAuthenticatedSession(frame){
  }
  renderRole(null);
  get("mpSignOut")?.addEventListener("click",async()=>{
+  closeAccounts();
   if(roleAuth)await signOut(roleAuth).catch(()=>{});
   await signOut(auth);
  });
