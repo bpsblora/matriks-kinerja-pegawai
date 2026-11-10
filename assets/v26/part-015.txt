@@ -92,7 +92,8 @@ function opt(value,label){return `<option value="${esc(value)}">${esc(label)}</o
 function fillSelect(el,opts,previous){el.innerHTML=opts.map(o=>opt(o.value,o.label)).join('');if(previous!=null&&opts.some(o=>o.value===previous))el.value=previous}
 function groupList(team,showInactive){const m=groupIndex.get(team)||new Map();return [...m.entries()].filter(([_,a])=>showInactive||a.some(x=>x.status==='aktif')).sort((x,y)=>x[0].localeCompare(y[0],'id'))}
 function groupKroKey(team,group){return JSON.stringify([team,group])}
-function teamKroCodes(tid){return [...new Set((demoTeams.find(t=>t.id===tid)?.kroCodes||[]).filter(code=>POK_KROS.some(k=>k.code===code)))]}
+function compareKroCodes(a,b){return String(a).localeCompare(String(b),'id',{numeric:true,sensitivity:'base'});}
+function teamKroCodes(tid){return [...new Set((demoTeams.find(t=>t.id===tid)?.kroCodes||[]).filter(code=>POK_KROS.some(k=>k.code===code)))].sort(compareKroCodes)}
 function resolveGroupKro(tid,group){const codes=teamKroCodes(tid),key=groupKroKey(tid,group);const explicit=state.groupKroOverrides?.[key];if(explicit!==undefined)return codes.includes(explicit)?explicit:NO_KRO;
  const suggested=activeYear===2026?GROUP_KRO_HINTS[key]:undefined;if(suggested&&codes.includes(suggested))return suggested;
  // A KRO code is assigned per year, not a permanent activity identity.
