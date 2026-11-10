@@ -9,7 +9,9 @@ import "./adminAccess.css";
 // GitHub Pages is a preview. Real roles and shared writes remain disabled.
 // Google BPS Blora stays the viewer identity. Role credentials are checked by
 // the server separately and never inferred from a client-side role selection.
-const roleLoginReady=import.meta.env.VITE_ROLE_AUTH_READY==="true"&&import.meta.env.VITE_MATRIX_BACKEND_READY==="true";
+const roleLoginReady=import.meta.env.VITE_ROLE_AUTH_READY==="true";
+// Role credential administration is independent of the future Matrix dataset.
+const accountsReady=roleLoginReady&&import.meta.env.VITE_ACCESS_ADMIN_READY==="true";
 const roleApp=roleLoginReady?initializeApp(auth.app.options,"matriks-role-session"):null;
 const roleAuth=roleApp?getAuth(roleApp):null;
 const roleFunctions=roleApp?getFunctions(roleApp,import.meta.env.VITE_FIREBASE_FUNCTION_REGION||"us-central1"):null;
@@ -280,7 +282,7 @@ function bindAuthenticatedSession(frame){
  accountButton.addEventListener("click",()=>{
   // UI visibility is convenience only; server enforces requireAdmin()
   // for every operation and checks Firebase custom role credentials.
-  if(liveRole?.role!=="admin"||!roleAuth?.currentUser||!roleFunctions)return;
+  if(!accountsReady||liveRole?.role!=="admin"||!roleAuth?.currentUser||!roleFunctions)return;
   const teams=preview?.__mpPreviewSessionState?.()?.teams||[];
   accountContent.replaceChildren(createAccessAdminView(teams,{functionsClient:roleFunctions}));
   if(!accountDialog.open)accountDialog.showModal();
@@ -296,7 +298,8 @@ function bindAuthenticatedSession(frame){
   roleLogout.hidden=!profile;
   roleLogout.disabled=!profile;
   accountButton.hidden=profile?.role!=="admin";
-  accountButton.disabled=profile?.role!=="admin";
+  accountButton.disabled=profile?.role!=="admin"||!accountsReady;
+  accountButton.title=accountsReady?"Kelola akun akses Ketua Tim melalui backend":"Pengelolaan akun belum diaktifkan oleh operator Firebase";
   if(profile?.role!=="admin")closeAccounts();
   opener.setAttribute("aria-label",profile?"Masuk sebagai "+display:"Login Peran untuk mengelola data");
  }
