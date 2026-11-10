@@ -1,37 +1,49 @@
 # Menu Admin — Kelola Akun Akses
 
-**Status:** tampilan dan endpoint server sudah dibuat, tetapi belum aktif pada Firebase DEV/PROD.
+**Status 10 November 2026:** frontend GitHub Pages dan workspace Firebase telah terhubung ke kode API pengelolaan akun, **tetapi Cloud Functions belum diaktifkan/dideploy untuk operasional**. Pada GitHub Pages mode default tetap **Mode Lihat** sampai proses aktivasi disetujui.
 
-## Alur di aplikasi
-1. Pegawai membuka situs dan login dengan Gmail BPS Blora yang disetujui sebagai gerbang Mode Lihat.
-2. Untuk pengelolaan, pilih **Masuk dengan Peran**, isikan username/password akun Admin.
-3. Backend memverifikasi kredensial dan menerbitkan Firebase UID khusus akun peran.
-4. `getAccessContext` memastikan UID aktif dengan peran `admin` sebelum menu ditampilkan.
-5. Pada menu **Kelola Akun Akses**, Admin dapat:
-   - **Tambah Akun**: username, peran, tim (ketua tim), password awal.
-   - **Edit Akun**: ganti username, peran, cakupan tim.
-   - **Reset Password**: tetapkan password baru; password sebelumnya tidak bisa ditampilkan.
-   - **Aktifkan/Nonaktifkan**: hentikan atau pulihkan izin login.
-   - **Muat Ulang**: lihat daftar akun dan status terbaru.
-6. Setiap perubahan dicatat pada `auditLogs` oleh backend, bukan dari browser.
+## Alur pengguna
 
-## Keamanan
-- Form memakai DOM terproteksi; kredensial tidak disimpan di kode, browser storage, atau GitHub.
-- Semua endpoint memverifikasi ulang akun Admin dari Firebase Authentication dan profil di Firestore.
-- Admin tidak boleh mengedit/menonaktifkan akunnya sendiri melalui menu biasa.
-- Akun Kepala dan Admin termasuk **peran sensitif**. Perubahan/kunci ulang peran sensitif diblokir kecuali pengelola mengaktifkan izin tambahan secara eksplisit setelah persetujuan TI.
-- Ketua Tim wajib memiliki minimal satu ID tim. Cakupan tim dicatat dan wajib ditegakkan pada seluruh API penulisan.
-- Password minimal 12 karakter (bcrypt maksimal 72 byte). Utamakan password panjang dan unik.
-- Login, pembuatan akun, dan semua penulisan ke Firestore masih **nonaktif secara default**.
-- Pemilik Firebase yang menggunakan Gmail bersama tidak otomatis mendapat peran Admin Matriks karena itu adalah otorisasi terpisah.
+1. Pengguna masuk ke website dengan Google BPS Blora dan memperoleh **Mode Lihat**.
+2. Klik **Login Peran**, kemudian masukkan username dan password Admin yang sebelumnya dibuat melalui *bootstrap* awal.
+3. Server memvalidasi username/password dan mengembalikan Firebase token khusus akun peran. Akun Google viewer **tetap terhubung** pada sesi Firebase terpisah.
+4. `getAccessContext` memvalidasi kembali status aktif dan `role=admin`. Tombol **Kelola Akun Akses** baru ditampilkan jika Admin terverifikasi; tindakan tidak dapat dilakukan oleh Ketua Tim ataupun Mode Lihat.
+5. Admin dapat menggunakan **Kelola Akun Akses** untuk:
+   - **Tambah Akun Ketua Tim**: username unik, password awal (12–72 byte), dan centang satu/lebih tim.
+   - **Edit Akun**: perbarui username, peran dan cakupan tim yang diizinkan server.
+   - **Reset Password**: password baru tanpa pernah menampilkan hash atau password lama.
+   - **Aktifkan / Nonaktifkan**: ubah status akun dan cabut sesi terkait.
+   - **Muat Ulang**: melihat nama tim yang dikelola, status aktif dan jumlah akun.
+6. Ketua Tim login dengan akun yang dibuat Admin; tampilan difilter mengikuti tim yang terdaftar. Apabila beberapa tim ditetapkan, Ketua Tim dapat mengganti **Tim Aktif** di header. Server tetap memeriksa cakupan tim pada setiap permintaan data.
+7. **Keluar Peran** mengembalikan pengguna ke Mode Lihat tanpa logout Google.
 
-## Yang belum selesai sebelum operasional
-- Metode *bootstrap* akun Admin pertama secara aman.
-- Pengujian Emulator, penanganan revoke token aktif, pembatasan percobaan tingkat IP, App Check, pengaturan durasi sesi, audit lengkap dan backup.
-- Aktifkan Cloud Functions dalam paket Blaze setelah mendapat persetujuan biaya.
-- Jalankan pengujian pengubahan/penonaktifan pengguna dari dua browser dan akses lintas tim.
+## Privasi dan aturan keamanan
 
-Kode:
-- `src/adminAccess.js`: tampilan khusus Admin.
-- `functions/accessAdmin.js`: API pengelolaan akun berizin.
-- `functions/index.js`: pendaftaran API.
+- Akun username/password **bukan** password Google BPS Blora.
+- Password hanya dikirim melalui HTTPS ke Cloud Functions. Hash menggunakan bcrypt dan tidak disimpan di repository, localStorage, atau dikirim kembali ke frontend.
+- Hanya peran Admin aktif dengan kredensial *custom token* yang dapat mengelola akun; seluruh endpoint memakai pemeriksaan server `requireAdmin()`.
+- Akun Admin pertama dibuat sekali menggunakan `functions/bootstrapAdmin.cjs` pada terminal Cloud Shell tepercaya dengan password tidak terlihat di layar. Pengguna tidak mengirimkan password melalui chat/GitHub.
+- Setelah bootstrap, pembuatan akun Ketua Tim dilakukan oleh Admin dari menu. Pembuatan akun Admin/Kepala tambahan membutuhkan izin lebih tinggi (`ALLOW_ELEVATED_ROLE_MANAGEMENT`) dan **tetap nonaktif secara default**.
+- Ketua Tim harus memiliki sedikitnya satu ID tim. Akun yang dinonaktifkan tidak boleh membuat sesi baru. Operasi pengelolaan akun dicatat sebagai audit server.
+- `firestore.rules` tetap **deny-all**, agar browser tidak dapat mengakses Firestore secara langsung. Permintaan melalui Cloud Functions yang telah memverifikasi identitas.
+- Preview DEV menggunakan referensi anonim 2026; data pegawai asli tidak boleh dimigrasikan ke Firestore DEV `nam5` tanpa persetujuan TI.
+
+## Mengaktifkan fitur (membutuhkan pengelola Firebase)
+
+1. Persetujuan TI dan biaya **Firebase Blaze** serta konfigurasi WIF/OIDC untuk deployment DEV; siapkan review keamanan dan pemulihan akun.
+2. Aktifkan fungsi login DEV secara manual melalui [workflow login peran](../.github/workflows/deploy-role-login-backend-dev.yml) setelah persyaratannya terpenuhi.
+3. Jalankan `bootstrapAdmin.cjs` untuk membuat Admin pertama secara aman, bukan dari halaman login publik.
+4. Siapkan variabel repo `FIREBASE_ACCOUNT_ADMIN_DEV_APPROVED=true` dan `MATRIX_ADMIN_BOOTSTRAP_DONE=true` hanya setelah pemeriksaan sebenarnya. Jalankan [workflow Admin Akun DEV](../.github/workflows/deploy-admin-accounts-backend-dev.yml) melalui `workflow_dispatch` dan persetujuan lingkungan `firebase-account-dev-approved`.
+5. Setelah pengujian server lulus, aktifkan `VITE_ROLE_AUTH_READY=true` dan `VITE_ACCESS_ADMIN_READY=true` pada build DEV **khusus**. `VITE_MATRIX_BACKEND_READY` tetap terpisah dan tidak perlu diaktifkan untuk pengelolaan akun.
+6. Uji dua browser: Admin menambah/menonaktifkan akun, Ketua Tim login dan hanya melihat tim yang menjadi kewenangannya, logout peran tidak mengganti Google viewer, reset password dan pembatalan sesi sesuai kebijakan.
+
+**Jangan mengubah semua flag menjadi true hanya demi membuka tombol.** Tanpa deployment Cloud Functions dan akun Admin yang sudah dibuat, tidak ada login peran yang benar-benar dapat bekerja.
+
+## Kode terkait
+
+- `src/publicPreview.js` — status sesi dan tombol Kelola Akun di header prototipe.
+- `src/main.js` — dua sesi Firebase Auth untuk Google viewer dan akun peran.
+- `src/adminAccess.js` + `src/adminAccess.css` — formulir Admin, centang tim, daftar akun, reset dan status.
+- `src/liveMatrix.js` — akun hanya muncul pada hak akses Admin dan memakai sesi Cloud Functions sesuai peran.
+- `functions/index.js` + `functions/accessAdmin.js` + `functions/security.js` — login dan pemeriksaan izin server.
+- `functions/bootstrapAdmin.cjs` — pembuatan Admin pertama melalui terminal tepercaya.
