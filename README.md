@@ -14,7 +14,7 @@ Repository **privat** untuk pengembangan Matriks Kinerja Pegawai dan migrasi pro
 - Dashboard referensi 2026: 25 tim, 40 pegawai anonim, 33 KRO, 22 contoh kegiatan.
 - Referensi mencatat 1.412 uraian sumber, tetapi detail semuanya belum dimigrasikan.
 - Menu Admin **Kelola Akun Akses**: tambah/edit username, peran, tim, reset password, serta aktif/nonaktif.
-- Menu Admin dan login peran **belum aktif** sampai Cloud Functions, Rules, dan akun Admin pertama siap.
+- Login peran dan **Kelola Akun Akses sekarang memakai jalur Spark**, tanpa Cloud Functions: Firebase Authentication Email/Password untuk kredensial internal dan Firestore Rules untuk izin. Edit username dan Reset Password Ketua Tim tersedia di kode, tetapi aktivasi Firebase Console + pengujian Rules masih diperlukan.
 - Firebase Hosting menggunakan hasil build `dist`. Preview `matriks-dev` sudah tersedia; pengaturan Workload Identity Federation GitHub → Firebase telah selesai di Cloud Shell pada 6 November 2026. Workflow `auto-deploy-dev-preview.yml` sedang diuji untuk pembaruan otomatis.
 
 ## Integrasi V25 menuju database bersama
@@ -24,16 +24,18 @@ Fondasi backend dan antarmuka akun Admin/Ketua Tim/Kepala sudah ditambahkan:
 - `functions/matrixApi.js` dan `functions/matrixSchema.js`: API Firestore terproteksi, perubahan atomik, validasi peran/tim, finalisasi Kepala, dan pencatatan audit.
 - `functions/bootstrapAdmin.cjs`: pembuatan akun Admin pertama melalui terminal tepercaya.
 - `scripts/import-legacy-2026.mjs`: impor PRIVAT seluruh seed data 2026 dari file asli V25 v2.6. Data asli tidak dibundel ke website.
-- Seluruh endpoint data dan login peran tetap **nonaktif** sampai Cloud Functions diaktifkan melalui proyek/data location yang disetujui; preview GitHub tetap anonim dan read-only.
+- Endpoint Cloud Functions lama tetap **nonaktif** dan tidak diperlukan untuk login Spark. **Database matriks operasional** masih belum diaktifkan/migrasi; preview GitHub menggunakan referensi anonim dan data lokal.
 - [Rincian dan prasyarat operasional](docs/INTEGRASI_OPERASIONAL_V25.md).
 
 ## Arah arsitektur
 
-GitHub (kode + review) -> Firebase Hosting (web) -> Authentication (Google untuk mode lihat; custom token akun peran untuk pengelolaan) + Cloud Firestore (data bersama).
-Tindakan sensitif seperti pengaturan role dan finalisasi harus divalidasi oleh proses server tepercaya.
+Jalur akun yang dipilih: GitHub Pages/Firebase Hosting → Google BPS Blora (Mode Lihat) → Firebase Authentication Email/Password internal untuk peran → Firestore Security Rules untuk membatasi pembuatan/perubahan akun oleh Admin.
+
+**Tanpa Blaze/Cloud Functions untuk pengelolaan akun.** Data bersama, alokasi dan finalisasi masih tahap terpisah, tidak boleh dianggap aktif sebelum migrasi dan pengujian hak akses.
 
 ## Dokumen
 
+- [Aktivasi Spark gratis dan Reset Password via Admin](docs/SPARK_GRATIS_MATRIKS.md)
 - [Langkah setup Firebase](docs/SETUP_FIREBASE.md)
 - [Arsitektur dan rencana migrasi](docs/ARSITEKTUR_DAN_MIGRASI.md)
 - [Rancangan akses dua tahap: Google lihat + login peran](docs/KEBIJAKAN_AKSES_DUA_TAHAP.md)
@@ -77,5 +79,5 @@ Dokumen ini tidak merupakan persetujuan untuk memasukkan data pegawai asli ke la
 - Sumber: cabang `setup/firebase-foundation`, workflow `.github/workflows/deploy-github-pages.yml`.
 - GitHub Settings > Pages > Source harus `GitHub Actions`.
 - Preview membuka V25 Terpadu v2.6 secara langsung tanpa login; data hanya simulasi anonim dan penyimpanan masih lokal di browser.
-- Bukan layanan operasional; Firestore dan akun/peran asli tetap nonaktif.
+- Bukan layanan operasional: kode login Spark tersedia, tetapi akun awal dan aturan `firestore.spark.rules` harus disiapkan/deploy serta diuji sebelum login nyata. Penyimpanan matriks masih lokal.
 - Setiap push pada cabang ini memicu pemeriksaan prototipe dan deployment ulang GitHub Pages.
