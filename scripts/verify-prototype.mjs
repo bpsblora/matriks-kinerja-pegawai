@@ -1653,6 +1653,28 @@ assert.equal(evalRole({mode:"viewer",active:true,role:"admin"}),null);
 assert.equal(evalRole({mode:"role",active:false,role:"admin"}),null);
 assert.equal(evalRole({mode:"role",active:true,role:"ketua_tim",teamIds:[]}),null);
 assert.equal(evalRole({mode:"role",active:true,role:"ketua_tim",teamIds:["T1","T2"]}),null);
+// Role/Mode Lihat header styling: highlight is accessible, animated but
+// respects reduced-motion; chevron is drawn with CSS, not an uneven v glyph.
+assert(previewSource.includes('id="mpRoleMenu"')&&
+ previewSource.includes('aria-expanded="false"')&&
+ previewSource.includes('<span class="mp-role-caret" aria-hidden="true"></span>'),
+ "Tanda panah harus digambar rapi dengan CSS tanpa karakter teks v");
+assert(!previewSource.includes('class="mp-role-caret" aria-hidden="true">⌄'),
+ "Tanda panah teks lama harus dihapus");
+for(const token of [
+ ".mp-role-menu[aria-expanded=\"true\"] .mp-role-caret{",
+ "transform:translateY(4px) rotate(225deg)",
+ ".mp-role-menu.is-role-active #mpCurrentRole{",
+ "#mpCurrentRole::before{",
+ "animation:mpModeStatusPulse 2.9s ease-in-out infinite;",
+ "@keyframes mpModeStatusPulse{",
+ "@media(prefers-reduced-motion:reduce){",
+ "#mpCurrentRole::before{animation:none!important}",
+ "opener.setAttribute(\"aria-expanded\",\"true\")",
+ 'dialog.addEventListener("close",()=>opener.setAttribute("aria-expanded","false"))',
+ 'opener.classList.toggle("is-role-active",!!profile);'
+])assert(previewSource.includes(token),"Highlight atau animasi status belum lengkap: "+token);
+
 const previewRoleStart=inline.indexOf("function previewSessionState(){");
 const previewRoleEnd=inline.indexOf("// Master acuan 2026 dari V25",previewRoleStart);
 assert(previewRoleStart>=0&&previewRoleEnd>previewRoleStart,
