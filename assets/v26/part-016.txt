@@ -937,10 +937,12 @@ function enterPrototypeEdit(){
 function setupRoles(){
  setupRoster();
  $('loginScreen').classList.add('hidden');
- $('btnLoginEdit').onclick=enterPrototypeEdit;
+ // Google authentication grants View only. Editors require a separately
+ // verified role session; no automatic Admin role on page load.
+ $('btnLoginEdit').onclick=()=>toast('Gunakan Login Peran pada header untuk masuk sebagai Admin atau Ketua Tim.');
  $('modeView').onclick=enterView;
- $('btnLogout').onclick=()=>{enterView();toast('Mode lihat aktif.');};
- enterPrototypeEdit();
+ $('btnLogout').onclick=()=>{enterView();toast('Mode Lihat aktif.');};
+ enterView();
 }
 /* Public PREVIEW-ONLY role selector, for testing UI flows inside the local
    prototype. These roles are not Firebase claims or shared DB permissions. */
