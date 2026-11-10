@@ -625,12 +625,11 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
   
 
  <section class="kro-audit panel" id="kroAuditPanel" aria-label="Monitoring kelengkapan pembagian KRO">
-  <div class="kro-audit-heading"><div><span class="kro-audit-eyebrow">PEMANTAUAN PEMBAGIAN KRO · <strong id="kroAuditYear">2027</strong></span><h3>Status Pembagian KRO</h3><p>Pilih kartu untuk melihat temuan dan melakukan tindak lanjut pada pop-up.</p></div><button class="btn tiny soft" id="kroAuditRefresh" type="button">↻ Perbarui</button></div>
-  <div class="kro-audit-kpis kro-audit-kpis-four" aria-label="Akses cepat pemantauan dan kelola KRO">
+  <div class="kro-audit-heading"><div><span class="kro-audit-eyebrow">PEMANTAUAN PEMBAGIAN KRO · <strong id="kroAuditYear">2027</strong></span><h3>Status Pembagian KRO</h3><p>Klik salah satu kartu untuk melihat rincian temuan.</p></div><button class="btn tiny soft" id="kroAuditRefresh" type="button">↻ Perbarui</button></div>
+  <div class="kro-audit-kpis kro-audit-kpis-compact" aria-label="Tiga status kelengkapan pembagian KRO">
    <button type="button" class="kro-audit-kpi kro-audit-action" id="kroAuditOpenTeams" aria-haspopup="dialog" aria-controls="kroAuditTeamsDialog"><span>Tim Belum Memiliki KRO</span><strong id="kroAuditNoKroTeams">—</strong><small>Lihat Daftar Tim <span aria-hidden="true">↗</span></small></button>
    <button type="button" class="kro-audit-kpi kro-audit-action" id="kroAuditOpenUnassigned" aria-haspopup="dialog" aria-controls="kroAuditUnassignedDialog"><span>KRO Belum Memiliki Tim</span><strong id="kroAuditNoTeam">—</strong><small>Lihat KRO Tanpa Tim <span aria-hidden="true">↗</span></small></button>
    <button type="button" class="kro-audit-kpi kro-audit-action" id="kroAuditOpenActivities" aria-haspopup="dialog" aria-controls="kroAuditActivitiesDialog"><span>Tim–KRO Tanpa Kegiatan</span><strong id="kroAuditNoTask">—</strong><small>Lihat Rincian Kegiatan <span aria-hidden="true">↗</span></small></button>
-   <button type="button" class="kro-audit-kpi kro-audit-action kro-audit-manage" id="kroAuditOpenManage" aria-haspopup="dialog"><span>Kelola KRO Ditetapkan</span><strong class="kro-manage-symbol" aria-hidden="true">✎</strong><small>Lihat dan Edit Penetapan <span aria-hidden="true">↗</span></small></button>
   </div>
   <div class="kro-audit-status" id="kroAuditStatus" role="status" aria-live="polite"></div>
   <div class="kro-audit-sections kro-audit-dialogs">
