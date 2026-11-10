@@ -1313,4 +1313,42 @@ for(const token of [
 assert(cssPolish.includes(".team-directory-row.is-pending:not(.is-selected)"),
  "Tim belum ditetapkan harus terlihat di pemilih Tim");
 
+
+// Keep every KRO catalogue and assignment display sorted by code, not by
+// selection, recommendation priority, display name, or source import order.
+const kroCompareStart=inline.indexOf("function compareKroCodes(a,b){");
+const kroCompareEnd=inline.indexOf("function teamKroCodes(tid){",kroCompareStart);
+assert(kroCompareStart>=0&&kroCompareEnd>kroCompareStart,"Pembanding kode KRO tidak ditemukan");
+const kroCompareCode=inline.slice(kroCompareStart,kroCompareEnd);
+const testKroCodes=['2900.QMA.10','2897.BMA.004','2900.QMA.2','2896.BMA.004','2897.BMA.003'];
+const sortedKroCodes=vm.runInNewContext(
+ kroCompareCode+";codes.sort(compareKroCodes)",
+ {codes:testKroCodes.slice()});
+assert.deepEqual(Array.from(sortedKroCodes),
+ ['2896.BMA.004','2897.BMA.003','2897.BMA.004','2900.QMA.2','2900.QMA.10'],
+ "KRO harus diurutkan secara natural menurut seluruh segmen kode");
+assert(inline.includes(")].sort(compareKroCodes)}"),
+ "KRO terpilih dalam dropdown Input Alokasi harus diurutkan menurut kode");
+const kroListStart=inline.indexOf("function renderKroChecks(){");
+const kroMapStart=inline.indexOf("function renderKroMap(){",kroListStart);
+const kroMapEnd=inline.indexOf("function paintTeamAdminMembers(){",kroMapStart);
+const kroBoardStart=inline.indexOf("function renderKroBoard(){");
+const kroBoardEnd=inline.indexOf("function renderFinalBoard(){",kroBoardStart);
+assert(kroListStart>=0&&kroMapStart>kroListStart&&kroMapEnd>kroMapStart&&
+ kroBoardStart>=0&&kroBoardEnd>kroBoardStart,
+ "Renderer KRO yang harus konsisten tidak lengkap");
+for(const code of [
+ inline.slice(kroListStart,kroMapStart),
+ inline.slice(kroMapStart,kroMapEnd),
+ inline.slice(kroBoardStart,kroBoardEnd),
+]){
+ assert(code.includes(".sort((a,b)=>compareKroCodes(a.code,b.code))"),
+  "Seluruh daftar KRO harus menggunakan pembanding kode yang sama");
+}
+assert(inline.slice(kroBoardStart,kroBoardEnd).includes(
+ "const masterRows=POK_KROS.filter")&&
+ inline.slice(kroBoardStart,kroBoardEnd).includes(
+ "const arr=POK_KROS.filter"),
+ "Daftar induk dan daftar penetapan KRO harus tetap tersedia");
+
 console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
