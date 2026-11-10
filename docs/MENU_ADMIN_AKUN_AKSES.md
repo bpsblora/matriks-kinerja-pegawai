@@ -13,12 +13,13 @@ Panduan aktivasi lengkap: **[SPARK_GRATIS_MATRIKS.md](./SPARK_GRATIS_MATRIKS.md)
 3. Firestore memeriksa dokumen `sparkRoleProfiles/{uid}` untuk membaca
    `role`, `active` dan `teamIds`.
 4. Setelah akun `admin` terverifikasi, menu **Kelola Akun Akses** tersedia.
-5. Admin dapat **membuat akun Ketua Tim**, memilih satu atau lebih tim dengan
-   checkbox, mengedit cakupan tim, serta mengaktifkan/nonaktifkan akun.
-6. Ketua Tim yang mengetahui password lama dapat menggantinya sendiri melalui
-   fasilitas ganti password. **Admin tidak bisa mengatur ulang password orang
-   lain dengan Web SDK Spark**; untuk akun yang terlupa password, buat akun
-   pengganti dan nonaktifkan akun lama.
+5. Admin dapat **membuat akun Ketua Tim**, **mengedit username**, memilih
+   satu atau lebih tim dengan checkbox, menetapkan **password baru (Reset Password)**
+   dan mengaktifkan/nonaktifkan akun.
+6. Reset Password menggunakan identitas Firebase Auth pengganti: **username tetap
+   sama**, sedangkan profil akses akun lama dinonaktifkan dalam satu batch
+   Firestore. Admin tidak membaca sandi lama dan Ketua Tim tidak perlu email.
+   Untuk mengganti passwordnya sendiri, Admin memasukkan password saat ini.
 7. Logout peran → **Mode Lihat**; akun Google tidak ikut keluar.
 
 ## Ketersediaan
@@ -47,6 +48,11 @@ Panduan aktivasi lengkap: **[SPARK_GRATIS_MATRIKS.md](./SPARK_GRATIS_MATRIKS.md)
 - Dua sesi Google dan peran di browser **bukan** autentikasi ganda yang dapat
   diperiksa bersamaan oleh Security Rules tanpa backend khusus.
 - Alias `.invalid` tidak memiliki kotak surat untuk pemulihan password.
+- Koleksi `sparkRoleHandles` menyimpan pemetaan username ke identitas Firebase
+  internal; Admin yang sah mengubah pemetaan ini secara atomik saat mengganti
+  username atau melakukan reset password. Akun Auth lama tidak otomatis terhapus
+  dari daftar Firebase Authentication, tetapi kehilangan akses profil; pembersihan
+  akun tidak terpakai bisa dilakukan oleh operator Console.
 - Jangan pernah mengubah aturan menjadi `allow read, write: if true` atau
   `allow write: if request.auth != null` pada seluruh database.
 
