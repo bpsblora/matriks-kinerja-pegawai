@@ -890,14 +890,16 @@ const gateBase={
  adminMemberWorking:new Set(['E1']),
  equalIds:(a,b)=>[...(a||[])].sort().join('|')===[...(b||[])].sort().join('|')
 };
-const gateTest=overrides=>vm.runInNewContext(gateSource+";teamActivityAccessIssue('T1')",{...gateBase,...overrides});
+const gateTest=({draftMembers=['E1'],...overrides})=>vm.runInNewContext(
+ "adminMemberWorking=new Set("+JSON.stringify(draftMembers)+");"+gateSource+";teamActivityAccessIssue('T1')",
+ {...gateBase,...overrides});
 assert.equal(gateTest({}),'',"Tim aktif yang sudah lengkap harus dapat membuka Input Alokasi");
 assert.match(gateTest({staffReady:()=>false}),/Daftar Pegawai/,"Pegawai belum ditetapkan tidak boleh diedit");
 assert.match(gateTest({teamEstablishmentIssue:()=> 'Ketua belum dipilih'}),/Ketua/,"Ketua tidak lengkap wajib diblokir");
 assert.match(gateTest({yearKroReady:()=>false}),/KRO/,"KRO belum ditetapkan wajib diblokir");
 assert.match(gateTest({roleCanManageTeam:()=>false}),/hak/,"Pengguna tanpa izin tidak boleh mengelola tim");
 assert.match(gateTest({annualEditingTeamId:'T1'}),/Ubah Susunan Tim/,"Mode ubah susunan tidak boleh memintas penetapan");
-assert.match(gateTest({adminMemberWorking:new Set(['E1','E2'])}),/perubahan Ketua dan Anggota/,"Draf anggota yang belum disimpan harus diblokir");
+assert.match(gateTest({draftMembers:['E1','E2']}),/perubahan Ketua dan Anggota/,"Draf anggota yang belum disimpan harus diblokir");
 assert.match(gateTest({yearInfo:()=>({status:'closed'})}),/ditutup/,"Tahun tertutup tidak boleh disunting");
 
 // Unified staff/team cards and safe amendment rules, November 2026.
