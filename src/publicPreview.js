@@ -4,15 +4,21 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import { auth, functions } from "./firebase/client.js";
 import sitePolishCss from "./sitePolish.css?raw";
 import {createAccessAdminView} from "./adminAccess.js";
+import {createSparkAccessAdminView} from "./sparkAccessAdmin.js";
+import {
+ sparkRoleReady,sparkRoleAuth,loginSparkRole,restoreSparkRole,logoutSparkRole,
+ changeSparkOwnPassword
+} from "./sparkRoleAuth.js";
 import "./adminAccess.css";
 
 // GitHub Pages is a preview. Real roles and shared writes remain disabled.
 // Google BPS Blora stays the viewer identity. Role credentials are checked by
 // the server separately and never inferred from a client-side role selection.
-const roleLoginReady=import.meta.env.VITE_ROLE_AUTH_READY==="true";
-// Role credential administration is independent of the future Matrix dataset.
-const accountsReady=roleLoginReady&&import.meta.env.VITE_ACCESS_ADMIN_READY==="true";
-const roleApp=roleLoginReady?initializeApp(auth.app.options,"matriks-role-session"):null;
+// Prefer Firebase Spark's built-in Email/Password & Firestore Rules.
+const legacyRoleReady=!sparkRoleReady&&import.meta.env.VITE_ROLE_AUTH_READY==="true";
+const roleLoginReady=sparkRoleReady||legacyRoleReady;
+const accountsReady=sparkRoleReady||(legacyRoleReady&&import.meta.env.VITE_ACCESS_ADMIN_READY==="true");
+const roleApp=legacyRoleReady?initializeApp(auth.app.options,"matriks-role-session"):null;
 const roleAuth=roleApp?getAuth(roleApp):null;
 const roleFunctions=roleApp?getFunctions(roleApp,import.meta.env.VITE_FIREBASE_FUNCTION_REGION||"us-central1"):null;
 const roleSignIn=roleLoginReady?httpsCallable(functions,"usernameSignIn",{timeout:30000}):null;
@@ -308,9 +314,15 @@ function bindAuthenticatedSession(frame){
  accountButton.addEventListener("click",()=>{
   // UI visibility is convenience only; server enforces requireAdmin()
   // for every operation and checks Firebase custom role credentials.
-  if(!accountsReady||liveRole?.role!=="admin"||!roleAuth?.currentUser||!roleFunctions)return;
+  if(!accountsReady||liveRole?.role!=="admin")return;
   const teams=preview?.__mpPreviewSessionState?.()?.teams||[];
-  accountContent.replaceChildren(createAccessAdminView(teams,{functionsClient:roleFunctions}));
+  if(sparkRoleReady){
+   if(!sparkRoleAuth?.currentUser)return;
+   accountContent.replaceChildren(createSparkAccessAdminView(teams));
+  }else{
+   if(!roleAuth?.currentUser||!roleFunctions)return;
+   accountContent.replaceChildren(createAccessAdminView(teams,{functionsClient:roleFunctions}));
+  }
   if(!accountDialog.open)accountDialog.showModal();
  });
 
@@ -341,8 +353,10 @@ function bindAuthenticatedSession(frame){
   if(busy)return;
   closeAccounts();
   busy=true;roleLogout.disabled=true;
-  try{if(roleAuth)await signOut(roleAuth);}
-  finally{
+  try{
+   if(sparkRoleReady)await logoutSparkRole();
+   else if(roleAuth)await signOut(roleAuth);
+  }finally{
    preview?.__mpPreviewSwitchRole?.("pegawai");
    renderRole(null);
    busy=false;
@@ -351,7 +365,8 @@ function bindAuthenticatedSession(frame){
  renderRole(null);
  get("mpSignOut")?.addEventListener("click",async()=>{
   closeAccounts();
-  if(roleAuth)await signOut(roleAuth).catch(()=>{});
+  if(sparkRoleReady)await logoutSparkRole().catch(()=>{});
+  else if(roleAuth)await signOut(roleAuth).catch(()=>{});
   await signOut(auth);
  });
  roleLogout.addEventListener("click",exitRole);
@@ -376,8 +391,8 @@ function bindAuthenticatedSession(frame){
  form.addEventListener("submit",async event=>{
   event.preventDefault();
   if(busy)return;
-  if(!roleLoginReady||!roleSignIn||!roleAuth){
-   warning.textContent="Login peran belum aktif. Mode Lihat tetap tersedia sampai layanan backend disiapkan.";
+  if(!roleLoginReady||(!sparkRoleReady&&(!roleSignIn||!roleAuth))){
+   warning.textContent="Login peran belum disiapkan di Firebase. Mode Lihat tetap tersedia.";
    return;
   }
   const typedUser=username.value.trim().toLowerCase(),typedPassword=password.value;
@@ -385,24 +400,54 @@ function bindAuthenticatedSession(frame){
   busy=true;apply.disabled=true;warning.textContent="";
   try{
    if(!auth.currentUser)throw new Error("Login Google BPS Blora harus aktif.");
-   const response=await roleSignIn({username:typedUser,password:typedPassword});
-   if(typeof response?.data?.token!=="string")throw new Error("Token login peran tidak tersedia.");
-   await signInWithCustomToken(roleAuth,response.data.token);
-   const profile=await verifyRoleSession();
+   let profile=null;
+   if(sparkRoleReady){
+    const spark=await loginSparkRole(typedUser,typedPassword);
+    profile={
+     role:spark.role==="ketua_tim"?"ketua":spark.role,
+     teamId:spark.role==="ketua_tim"?spark.teamIds[0]:"",
+     teamIds:spark.teamIds,username:spark.username
+    };
+   }else{
+    const response=await roleSignIn({username:typedUser,password:typedPassword});
+    if(typeof response?.data?.token!=="string")throw new Error("Token login peran tidak tersedia.");
+    await signInWithCustomToken(roleAuth,response.data.token);
+    profile=await verifyRoleSession();
+   }
    if(!profile)throw new Error("Akun peran tidak diizinkan.");
    const changed=preview?.__mpPreviewSwitchRole?.(profile.role,profile.teamId);
-   if(!changed){await signOut(roleAuth);throw new Error("Tim akun peran belum tersedia dalam matriks.");}
+   if(!changed){
+    if(sparkRoleReady)await logoutSparkRole();
+    else if(roleAuth)await signOut(roleAuth);
+    throw new Error("Tim akun peran belum tersedia dalam matriks.");
+   }
    renderRole(profile);
    dialog.close();
    password.value="";
   }catch(error){
-   warning.textContent="Login gagal: "+(error?.message?.includes("not available")?"Layanan belum diaktifkan.":"Periksa username, password, atau akses akun peran.");
+   warning.textContent=sparkRoleReady?
+    "Login ditolak. Periksa username, password, akun aktif, atau pengaturan Firebase Email/Password dan Firestore Rules.":
+    "Login gagal: periksa username, password, atau izin akun peran.";
    password.value="";
   }finally{busy=false;apply.disabled=!roleLoginReady;}
  });
  // Restore a verified second-stage session only after Google and the iframe
  // have loaded. A stale/unverified role session is cleared to Mode Lihat.
- if(roleAuth)roleAuth.authStateReady().then(async()=>{
+ if(sparkRoleReady&&sparkRoleAuth){
+  sparkRoleAuth.authStateReady().then(async()=>{
+   if(frame.contentWindow!==preview||!auth.currentUser)return;
+   const spark=await restoreSparkRole();
+   if(!spark)return;
+   const profile={
+    role:spark.role==="ketua_tim"?"ketua":spark.role,
+    teamId:spark.role==="ketua_tim"?spark.teamIds[0]:"",
+    teamIds:spark.teamIds,username:spark.username
+   };
+   const changed=preview?.__mpPreviewSwitchRole?.(profile.role,profile.teamId);
+   if(changed)renderRole(profile);
+   else await logoutSparkRole().catch(()=>{});
+  }).catch(()=>{renderRole(null)});
+ }else if(roleAuth)roleAuth.authStateReady().then(async()=>{
   if(frame.contentWindow!==preview||!auth.currentUser)return;
   const profile=await verifyRoleSession();
   if(!profile)return;
