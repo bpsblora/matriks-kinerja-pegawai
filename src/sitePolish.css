@@ -4517,3 +4517,255 @@
  background:linear-gradient(115deg,#146eae,#0c568f);
  color:#fff;font-weight:900;
 }
+
+
+/* November 2026: compact three-card audit + always-visible KRO editor at bottom.
+   The editor is not a dialog, accordion, or dropdown panel. */
+#pageKRO #kroAuditPanel .kro-audit-kpis-compact{
+ display:grid!important;
+ grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ gap:10px!important;
+ align-items:stretch!important;
+}
+#pageKRO #kroAuditPanel .kro-audit-kpis-compact>.kro-audit-action{
+ box-sizing:border-box;
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) auto;
+ grid-template-rows:auto auto;
+ align-items:center!important;
+ justify-content:stretch!important;
+ width:100%;
+ min-height:73px!important;
+ padding:10px 13px!important;
+ column-gap:12px!important;
+ row-gap:5px!important;
+ border-radius:12px!important;
+}
+#pageKRO #kroAuditPanel .kro-audit-kpis-compact>.kro-audit-action>span:first-child{
+ grid-column:1;grid-row:1;
+ font-size:12px!important;
+ line-height:1.3!important;
+}
+#pageKRO #kroAuditPanel .kro-audit-kpis-compact>.kro-audit-action>strong{
+ grid-column:2;grid-row:1;
+ min-height:34px!important;
+ margin:0!important;
+ padding:4px 11px!important;
+ font-size:21px!important;
+}
+#pageKRO #kroAuditPanel .kro-audit-kpis-compact>.kro-audit-action>small{
+ grid-column:1/-1;grid-row:2;
+ align-items:center;
+ font-size:10.5px!important;
+ padding-top:1px;
+}
+#pageKRO #kroAuditPanel .kro-audit-kpis-compact>.kro-audit-action>small>span{
+ font-size:15px;color:#2475ae;font-weight:900;
+}
+#pageKRO #kroAuditPanel .kro-audit-heading{margin-bottom:10px!important}
+#pageKRO #kroAuditPanel #kroAuditStatus{
+ margin-top:10px!important;
+ padding:8px 11px!important;
+}
+#pageKRO #kroAssignmentSection.kro-assignment-inline{
+ display:block!important;
+ width:100%;
+ box-sizing:border-box;
+ margin:17px 0 0!important;
+ padding:0!important;
+ border:1px solid #c8dfef!important;
+ border-radius:16px!important;
+ background:#fff!important;
+ overflow:hidden;
+ box-shadow:0 5px 21px rgba(20,87,145,.055);
+ scroll-margin-top:22px;
+}
+#pageKRO .kro-assignment-inline-title{
+ box-sizing:border-box;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:14px;
+ padding:16px 20px 14px;
+ border-bottom:1px solid #d6e7f4;
+ background:linear-gradient(115deg,#eff8ff,#fff);
+}
+#pageKRO .kro-assignment-inline-title>div{min-width:0}
+#pageKRO .kro-assignment-inline-eyebrow{
+ display:block;
+ color:#387aab;
+ font-size:10px;
+ font-weight:900;
+ letter-spacing:.07em;
+}
+#pageKRO #kroAssignmentHeading{
+ margin:4px 0 5px;
+ color:#14517f;
+ font-size:17px;
+ font-weight:900;
+ line-height:1.35;
+}
+#pageKRO #kroAssignmentHeading:focus{outline:none}
+#pageKRO .kro-assignment-inline-title p{
+ margin:0;
+ font-size:11.5px;
+ line-height:1.5;
+ color:#5f819b;
+}
+#pageKRO .kro-assignment-inline-state{
+ display:flex;
+ align-items:center;
+ gap:8px;
+ flex-wrap:wrap;
+ justify-content:flex-end;
+ flex:0 0 auto;
+}
+#pageKRO .kro-assignment-inline-state>strong,
+#pageKRO .kro-assignment-inline-state>span{
+ display:inline-flex;
+ align-items:center;
+ min-height:28px;
+ padding:5px 10px;
+ border:1px solid #c8e1f3;
+ border-radius:9px;
+ background:#e7f4ff;
+ color:#185f96;
+ font-size:11px;
+ font-weight:900;
+ font-variant-numeric:tabular-nums;
+}
+#pageKRO .kro-assignment-inline-state>span{
+ background:#f4f8fc;
+ color:#507691;
+ border-color:#dce8f2;
+}
+#pageKRO .kro-assignment-inline-content{
+ box-sizing:border-box;
+ padding:17px 20px 19px;
+ min-width:0;
+}
+#pageKRO .kro-assignment-inline-content .combined-kro-controls{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);
+ align-items:end!important;
+ gap:11px 15px;
+}
+#pageKRO .kro-assignment-inline-content .combined-kro-controls>label{
+ min-width:0;
+ width:100%;
+ display:flex;
+ flex-direction:column;
+ gap:6px;
+ color:#265d87;
+ font-size:11.5px;
+ font-weight:900;
+}
+#pageKRO .kro-assignment-inline-content :is(select,input[type="search"]){
+ box-sizing:border-box;
+ width:100%;
+ min-height:41px;
+ padding:9px 12px;
+ border:1px solid #c7dcec;
+ border-radius:10px;
+ background:#fff;
+ color:#1b507e;
+ font-size:12px;
+}
+#pageKRO .kro-assignment-inline-content .combined-kro-actions{
+ display:flex!important;
+ grid-column:1/-1;
+ align-items:center!important;
+ justify-content:flex-start;
+ flex-wrap:wrap;
+ gap:9px;
+ margin:2px 0 1px;
+}
+#pageKRO .kro-assignment-inline-content .combined-kro-actions button{
+ min-height:39px;
+ padding:9px 13px;
+ font-size:11.5px;
+ font-weight:900;
+ border-radius:10px;
+}
+#pageKRO .kro-assignment-inline-content .kro-board-recommendation{
+ box-sizing:border-box;
+ margin:12px 0 12px;
+ padding:10px 12px;
+ background:#f4f9fe;
+ border:1px solid #d8e9f6;
+ border-radius:10px;
+}
+#pageKRO .kro-assignment-inline-content .kro-board-reco-count{
+ color:#155b91;
+ font-size:12px;
+}
+#pageKRO .kro-assignment-inline-content .kro-reco-detail{
+ font-size:11px;
+ line-height:1.45;
+}
+#pageKRO .kro-assignment-inline-content #kroBoardList{
+ display:grid!important;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:8px!important;
+ max-height:none!important;
+ overflow:visible!important;
+ min-width:0;
+}
+#pageKRO .kro-assignment-inline-content .combined-kro-row{
+ box-sizing:border-box;
+ display:flex;
+ align-items:flex-start;
+ min-width:0;
+ margin:0!important;
+ border:1px solid #d7e6f3;
+ border-radius:11px;
+ background:#f9fcff;
+ padding:11px 12px;
+ gap:10px;
+ cursor:pointer;
+}
+#pageKRO .kro-assignment-inline-content .combined-kro-row:has(input:disabled){
+ cursor:default;
+}
+#pageKRO .kro-assignment-inline-content .combined-kro-row>span{
+ min-width:0;
+ overflow-wrap:anywhere;
+}
+#pageKRO .kro-assignment-inline-content .combined-kro-row:hover{
+ border-color:#8cbee2;
+ background:#f2f9ff;
+}
+@media(max-width:860px){
+ #pageKRO #kroAuditPanel .kro-audit-kpis-compact{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ }
+ #pageKRO #kroAuditPanel .kro-audit-kpis-compact>.kro-audit-action:last-child{
+  grid-column:1/-1;
+ }
+ #pageKRO .kro-assignment-inline-title{
+  align-items:flex-start;
+  flex-direction:column;
+ }
+ #pageKRO .kro-assignment-inline-state{
+  justify-content:flex-start;
+ }
+}
+@media(max-width:580px){
+ #pageKRO #kroAuditPanel .kro-audit-kpis-compact{
+  grid-template-columns:minmax(0,1fr)!important;
+ }
+ #pageKRO #kroAuditPanel .kro-audit-kpis-compact>.kro-audit-action:last-child{
+  grid-column:auto;
+ }
+ #pageKRO .kro-assignment-inline-title{padding:13px 14px}
+ #pageKRO .kro-assignment-inline-content{padding:14px}
+ #pageKRO .kro-assignment-inline-content .combined-kro-controls{
+  grid-template-columns:minmax(0,1fr);
+ }
+ #pageKRO .kro-assignment-inline-content #kroBoardList{
+  grid-template-columns:minmax(0,1fr);
+ }
+ #pageKRO .kro-assignment-inline-content .combined-kro-actions button{
+  width:100%;
+ }
+}
