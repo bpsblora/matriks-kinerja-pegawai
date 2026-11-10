@@ -96,6 +96,7 @@ function addAuthenticatedHeader(html,user){
    <button id="mpRoleMenu" class="mp-role-menu" type="button" aria-haspopup="dialog" aria-controls="mpRoleDialog" aria-expanded="false" title="Masuk dengan username dan password Admin atau Ketua Tim">
      <span class="mp-role-menu-label">Login Peran</span><strong id="mpCurrentRole">Mode Lihat</strong><span class="mp-role-caret" aria-hidden="true"></span>
    </button>
+   <label id="mpAssignedTeamLabel" class="mp-assigned-team" hidden>Tim Aktif <select id="mpAssignedTeam" aria-label="Tim yang dikelola"></select></label>
    <button id="mpManageAccounts" class="mp-accounts-trigger" type="button" hidden title="Kelola username, password dan tim Ketua Tim">Kelola Akun Akses</button>
    <button id="mpRoleLogout" type="button" hidden title="Keluar dari sesi peran, kembali ke Mode Lihat">Keluar Peran</button>
    <button id="mpSignOut" type="button" title="Keluar dari akun Google BPS Blora">Keluar Google</button>
@@ -246,8 +247,8 @@ function verifiedRoleContext(data){
  const role=roles[data.role];
  if(!role)return null;
  const teamIds=Array.isArray(data.teamIds)?data.teamIds.filter(t=>typeof t==="string"):[];
- if(role==="ketua"&&teamIds.length!==1)return null;
- return {role,teamId:role==="ketua"?teamIds[0]:"",username:String(data.username||"")};
+ if(role==="ketua"&&(teamIds.length<1||teamIds.some(id=>!/^[A-Z][0-9]{3}$/.test(id))))return null;
+ return {role,teamId:role==="ketua"?teamIds[0]:"",teamIds,username:String(data.username||"")};
 }
 async function verifyRoleSession(){
  if(!roleLoginReady||!roleAuth?.currentUser||!readRoleProfile)return null;
@@ -270,8 +271,9 @@ function bindAuthenticatedSession(frame){
   password=get("mpRolePassword"),apply=get("mpRoleApply"),
   badge=get("mpCurrentRole"),warning=get("mpRoleError"),roleLogout=get("mpRoleLogout"),
   accountButton=get("mpManageAccounts"),accountDialog=$("mpAccountsDialog"),
-  accountContent=$("mpAccountsContent");
- if(!dialog||!opener||!form||!username||!password||!apply||!badge||!warning||!roleLogout||!accountButton||!accountDialog||!accountContent)return;
+  accountContent=$("mpAccountsContent"),assignedTeam=get("mpAssignedTeam"),
+  assignedTeamLabel=get("mpAssignedTeamLabel");
+ if(!dialog||!opener||!form||!username||!password||!apply||!badge||!warning||!roleLogout||!accountButton||!accountDialog||!accountContent||!assignedTeam||!assignedTeamLabel)return;
  let liveRole=null,busy=false;
  const closeAccounts=()=>{
   if(accountDialog.open)accountDialog.close();
@@ -300,6 +302,14 @@ function bindAuthenticatedSession(frame){
   accountButton.hidden=profile?.role!=="admin";
   accountButton.disabled=profile?.role!=="admin"||!accountsReady;
   accountButton.title=accountsReady?"Kelola akun akses Ketua Tim melalui backend":"Pengelolaan akun belum diaktifkan oleh operator Firebase";
+  const assigned=profile?.role==="ketua"?profile.teamIds||[]:[];
+  const options=(state?.teams||[]).filter(t=>assigned.includes(t.id));
+  assignedTeamLabel.hidden=options.length<=1;
+  assignedTeam.disabled=options.length<=1;
+  assignedTeam.replaceChildren(...options.map(t=>{
+   const option=doc.createElement("option");option.value=t.id;option.textContent=t.name;return option;
+  }));
+  if(options.length)assignedTeam.value=state?.teamId||options[0].id;
   if(profile?.role!=="admin")closeAccounts();
   opener.setAttribute("aria-label",profile?"Masuk sebagai "+display:"Login Peran untuk mengelola data");
  }
@@ -321,6 +331,12 @@ function bindAuthenticatedSession(frame){
   await signOut(auth);
  });
  roleLogout.addEventListener("click",exitRole);
+ assignedTeam.addEventListener("change",()=>{
+  const tid=assignedTeam.value;
+  if(!liveRole||liveRole.role!=="ketua"||!liveRole.teamIds?.includes(tid))return;
+  const changed=preview?.__mpPreviewSwitchRole?.("ketua",tid);
+  if(changed)renderRole(liveRole);
+ });
  opener.addEventListener("click",()=>{
   if(liveRole)return;
   warning.textContent="";
