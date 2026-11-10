@@ -1668,12 +1668,12 @@ for(const token of [
  'id="mpAccountsDialog"',
  'id="mpAccountsContent"',
  'profile?.role!=="admin"',
- 'if(!accountsReady||liveRole?.role!=="admin"||!roleAuth?.currentUser||!roleFunctions)return;',
+ 'if(!accountsReady||liveRole?.role!=="admin")return;',
  'createAccessAdminView(teams,{functionsClient:roleFunctions})',
  'accountButton.hidden=profile?.role!=="admin";',
  'closeAccounts();',
- 'const roleLoginReady=import.meta.env.VITE_ROLE_AUTH_READY==="true";',
- 'const accountsReady=roleLoginReady&&import.meta.env.VITE_ACCESS_ADMIN_READY==="true";',
+ 'const roleLoginReady=sparkRoleReady||legacyRoleReady;',
+ 'const accountsReady=sparkRoleReady||(legacyRoleReady&&import.meta.env.VITE_ACCESS_ADMIN_READY==="true");',
  'assignedTeam.addEventListener("change",()=>{',
  'liveRole.teamIds?.includes(tid)',
  'accountButton.disabled=profile?.role!=="admin"||!accountsReady;'
@@ -1712,6 +1712,53 @@ assert(matrixSource.includes("createLiveMatrixWorkspace(context,{functionsClient
  matrixSource.includes("httpsCallable(functionsClient,name,")&&
  matrixSource.includes("createAccessAdminView(rows('teams'),{functionsClient})"),
  "Data matriks dan akun harus memakai Firebase Functions dengan identitas peran");
+// Spark is the preferred path. No Cloud Functions or Blaze is needed for
+// initial account login and Firebase-Security-Rules-backed Admin assignment.
+const sparkRoleSource=fs.readFileSync("src/sparkRoleAuth.js","utf8");
+const sparkAdminSource=fs.readFileSync("src/sparkAccessAdmin.js","utf8");
+const sparkRules=fs.readFileSync("firestore.spark.rules","utf8");
+const sparkConfig=JSON.parse(fs.readFileSync("firebase.spark.json","utf8"));
+for(const token of [
+ 'import {createSparkAccessAdminView} from "./sparkAccessAdmin.js";',
+ 'if(sparkRoleReady){',
+ 'const spark=await loginSparkRole(typedUser,typedPassword);',
+ 'const spark=await restoreSparkRole();',
+ 'createSparkAccessAdminView(teams)',
+ 'await logoutSparkRole()',
+ 'const legacyRoleReady=!sparkRoleReady&&import.meta.env.VITE_ROLE_AUTH_READY==="true";'
+])assert(previewSource.includes(token),"Jalur login Spark belum lengkap: "+token);
+for(const token of [
+ 'signInWithEmailAndPassword(sparkRoleAuth,sparkLoginEmail(username),password)',
+ 'createUserWithEmailAndPassword(creatorAuth,sparkLoginEmail(name),password)',
+ 'getDoc(doc(roleDb,"sparkRoleProfiles",user.uid))',
+ 'setDoc(doc(roleDb,"sparkRoleProfiles",registered.user.uid)',
+ 'await requireAdmin()',
+ 'updateDoc(target,{teamIds:[...teamIds],active,updatedAt:serverTimestamp()})',
+ 'deleteUser(registered.user)',
+ 'reauthenticateWithCredential(user,EmailAuthProvider.credential(user.email,currentPassword))',
+ 'updatePassword(user,newPassword)'
+])assert(sparkRoleSource.includes(token),"Spark Auth/Firestore untuk akun belum lengkap: "+token);
+for(const token of [
+ 'createSparkKetuaAccount({username:name,password:pass,teamIds:tids})',
+ 'updateSparkAccount(account.uid,{teamIds:tids,active:active.checked})',
+ 'changeSparkOwnPassword(oldPwd,newPwd)',
+ 'check.type="checkbox"',
+ 'const teams=(teams||[]).filter('
+].filter(t=>t!=='const teams=(teams||[]).filter('))
+ assert(sparkAdminSource.includes(token),"Tampilan akun Spark belum lengkap: "+token);
+assert(sparkConfig.firestore.rules==="firestore.spark.rules");
+for(const token of [
+ "match /sparkRoleProfiles/{uid}",
+ "function isAdmin()",
+ "allow create: if isAdmin() && validKetuaAccount();",
+ "allow update: if isAdmin()",
+ "resource.data.role == 'ketua_tim'",
+ "allow delete: if false;",
+ "allow read, write: if false;"
+])assert(sparkRules.includes(token),"Spark Firestore Rules belum aman: "+token);
+assert(fs.readFileSync(".env.example","utf8").includes("VITE_SPARK_ROLE_AUTH_READY=true"),
+ "Build GitHub Pages harus menggunakan jalur Auth Spark");
+
 const adminWorkflow=fs.readFileSync(".github/workflows/deploy-admin-accounts-backend-dev.yml","utf8");
 for(const token of [
  "workflow_dispatch:",
