@@ -82,8 +82,8 @@ function addAuthenticatedHeader(html,user){
  const email=safe(user.email),name=safe(user.displayName||user.email.split("@")[0]);
  const header=`<div class="mp-identity" role="group" aria-label="Google BPS Blora dan sesi login peran">
    <span class="mp-user"><strong>${name}</strong><small>${email}</small></span>
-   <button id="mpRoleMenu" class="mp-role-menu" type="button" aria-haspopup="dialog" aria-controls="mpRoleDialog" title="Masuk dengan username dan password Admin atau Ketua Tim">
-     <span class="mp-role-menu-label">Login Peran</span><strong id="mpCurrentRole">Mode Lihat</strong><span class="mp-role-caret" aria-hidden="true">⌄</span>
+   <button id="mpRoleMenu" class="mp-role-menu" type="button" aria-haspopup="dialog" aria-controls="mpRoleDialog" aria-expanded="false" title="Masuk dengan username dan password Admin atau Ketua Tim">
+     <span class="mp-role-menu-label">Login Peran</span><strong id="mpCurrentRole">Mode Lihat</strong><span class="mp-role-caret" aria-hidden="true"></span>
    </button>
    <button id="mpRoleLogout" type="button" hidden title="Keluar dari sesi peran, kembali ke Mode Lihat">Keluar Peran</button>
    <button id="mpSignOut" type="button" title="Keluar dari akun Google BPS Blora">Keluar Google</button>
@@ -148,6 +148,79 @@ function addAuthenticatedHeader(html,user){
 
  @media(max-width:1100px){.rightbar{flex-wrap:wrap;justify-content:flex-end}.mp-identity{flex-wrap:wrap}.mp-user{max-width:180px}}
  @media(max-width:650px){.mp-identity{width:100%}.mp-user{flex:1 1 130px}.mp-role-menu{flex:1;justify-content:center}}
+
+ /* Header role action: a clean CSS chevron replaces the uneven text glyph. */
+ .mp-role-menu{
+   position:relative; isolation:isolate; overflow:hidden;
+   display:inline-flex; align-items:center; justify-content:center;
+   min-height:42px; min-width:168px; gap:8px;
+   padding:7px 12px; border-radius:11px;
+   border:1px solid #97c9ed;
+   background:linear-gradient(118deg,#e6f5ff 0%,#f8fcff 58%,#e4f3ff 100%);
+   box-shadow:0 2px 9px rgba(27,106,172,.10),inset 0 1px 0 rgba(255,255,255,.92);
+   color:#155b91;
+   transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease;
+ }
+ .mp-role-menu::after{
+   content:"";pointer-events:none;position:absolute;inset:0;
+   background:linear-gradient(105deg,transparent 25%,rgba(255,255,255,.75) 49%,transparent 72%);
+   transform:translateX(-120%);transition:transform .56s ease;
+   z-index:0;
+ }
+ .mp-role-menu>*{position:relative;z-index:1}
+ .mp-role-menu:hover:not(:disabled),.mp-role-menu:focus-visible:not(:disabled){
+   background:linear-gradient(118deg,#dcefff,#f3faff);
+   border-color:#58a8dc;
+   box-shadow:0 5px 15px rgba(20,100,172,.19),0 0 0 3px rgba(81,174,231,.10);
+   transform:translateY(-1px);
+ }
+ .mp-role-menu:hover::after,.mp-role-menu:focus-visible::after{transform:translateX(120%)}
+ .mp-role-menu:active:not(:disabled){transform:translateY(0) scale(.99)}
+ .mp-role-menu[aria-expanded="true"]{
+   border-color:#429fda;
+   background:#e2f2ff;
+   box-shadow:0 0 0 3px rgba(64,159,218,.14),0 5px 15px rgba(19,91,156,.12);
+ }
+ .mp-role-menu-label{font-size:10px;letter-spacing:.015em;color:#4c789b}
+ #mpCurrentRole{
+   display:inline-flex;align-items:center;gap:7px;
+   padding:5px 9px;border-radius:8px;
+   background:#d5ecff;border:1px solid #b5dcf9;
+   color:#0d5b92;font-weight:950;font-size:11px;line-height:1.3;
+   box-shadow:inset 0 1px 0 rgba(255,255,255,.7);
+ }
+ #mpCurrentRole::before{
+   content:"";flex:0 0 7px;width:7px;height:7px;border-radius:50%;
+   background:#218bc6;box-shadow:0 0 0 3px rgba(47,153,212,.14);
+   animation:mpModeStatusPulse 2.9s ease-in-out infinite;
+ }
+ .mp-role-menu.is-role-active #mpCurrentRole{
+   background:#e3f8ed;border-color:#b8e8cb;color:#1c7752;
+ }
+ .mp-role-menu.is-role-active #mpCurrentRole::before{
+   background:#29a174;box-shadow:0 0 0 3px rgba(45,166,117,.15);
+ }
+ .mp-role-caret{
+   display:block;flex:0 0 8px;width:8px;height:8px;
+   margin:0 3px 4px 1px;padding:0;
+   border:0;border-right:2px solid #236b9d;border-bottom:2px solid #236b9d;
+   border-radius:0 1px 1px 0;
+   transform:rotate(45deg);
+   transform-origin:center;
+   transition:transform .22s ease,border-color .22s ease,margin .22s ease;
+ }
+ .mp-role-menu[aria-expanded="true"] .mp-role-caret{
+   transform:translateY(4px) rotate(225deg);
+   border-color:#10629d;
+ }
+ @keyframes mpModeStatusPulse{
+   0%,100%{box-shadow:0 0 0 3px rgba(47,153,212,.12)}
+   50%{box-shadow:0 0 0 5px rgba(47,153,212,.24)}
+ }
+ @media(prefers-reduced-motion:reduce){
+   .mp-role-menu,.mp-role-menu::after,.mp-role-caret{transition:none!important}
+   #mpCurrentRole::before{animation:none!important}
+ }
  </style>`;
  if(!html.includes('<div class="rightbar">'))throw new Error("Header prototipe tidak ditemukan.");
  return html.replace("</head>", styles + '<style id="mkp-site-polish">' + sitePolishCss + "</style></head>").replace('<div class="rightbar">','<div class="rightbar">'+header);
@@ -191,6 +264,7 @@ function bindAuthenticatedSession(frame){
   const state=preview?.__mpPreviewSessionState?.();
   const display=profile?(state?.label||"Pengelola")+(state?.teamName?" · "+state.teamName:""):"Mode Lihat";
   badge.textContent=display;
+  opener.classList.toggle("is-role-active",!!profile);
   opener.disabled=!!profile;
   roleLogout.hidden=!profile;
   roleLogout.disabled=!profile;
@@ -217,11 +291,13 @@ function bindAuthenticatedSession(frame){
   warning.textContent="";
   password.value="";
   if(!dialog.open)dialog.showModal();
+  opener.setAttribute("aria-expanded","true");
   username.focus({preventScroll:true});
  });
  get("mpRoleDismiss")?.addEventListener("click",()=>dialog.close());
  get("mpRoleCancel")?.addEventListener("click",()=>dialog.close());
  dialog.addEventListener("click",e=>{if(e.target===dialog)dialog.close();});
+ dialog.addEventListener("close",()=>opener.setAttribute("aria-expanded","false"));
  form.addEventListener("submit",async event=>{
   event.preventDefault();
   if(busy)return;
