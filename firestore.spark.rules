@@ -1,0 +1,69 @@
+rules_version = '2';
+
+// Firebase Spark: role credentials are provided by Firebase Authentication
+// Email/Password, not Cloud Functions. Role records are held in Firestore.
+// Deploy only after Firebase Console bootstrap and Emulator rules testing.
+// DENY ALL matrix/business data during this phase. Only role profiles open.
+//
+// Bootstrap: create admin account in Authentication using
+// admin@roles.mkp-bps-blora.invalid; create sparkRoleProfiles/{UID} through the
+// Firebase Console (privileged admin context, not from the browser).
+service cloud.firestore {
+ match /databases/{database}/documents {
+  function signedInPassword() {
+   return request.auth != null
+    && request.auth.token.firebase.sign_in_provider == 'password'
+    && request.auth.token.email is string;
+  }
+  function ownProfile() {
+   return get(/databases/$(database)/documents/sparkRoleProfiles/$(request.auth.uid)).data;
+  }
+  function hasLiveRole() {
+   return signedInPassword()
+    && exists(/databases/$(database)/documents/sparkRoleProfiles/$(request.auth.uid))
+    && ownProfile().active == true
+    && ownProfile().username is string
+    && request.auth.token.email == ownProfile().username + '@roles.mkp-bps-blora.invalid';
+  }
+  function isAdmin() {
+   return hasLiveRole() && ownProfile().role == 'admin';
+  }
+  function properTeamIds(ids) {
+   return ids is list && ids.size() > 0 && ids.size() <= 25;
+  }
+  function validKetuaAccount() {
+   return request.resource.data.keys().hasOnly([
+     'username','role','teamIds','active','createdAt','createdBy','updatedAt'
+   ]) && request.resource.data.keys().hasAll([
+     'username','role','teamIds','active','createdAt','createdBy','updatedAt'
+   ]) && request.resource.data.username is string
+    && request.resource.data.username.matches('^[a-z][a-z0-9._-]{2,31}$')
+    && request.resource.data.role == 'ketua_tim'
+    && properTeamIds(request.resource.data.teamIds)
+    && request.resource.data.active == true
+    && request.resource.data.createdBy == request.auth.uid;
+  }
+
+  match /sparkRoleProfiles/{uid} {
+   allow get: if isAdmin() || (signedInPassword() && request.auth.uid == uid);
+   allow list: if isAdmin();
+   allow create: if isAdmin() && validKetuaAccount();
+   allow update: if isAdmin() && uid != request.auth.uid
+    && resource.data.role == 'ketua_tim'
+    && request.resource.data.diff(resource.data).affectedKeys()
+       .hasOnly(['teamIds','active','updatedAt'])
+    && request.resource.data.username == resource.data.username
+    && request.resource.data.role == resource.data.role
+    && request.resource.data.createdBy == resource.data.createdBy
+    && request.resource.data.active is bool
+    && properTeamIds(request.resource.data.teamIds);
+   allow delete: if false;
+  }
+
+  // In Spark stage 1, nobody may read or change staff/activity matrices
+  // directly. A separate reviewed ruleset is required for shared workloads.
+  match /{document=**} {
+   allow read, write: if false;
+  }
+ }
+}
