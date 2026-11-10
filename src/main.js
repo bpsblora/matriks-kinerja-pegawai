@@ -6,6 +6,8 @@ import { initializeApp } from "firebase/app";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { app, auth, functions } from "./firebase/client.js";
 import { createAccessAdminView } from "./adminAccess.js";
+import { createSparkAccessAdminView } from "./sparkAccessAdmin.js";
+import {sparkRoleReady,sparkRoleAuth,loginSparkRole,restoreSparkRole,logoutSparkRole} from "./sparkRoleAuth.js";
 import ref from "./data/reference2026.json";
 import { createReference2026View } from "./reference2026.js";
 import { createLiveMatrixWorkspace } from "./liveMatrix.js";
@@ -22,10 +24,11 @@ import { createLiveMatrixWorkspace } from "./liveMatrix.js";
  * Never identify a user by a role button alone.
  */
 const viewerUid = import.meta.env.VITE_VIEWER_GOOGLE_UID || "";
-const roleLoginReady = import.meta.env.VITE_ROLE_AUTH_READY === "true";
+const legacyRoleReady = !sparkRoleReady && import.meta.env.VITE_ROLE_AUTH_READY === "true";
+const roleLoginReady = sparkRoleReady || legacyRoleReady;
 const matrixBackendReady = import.meta.env.VITE_MATRIX_BACKEND_READY === "true";
-const accountsReady = roleLoginReady && import.meta.env.VITE_ACCESS_ADMIN_READY === "true";
-const roleApp = roleLoginReady ? initializeApp(app.options,"matriks-role-session") : null;
+const accountsReady = sparkRoleReady || (legacyRoleReady && import.meta.env.VITE_ACCESS_ADMIN_READY === "true");
+const roleApp = legacyRoleReady ? initializeApp(app.options,"matriks-role-session") : null;
 const roleAuth = roleApp ? getAuth(roleApp) : null;
 const roleFunctions = roleApp ? getFunctions(roleApp,import.meta.env.VITE_FIREBASE_FUNCTION_REGION||"us-central1") : null;
 const root = document.querySelector("#app");
@@ -226,10 +229,17 @@ function approvedGoogle(){
  return !!viewerUid && auth.currentUser?.uid===viewerUid;
 }
 async function mountVerifiedRole(){
- if(!approvedGoogle()||!roleAuth?.currentUser||!getAccessContext)return false;
+ if(!approvedGoogle()||(sparkRoleReady?!sparkRoleAuth?.currentUser:!roleAuth?.currentUser||!getAccessContext))return false;
  try{
-  const reply=await getAccessContext({});
-  const profile=reply?.data;
+  let profile=null;
+  if(sparkRoleReady){
+   const spark=await restoreSparkRole();
+   if(!spark)return false;
+   profile={mode:"role",active:true,username:spark.username,role:spark.role,teamIds:spark.teamIds};
+  }else{
+   const reply=await getAccessContext({});
+   profile=reply?.data;
+  }
   if(profile?.mode!=="role"||profile?.active!==true||!["admin","ketua_tim","kepala"].includes(profile.role))
    throw new Error("Akun peran tidak valid.");
   if(profile.role==="ketua_tim"&&(!Array.isArray(profile.teamIds)||!profile.teamIds.length))
@@ -238,13 +248,15 @@ async function mountVerifiedRole(){
   privilegedHeading.textContent="Login Sesuai Peran";
   privilegedText.textContent="Username: "+profile.username+" · Peran: "+profile.role+
    " · Tim: "+(profile.teamIds||[]).join(", ");
-  if(matrixBackendReady) {
+  if(matrixBackendReady&&!sparkRoleReady) {
    liveWorkspace.replaceChildren(createLiveMatrixWorkspace({
     role:profile.role,teamIds:profile.teamIds||[],username:profile.username
    },{functionsClient:roleFunctions}));
   }else if(profile.role==="admin"&&accountsReady){
    // Account creation is independent of the future shared Matrix database.
-   liveWorkspace.replaceChildren(createAccessAdminView(ref.teams,{functionsClient:roleFunctions}));
+   liveWorkspace.replaceChildren(sparkRoleReady?
+    createSparkAccessAdminView(ref.teams):
+    createAccessAdminView(ref.teams,{functionsClient:roleFunctions}));
   }else{
    const note=document.createElement("p");
    note.className="warning";
@@ -253,7 +265,8 @@ async function mountVerifiedRole(){
   }
   return true;
  }catch{
-  await signOut(roleAuth).catch(()=>{});
+  if(sparkRoleReady)await logoutSparkRole().catch(()=>{});
+  else await signOut(roleAuth).catch(()=>{});
   render("viewer");
   report("Sesi peran belum diizinkan","Gunakan akun peran aktif sesuai tim yang telah ditetapkan Admin.","error");
   return false;
@@ -261,15 +274,19 @@ async function mountVerifiedRole(){
 }
 roleForm.addEventListener("submit", async event=>{
  event.preventDefault();
- if(!roleLoginReady||signedMode!=="viewer"||!approvedGoogle()||!roleAuth)return;
+ if(!roleLoginReady||signedMode!=="viewer"||!approvedGoogle()||(!sparkRoleReady&&!roleAuth))return;
  const chosenUsername=username.value.trim().toLowerCase();
  const enteredPassword=password.value;
  password.value="";
  roleButton.disabled=true;
  try{
-  const response=await roleLogin({username:chosenUsername,password:enteredPassword});
-  if(typeof response?.data?.token!=="string")throw new Error("Login peran belum tersedia.");
-  await signInWithCustomToken(roleAuth,response.data.token);
+  if(sparkRoleReady){
+   await loginSparkRole(chosenUsername,enteredPassword);
+  }else{
+   const response=await roleLogin({username:chosenUsername,password:enteredPassword});
+   if(typeof response?.data?.token!=="string")throw new Error("Login peran belum tersedia.");
+   await signInWithCustomToken(roleAuth,response.data.token);
+  }
   if(!await mountVerifiedRole())throw new Error("Peran belum terdaftar.");
  }catch{
   render("viewer");
@@ -277,17 +294,20 @@ roleForm.addEventListener("submit", async event=>{
  }finally{roleButton.disabled=!roleLoginReady;}
 });
 exitRoleButton.addEventListener("click",async()=>{
- if(roleAuth)await signOut(roleAuth).catch(()=>{});
+ if(sparkRoleReady)await logoutSparkRole().catch(()=>{});
+ else if(roleAuth)await signOut(roleAuth).catch(()=>{});
  render("viewer");
 });
 exitButton.addEventListener("click",async()=>{
- if(roleAuth)await signOut(roleAuth).catch(()=>{});
+ if(sparkRoleReady)await logoutSparkRole().catch(()=>{});
+ else if(roleAuth)await signOut(roleAuth).catch(()=>{});
  await signOut(auth).catch(()=>{});
  render("none");
 });
 onAuthStateChanged(auth,async user=>{
  if(!user){
-  if(roleAuth)await signOut(roleAuth).catch(()=>{});
+  if(sparkRoleReady)await logoutSparkRole().catch(()=>{});
+  else if(roleAuth)await signOut(roleAuth).catch(()=>{});
   render("none");return;
  }
  try{
@@ -295,13 +315,16 @@ onAuthStateChanged(auth,async user=>{
   if(auth.currentUser?.uid!==user.uid)return;
   if(token.signInProvider!=="google.com"||!viewerUid||user.uid!==viewerUid||
      token.claims?.email_verified!==true){
-   if(roleAuth)await signOut(roleAuth).catch(()=>{});
+   if(sparkRoleReady)await logoutSparkRole().catch(()=>{});
+   else if(roleAuth)await signOut(roleAuth).catch(()=>{});
    showPendingGoogle(user);return;
   }
-  if(roleAuth)await roleAuth.authStateReady();
-  if(!roleAuth?.currentUser||!await mountVerifiedRole())render("viewer");
+  if(sparkRoleReady&&sparkRoleAuth)await sparkRoleAuth.authStateReady();
+  else if(roleAuth)await roleAuth.authStateReady();
+  if(!(sparkRoleReady?sparkRoleAuth?.currentUser:roleAuth?.currentUser)||!await mountVerifiedRole())render("viewer");
  }catch{
-  if(roleAuth)await signOut(roleAuth).catch(()=>{});
+  if(sparkRoleReady)await logoutSparkRole().catch(()=>{});
+  else if(roleAuth)await signOut(roleAuth).catch(()=>{});
   render("viewer");
  }
 });
