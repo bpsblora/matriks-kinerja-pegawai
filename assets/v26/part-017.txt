@@ -224,10 +224,11 @@ function renderKroBoard(){
  const teamList=BASE.teams.filter(t=>currentRole!=='ketua'||t.id===roleTeamId);
  const query=($('kroBoardSearch')?.value||'').trim().toLocaleLowerCase('id');
  if(!el.querySelector('#kroBoardList')||oldTeam!==tid){kroBoardDraft=new Set(selected?.kroCodes||[]);el.dataset.team=tid;kroBoardEditTeam=''}
- const locked=!!yearKroReady(tid),editing=kroBoardEditTeam===tid;
+ const approvalStatus=kroApprovalStatus(tid),request=kroApprovalRequest(tid);
+ const locked=approvalStatus==='approved'||approvalStatus==='reference',editing=kroBoardEditTeam===tid;
  // 2026 remains a read-only seed, but authorized users may store an audited
  // override for the team's KRO selection without modifying the source dataset.
- const writable=roleCanManageTeam(tid)&&(!locked||editing)&&yearInfo().status!=='closed';
+ const writable=roleCanManageTeam(tid)&&approvalStatus!=='pending'&&(!locked||editing)&&yearInfo().status!=='closed';
  const suggestions=POK_KROS.map(k=>({k,s:kroRecommendation(k,tid)})).filter(x=>!!x.s);
  const selectedCodes=new Set(selected?.kroCodes||[]);
  // Only this team's assignment editor prioritizes checked KRO codes.
@@ -256,16 +257,18 @@ function renderKroBoard(){
  <dialog id="kroMasterPopup" class="kro-hub-dialog" aria-labelledby="kroMasterModalTitle"><div class="kro-hub-dialog-head"><div><span class="kro-modal-eyebrow">PEMBAGIAN KRO</span><h2 id="kroMasterModalTitle">Daftar Induk KRO ${activeYear}</h2><p>Perbarui daftar KRO pada tahun matriks aktif.</p></div><button type="button" class="kro-hub-close" data-close-kro-master aria-label="Tutup Daftar Induk KRO">✕</button></div><div class="kro-hub-dialog-body"><section class="panel kro-master-panel"><div class="section-top"><div><h3>Daftar Induk KRO ${activeYear}</h3><p>Tambah, ubah, atau hapus KRO yang belum digunakan. Penetapan ke tim tersedia melalui Peta KRO.</p></div><div class="kro-master-heading"><span class="badge">${POK_KROS.length} KRO</span>${canEditMaster?'<button id="kroMasterAdd" class="btn primary" type="button">＋ Tambah KRO</button>':''}</div></div>
  <div class="kro-master-tools"><label for="kroMasterSearch">Cari KRO<input type="search" id="kroMasterSearch" placeholder="Cari kode atau nama KRO..." value="${esc(kroMasterQuery)}"></label><span>${canEditMaster?'Hak akses: Admin/Kepala':'Daftar induk hanya dapat diubah oleh Admin/Kepala.'}</span></div>
  <div class="kro-master-list">${masterRows.map(k=>{const used=kroCodeHasUsage(k.code);return `<div class="kro-master-row"><span class="kro-master-name"><b>${esc(k.code)}</b><span>${esc(k.name)}</span>${used.linked.length?`<small class="kro-master-usage"><span>Digunakan oleh ${used.linked.length} Tim:</span><span class="kro-master-team-list">${used.linked.slice().sort((a,b)=>a.name.localeCompare(b.name,'id')).map(t=>`<span class="kro-master-team-name">${esc(t.name)}</span>`).join('')}</span></small>`:''}</span>${canEditMaster?`<span class="kro-master-actions"><button type="button" class="btn tiny soft" data-master-edit="${esc(k.code)}">Edit</button><button type="button" class="btn tiny soft" data-master-delete="${esc(k.code)}" ${used.linked.length||used.overrides?'disabled title="KRO masih digunakan"':''}>Hapus</button></span>`:''}</div>`}).join('')||'<div class="empty">KRO tidak ditemukan.</div>'}</div></section></div></dialog>
+ ${kroApprovalPanelMarkup()}
  <section id="kroAssignmentSection" class="panel kro-assignment-inline" aria-labelledby="kroAssignmentHeading">
-  <div class="kro-assignment-inline-title"><div><span class="kro-assignment-inline-eyebrow">PENGELOLAAN KRO · TAHUN ${activeYear}</span><h3 id="kroAssignmentHeading" tabindex="-1">Kelola KRO Ditetapkan</h3><p>Pilih tim dan periksa KRO yang ditetapkan. Edit pilihan serta simpan penetapan ulang langsung dari kartu ini.</p></div><div class="kro-assignment-inline-state"><strong>${nf(kroBoardDraft.size)} KRO Dipilih</strong><span>${locked?'Sudah Ditetapkan':isBaseYear?'Referensi 2026':'Belum Ditetapkan'}</span></div></div>
+  <div class="kro-assignment-inline-title"><div><span class="kro-assignment-inline-eyebrow">PENGELOLAAN KRO · TAHUN ${activeYear}</span><h3 id="kroAssignmentHeading" tabindex="-1">Kelola KRO Ditetapkan</h3><p>Pilih tim dan periksa KRO yang ditetapkan. Edit pilihan serta simpan penetapan ulang langsung dari kartu ini.</p></div><div class="kro-assignment-inline-state"><strong>${nf(kroBoardDraft.size)} KRO Dipilih</strong><span class="${approvalStatus==='pending'?'is-pending':approvalStatus==='approved'?'is-approved':''}">${approvalStatus==='pending'?'Menunggu Persetujuan Admin':approvalStatus==='approved'?'Disetujui Admin':approvalStatus==='rejected'?'Perlu Perbaikan':approvalStatus==='reference'?'Referensi 2026':'Belum Diajukan'}</span></div></div>
   <div class="kro-assignment-inline-content">
  <div class="combined-kro-controls"><label>Tim <select id="kroBoardTeam" ${canCentral?'':'disabled'}>${teamList.map(t=>`<option value="${esc(t.id)}" ${t.id===tid?'selected':''}>${esc(t.name)}</option>`).join('')}</select></label><label>Pencarian <input type="search" id="kroBoardSearch" placeholder="Kode atau nama KRO" value="${esc(query)}"></label>
  <div class="combined-kro-actions"><button class="btn soft" type="button" id="kroBoardRecommended" ${!writable||!suggestions.length?'disabled':''}>+ Centang ${suggestions.length} Rekomendasi</button>
- ${locked&&!editing?`<button class="btn primary" type="button" id="kroBoardEdit" ${!canUse?'disabled':''}>✎ Edit Ketetapan KRO</button>`:`<button class="btn primary" type="button" id="kroBoardConfirm" ${!canUse?'disabled':''}>✓ ${editing?'Simpan Perubahan KRO':'Tetapkan KRO'}</button>`}
+ ${approvalStatus==='pending'?'<button type="button" class="btn soft" disabled>⏳ Menunggu Persetujuan Admin</button>':locked&&!editing?`<button class="btn primary" type="button" id="kroBoardEdit" ${!canUse?'disabled':''}>✎ Edit Ketetapan KRO</button>`:`<button class="btn primary" type="button" id="kroBoardConfirm" ${!canUse?'disabled':''}>✓ ${editing?'Kirim Ulang Pengajuan':'Ajukan Persetujuan KRO'}</button>`}
  ${editing?'<button class="btn soft" type="button" id="kroBoardCancel">Batal Perubahan</button>':''}</div></div>
- <div class="kro-board-recommendation">${recSummary}${isBaseYear?'<span class="kro-reference-note">Penyesuaian ketetapan KRO 2026 disimpan terpisah dari data sumber asli.</span>':''}</div>
+ <div class="kro-board-recommendation">${recSummary}${approvalStatus==='pending'?'<span class="kro-approval-wait-note">Pengajuan telah dikirim oleh '+esc(request?.submittedBy||'Ketua Tim')+'. Tunggu persetujuan Admin.</span>':approvalStatus==='rejected'?'<span class="kro-approval-rejected-note">Perlu perbaikan: '+esc(request?.note||'Periksa kembali pilihan KRO')+'. Kirim ulang setelah diperbaiki.</span>':isBaseYear?'<span class="kro-reference-note">Penyesuaian KRO 2026 disimpan terpisah dari sumber asli.</span>':''}</div>
  <div id="kroBoardList" class="combined-kro-list">${arr.map(k=>{const r=kroRecommendation(k,tid),assigned=locked&&selectedCodes.has(k.code);return `<label class="combined-kro-row ${assigned?'is-assigned ':''}${kroBoardDraft.has(k.code)?'is-draft-selected ':''}${r?'kro-suggested-'+r.kind:''}"><input type="checkbox" data-board-kro="${esc(k.code)}" ${kroBoardDraft.has(k.code)?'checked':''} ${!writable?'disabled':''}><span><b>${esc(k.code)}</b><small>${esc(k.name)}</small>${assigned?'<small class="kro-assignment-confirmed">✓ KRO Ditetapkan untuk Tim Ini</small>':''}${r?`<small class="kro-suggestion-reason">${esc(r.reason)}</small>`:''}</span>${r?`<em class="kro-hint-kind ${r.kind}">${esc(r.label)}</em>`:''}</label>`}).join('')||'<p class="combined-context">Tidak ada KRO sesuai pencarian.</p>'}</div></div></section>`;
  if(auditPanel)el.querySelector('#kroAuditSlot')?.appendChild(auditPanel);
+ bindKroApprovalPanel();
  const showBoardDialog=(id)=>{const d=$(id);if(!d)return;if(!d.open)d.showModal();d.querySelector('.kro-hub-dialog-body').scrollTop=masterScroll;};
  if(masterWasOpen)showBoardDialog('kroMasterPopup');
  $('kroHubMaster').onclick=()=>showBoardDialog('kroMasterPopup');
@@ -294,19 +297,17 @@ function renderKroBoard(){
   syncKroBoardDraftRows();
   toast('Rekomendasi dicentang sebagai draf. Periksa pilihan sebelum menyimpan.');
  };
- if($('kroBoardEdit'))$('kroBoardEdit').onclick=()=>{if(!canUse)return;kroBoardEditTeam=tid;renderKroBoard();toast('Silakan tambah atau kurangi pilihan KRO, lalu klik Simpan & Tetapkan Ulang.')};
+ if($('kroBoardEdit'))$('kroBoardEdit').onclick=()=>{if(!canUse)return;kroBoardEditTeam=tid;renderKroBoard();toast('Periksa pilihan KRO lalu ajukan kembali untuk persetujuan Admin.')};
  if($('kroBoardCancel'))$('kroBoardCancel').onclick=()=>{kroBoardEditTeam='';kroBoardDraft=new Set(selectedCodes);renderKroBoard();toast('Perubahan draf dibatalkan. Penetapan sebelumnya tetap berlaku.')};
- if($('kroBoardConfirm'))$('kroBoardConfirm').onclick=()=>{
-  if(!canUse)return;
+ if($('kroBoardConfirm'))$('kroBoardConfirm').onclick=async()=>{
+  if(!canUse||kroApprovalStatus(tid)==='pending')return;
   const chosen=new Set(kroBoardDraft);
-  showKroCoverageDialog({tid,selectedCodes:chosen,onSave:()=>{
-   const team=demoTeams.find(t=>t.id===tid);if(!team)throw new Error('Tim tidak ditemukan.');
-   if(!yearTeamReady(tid)||!chosen.size)throw new Error('Susunan tim dan pilihan KRO harus lengkap.');
-   team.kroCodes=[...chosen].sort(compareKroCodes);saveTeamStore();
-   yearSetup.kros[tid]=[...team.kroCodes];annualEditingKroId=null;kroBoardEditTeam='';storeYearSetup();
-   logChange((editing?'Ubah Ketetapan KRO tim ':'Tetapkan KRO tim ')+activeYear,teamTitle+' · '+team.kroCodes.length+' KRO');persist();
-   renderTeamAdminPage();renderKroBoard();renderKroAudit();
-  }});
+  if(!chosen.size||(!isBaseYear&&!yearTeamReady(tid)))return toast('Tetapkan susunan tim dan pilih minimal satu KRO sebelum mengajukan.');
+  if(!await uiConfirm('Ajukan '+chosen.size+' pilihan KRO dari Tim '+teamTitle+' untuk persetujuan Admin? Ketua Tim harus menunggu keputusan Admin.'))return;
+  if(!submitKroProposal(tid,chosen))return toast('Pengajuan KRO tidak dapat disimpan.');
+  kroBoardEditTeam='';annualEditingKroId=null;
+  renderTeamAdminPage();renderKroBoard();renderKroAudit();
+  toast('Pengajuan KRO Tim '+teamTitle+' dikirim. Menunggu Persetujuan Admin.');
  };
  $('kroMasterSearch').oninput=()=>{const cursor=$('kroMasterSearch').selectionStart;kroMasterQuery=$('kroMasterSearch').value;renderKroBoard();const node=$('kroMasterSearch');node.focus();try{node.setSelectionRange(cursor,cursor)}catch(e){}};
  if($('kroMasterAdd'))$('kroMasterAdd').onclick=()=>openKroEditor();
