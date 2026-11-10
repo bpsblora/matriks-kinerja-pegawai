@@ -1627,7 +1627,7 @@ for(const token of [
  "await signInWithCustomToken(roleAuth,response.data.token)",
  "const profile=await verifyRoleSession()",
  "preview?.__mpPreviewSwitchRole?.(profile.role,profile.teamId)",
- "preview?.__mpPreviewSwitchRole?.('pegawai')",
+ 'preview?.__mpPreviewSwitchRole?.("pegawai")',
  "signOut(auth)",
  "frame.onload=()=>bindAuthenticatedSession(frame);"
 ])assert(previewSource.includes(token),"Login Google + role username/password belum lengkap: "+token);
