@@ -1413,9 +1413,60 @@ assert(inlineOpenCode.includes("card.scrollIntoView({behavior:'smooth',block:'st
  "Akses Kelola KRO harus menuju kartu permanen tanpa pop-up");
 assert(boardCode.includes("if($('kroBoardEdit'))")&&boardCode.includes("if($('kroBoardConfirm'))"),
  "Mode Edit dan Simpan Penetapan KRO harus tetap berfungsi");
-assert(boardCode.includes("✎ Edit KRO yang Ditetapkan")&&
+assert(boardCode.includes("✎ Edit Ketetapan KRO")&&
  boardCode.includes("kroBoardEditTeam=tid;renderKroBoard()"),
- "KRO yang telah ditetapkan perlu menyediakan mode Edit");
+ "KRO yang telah ditetapkan perlu menyediakan tombol Edit Ketetapan KRO");
+// KRO ordering is intentionally special only in the editable assignment card:
+// checked first, code ascending inside both groups; all master lists stay by code.
+const selectedFirstStart=boardCode.indexOf("const arr=POK_KROS.filter(");
+const selectedFirstEnd=boardCode.indexOf("const teamTitle=",selectedFirstStart);
+assert(selectedFirstStart>=0&&selectedFirstEnd>selectedFirstStart,
+ "Pemeringkatan KRO yang dicentang pada editor tidak ditemukan");
+const selectedFirstCode=boardCode.slice(selectedFirstStart,selectedFirstEnd);
+assert(selectedFirstCode.includes("checkedA=kroBoardDraft.has(a.code),checkedB=kroBoardDraft.has(b.code)")&&
+ selectedFirstCode.includes("checkedA===checkedB?compareKroCodes(a.code,b.code):checkedA?-1:1;"),
+ "KRO tercentang wajib naik ke atas dengan urutan kode di dalam tiap kelompok");
+const exampleKroRows=[
+ {code:'2900.QMA.006',name:'Pengembangan'},
+ {code:'2886.EBA.962',name:'Umum'},
+ {code:'2897.BMA.004',name:'Diseminasi'},
+ {code:'2886.EBA.956',name:'BMN'},
+ {code:'2896.BMA.004',name:'Analisis'}
+];
+const chosenKroCodes=new Set(['2897.BMA.004','2886.EBA.956']);
+const actualOrder=vm.runInNewContext(
+ selectedFirstCode+";arr.map(k=>k.code)",
+ {POK_KROS:exampleKroRows,query:'',kroBoardDraft:chosenKroCodes,
+ compareKroCodes:(a,b)=>a.localeCompare(b,'id',{numeric:true,sensitivity:'base'})});
+assert.deepEqual(Array.from(actualOrder),
+ ['2886.EBA.956','2897.BMA.004','2886.EBA.962','2896.BMA.004','2900.QMA.006'],
+ "KRO terpilih harus tampil pertama, lalu yang lain menurut kode");
+assert(boardCode.includes("const writable=roleCanManageTeam(tid)&&(!locked||editing)&&yearInfo().status!=='closed';")&&
+ !boardCode.includes("if(!canUse||isBaseYear)return;")&&
+ !boardCode.includes("!canUse||isBaseYear?'disabled'"),
+ "Tombol Edit KRO 2026 harus bekerja untuk peran yang berwenang tanpa membuka seluruh fitur edit data historis");
+assert(boardCode.includes("yearSetup.kros[tid]=[...team.kroCodes]")&&
+ boardCode.includes("team.kroCodes=[...chosen].sort(compareKroCodes);saveTeamStore();")&&
+ boardCode.includes("Penyesuaian ketetapan KRO 2026 disimpan terpisah dari data sumber asli."),
+ "KRO 2026 harus disimpan sebagai penyesuaian, tidak menimpa sumber historis");
+const draftOrderStart=inline.indexOf("function syncKroBoardDraftRows(){");
+const draftOrderEnd=inline.indexOf("function renderKroBoard(){",draftOrderStart);
+assert(draftOrderStart>=0&&draftOrderEnd>draftOrderStart,
+ "Pengurutan interaktif setelah KRO dicentang tidak ditemukan");
+const draftOrderCode=inline.slice(draftOrderStart,draftOrderEnd);
+for(const token of [
+ "kroBoardDraft.has(a.code),bChosen=kroBoardDraft.has(b.code)",
+ "aChosen===bChosen?compareKroCodes(a.code,b.code):aChosen?-1:1;",
+ "row.classList.toggle('is-draft-selected',box.checked);",
+ "list.appendChild(row);",
+ "currentFocus.focus({preventScroll:true});",
+ "state.textContent=nf(kroBoardDraft.size)+' KRO Dipilih';"
+])assert(draftOrderCode.includes(token),"Pembaruan centang KRO belum menjaga urutan/posisi: "+token);
+assert(boardCode.includes("syncKroBoardDraftRows();")&&
+ cssPolish.includes("#pageKRO #kroAssignmentSection #kroBoardEdit{")&&
+ cssPolish.includes("#pageKRO #kroAssignmentSection .combined-kro-row.is-draft-selected{"),
+ "Tombol Edit dan highlight KRO tercentang belum tersedia");
+
 assert(boardCode.includes("assigned=locked&&selectedCodes.has(k.code)")&&
  boardCode.includes("kro-assignment-confirmed"),
  "Hanya KRO yang telah ditetapkan boleh ditandai selesai");
