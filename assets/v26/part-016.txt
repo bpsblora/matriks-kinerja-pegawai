@@ -1711,7 +1711,13 @@ function renderKroAudit(){
   card.setAttribute('aria-label',card.querySelector('span')?.textContent+': '+nf(count)+' temuan. Buka rincian.');
  }
  const empty='<div class="kro-audit-empty">✓ Tidak ada temuan pada kategori ini.</div>';
- $('kroAuditNoKroTeamsRows').innerHTML=result.visibleTeamsWithoutKro.map(t=>`<div class="kro-audit-row"><div><strong>${esc(t.name)}</strong><div class="audit-name">Belum ada KRO yang ditetapkan untuk tim ini.</div></div><button type="button" class="btn tiny soft" data-kro-audit-team="${esc(t.id)}">Atur KRO</button></div>`).join('')||empty;
+ $('kroAuditNoKroTeamsRows').innerHTML=result.visibleTeamsWithoutKro.map(t=>{
+  const status=kroApprovalStatus(t.id),request=kroApprovalRequest(t.id);
+  const explanation=status==='pending'?'Menunggu Persetujuan Admin · '+nf(request?.codes?.length||0)+' KRO diajukan':
+   status==='rejected'?'Perlu Perbaikan · '+(request?.note||'Pengajuan dikembalikan Admin'):
+   'Ketua Tim belum mengajukan KRO yang dapat disetujui.';
+  return `<div class="kro-audit-row"><div><strong>${esc(t.name)}</strong><div class="audit-name">${esc(explanation)}</div></div><button type="button" class="btn tiny soft" data-kro-audit-team="${esc(t.id)}">${status==='pending'?'Lihat Pengajuan':'Atur KRO'}</button></div>`;
+ }).join('')||empty;
  $('kroAuditNoKroTeamsRows').querySelectorAll('[data-kro-audit-team]').forEach(b=>b.onclick=()=>{
    const tid=b.dataset.kroAuditTeam;if(!roleCanManageTeam(tid))return toast('Tim ini berada di luar hak akses.');
    closeKroAuditDialogs();
