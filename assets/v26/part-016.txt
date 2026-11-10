@@ -1654,9 +1654,52 @@ function kroAuditSnapshot(){
  const visibleUnmapped=currentRole==='ketua'?unmapped.filter(p=>p.tid===roleTeamId):unmapped;
  return {unassigned,teamsWithoutKro,visibleTeamsWithoutKro,emptyPairs,unmapped,visiblePairs,visibleUnmapped,teamLinks};
 }
+/* Audit issues are kept in three accessible pop-ups rather than expanded
+   tables below the page. The fourth navigation card opens the existing KRO
+   assignment editor, preserving year and role permissions. */
+let kroAuditReturnFocus=null;
+function closeKroAuditDialogs(){
+ for(const id of ['kroAuditTeamsDialog','kroAuditUnassignedDialog','kroAuditActivitiesDialog']){
+  const dialog=$(id);if(dialog?.open)dialog.close();
+ }
+}
+function bindKroAuditDialogs(){
+ const actions=[
+  ['kroAuditOpenTeams','kroAuditTeamsDialog'],
+  ['kroAuditOpenUnassigned','kroAuditUnassignedDialog'],
+  ['kroAuditOpenActivities','kroAuditActivitiesDialog']
+ ];
+ for(const [buttonId,dialogId] of actions){
+  const trigger=$(buttonId),dialog=$(dialogId);
+  if(!trigger||!dialog)continue;
+  trigger.onclick=()=>{
+   kroAuditReturnFocus=trigger;
+   if(!dialog.open)dialog.showModal();
+   dialog.querySelector('[data-kro-audit-close]')?.focus({preventScroll:true});
+  };
+  if(dialog.dataset.kroAuditBound==='true')continue;
+  dialog.dataset.kroAuditBound='true';
+  dialog.querySelectorAll('[data-kro-audit-close]').forEach(btn=>
+   btn.onclick=()=>dialog.close());
+  dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close()});
+  dialog.addEventListener('close',()=>{
+   const back=kroAuditReturnFocus;
+   kroAuditReturnFocus=null;
+   if(back?.isConnected)back.focus({preventScroll:true});
+  });
+ }
+ const manage=$('kroAuditOpenManage');
+ if(manage)manage.onclick=()=>{
+  closeKroAuditDialogs();
+  const d=$('kroAssignmentPopup');
+  if(!d)return toast('Pengelolaan KRO belum siap. Muat ulang menu Pembagian KRO.');
+  if(!d.open)d.showModal();
+ };
+}
 function renderKroAudit(){
  if(!$('kroAuditPanel')||activePage!=='kro')return;
  const result=kroAuditSnapshot(),canAll=currentRole==='admin'||currentRole==='kepala';
+ bindKroAuditDialogs();
  $('kroAuditYear').textContent=activeYear;
  $('kroAuditNoKroTeams').textContent=nf(result.visibleTeamsWithoutKro.length);
  $('kroAuditNoTeam').textContent=nf(result.unassigned.length);
@@ -1667,12 +1710,19 @@ function renderKroAudit(){
  const complete=result.teamsWithoutKro.length===0 && result.unassigned.length===0 && result.emptyPairs.length===0 && result.unmapped.length===0;
  const note=activeYear===2026?'':' Referensi KRO berasal dari POK 2027; penugasan tim tahun ini masih perlu ditetapkan.';
  $('kroAuditStatus').className='kro-audit-status'+(complete?' ok':'');
- $('kroAuditStatus').textContent=complete?'Kelengkapan rencana telah terpenuhi.':result.teamsWithoutKro.length?'Tindak lanjut: tetapkan KRO untuk tim yang masih kosong.':result.unassigned.length?'Tindak lanjut: pilih tim penanggung jawab untuk KRO yang masih kosong.':result.emptyPairs.length?'Tindak lanjut: tambahkan minimal satu kegiatan aktif pada setiap pasangan Tim–KRO yang belum lengkap.':'Tindak lanjut: lengkapi pemetaan kegiatan aktif melalui Input Alokasi.';
+ $('kroAuditStatus').textContent=complete?'Seluruh persyaratan pembagian KRO telah terpenuhi.':result.teamsWithoutKro.length?'Periksa tim yang belum memiliki KRO melalui kartu pertama.':result.unassigned.length?'Periksa KRO tanpa tim pengampu melalui kartu kedua.':result.emptyPairs.length?'Periksa pasangan Tim–KRO tanpa kegiatan melalui kartu ketiga.':'Tindak lanjut: lengkapi pemetaan kegiatan aktif melalui Input Alokasi.';
+ for(const [id,count] of [['kroAuditOpenTeams',result.visibleTeamsWithoutKro.length],['kroAuditOpenUnassigned',result.unassigned.length],['kroAuditOpenActivities',result.visiblePairs.length]]){
+  const card=$(id);if(!card)continue;
+  card.classList.toggle('has-issues',count>0);
+  card.classList.toggle('is-complete',count===0);
+  card.setAttribute('aria-label',card.querySelector('span')?.textContent+': '+nf(count)+' temuan. Buka rincian.');
+ }
  const empty='<div class="kro-audit-empty">✓ Tidak ada temuan pada kategori ini.</div>';
  $('kroAuditNoKroTeamsRows').innerHTML=result.visibleTeamsWithoutKro.map(t=>`<div class="kro-audit-row"><div><strong>${esc(t.name)}</strong><div class="audit-name">Belum ada KRO yang ditetapkan untuk tim ini.</div></div><button type="button" class="btn tiny soft" data-kro-audit-team="${esc(t.id)}">Atur KRO</button></div>`).join('')||empty;
  $('kroAuditNoKroTeamsRows').querySelectorAll('[data-kro-audit-team]').forEach(b=>b.onclick=()=>{
    const tid=b.dataset.kroAuditTeam;if(!roleCanManageTeam(tid))return toast('Tim ini berada di luar hak akses.');
-   selectedTeam=tid;const main=$('kroBoardMain');if(main)main.dataset.team='';kroBoardEditTeam='';renderKroBoard();
+   closeKroAuditDialogs();
+   selectedTeam=tid;const main=$('kroBoardMain');if(main)main.dataset.team='';if($('kroBoardTeam'))$('kroBoardTeam').value=tid;kroBoardEditTeam='';renderKroBoard();
    openKroAssignmentPopup();
  });
  $('kroAuditNoTeamRows').innerHTML=result.unassigned.map(k=>`<div class="kro-audit-row"><div><strong>${esc(k.code)}</strong><div class="audit-name">${esc(k.name)}</div></div><button type="button" class="btn tiny soft" data-kro-audit-assign="${esc(k.code)}">${canAll?'Pilih KRO':'Tambah ke Tim Saya'}</button></div>`).join('')||empty;
@@ -1681,8 +1731,10 @@ function renderKroAudit(){
   const code=b.dataset.kroAuditAssign,tid=currentRole==='ketua'?roleTeamId:($('kroBoardTeam')?.value||selectedTeam);
   if(!roleCanManageTeam(tid))return toast('Hanya dapat mengelola tim yang diizinkan.');
   const team=demoTeams.find(t=>t.id===tid);if(!team)return toast('Pilih tim terlebih dahulu.');
+  closeKroAuditDialogs();
   selectedTeam=tid;
   const main=$('kroBoardMain');if(main)main.dataset.team=tid;
+  if($('kroBoardTeam'))$('kroBoardTeam').value=tid;
   kroBoardDraft=new Set(team.kroCodes||[]);kroBoardDraft.add(code);
   if(yearKroReady(tid))kroBoardEditTeam=tid;
   renderKroBoard();openKroAssignmentPopup();
@@ -1691,6 +1743,7 @@ function renderKroAudit(){
   const tid=b.dataset.kroAuditCreate,code=b.dataset.kroAuditCode;
   if(!roleCanManageTeam(tid))return toast('Kegiatan ini berada di luar tim yang dikelola.');
   if(!yearKroReady(tid))return toast('Tetapkan KRO tim terlebih dahulu.');
+  closeKroAuditDialogs();
   selectedTeam=tid;selectedGroup='';selectedId=null;$('teamSelect').value=tid;
   $('taskQuery').value='';$('showInactive').checked=false;
   renderKroOptions(code);renderGroups();setPage('input');openModal('new-group');
