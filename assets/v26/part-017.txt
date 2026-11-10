@@ -161,7 +161,7 @@ function syncKroBoardDraftRows(){
 
 /* Admin alone may approve team KRO submissions. Other roles can only propose. */
 function kroApprovalPanelMarkup(){
- if(currentRole!=='admin')return '';
+ const adminMode=currentRole==='admin';
  const teams=demoTeams.filter(t=>t.active!==false).slice().sort((a,b)=>a.name.localeCompare(b.name,'id'));
  const allEntries=teams.map(team=>({team,request:kroApprovalRequest(team.id),status:kroApprovalStatus(team.id)}));
  const entries=allEntries.filter(x=>!!x.request);
@@ -169,10 +169,10 @@ function kroApprovalPanelMarkup(){
  const unsubmitted=allEntries.length-entries.length;
  const actionable=waiting.filter(x=>isBaseYear||yearTeamReady(x.team.id));
  const names={pending:'Menunggu Persetujuan',approved:'Disetujui Admin',rejected:'Perlu Perbaikan',reference:'Referensi 2026',draft:'Belum Diajukan'};
- return '<section id="kroAdminApprovalPanel" class="panel kro-approval-admin" aria-label="Persetujuan Pembagian KRO oleh Admin">'+
- '<div class="kro-approval-heading"><div><span>WEWENANG ADMIN · TAHUN '+activeYear+'</span><h3>Persetujuan Pembagian KRO</h3><p>Periksa pengajuan dari Ketua Tim. KRO baru ditetapkan setelah Admin menyetujui.</p></div>'+
+ return '<section id="kroAdminApprovalPanel" class="panel kro-approval-admin'+(adminMode?'':' is-readonly')+'" aria-label="Persetujuan Pembagian KRO" aria-disabled="'+(!adminMode)+'">'+
+ '<div class="kro-approval-heading"><div><span>TAHAP PERSETUJUAN KRO · TAHUN '+activeYear+'</span><h3>Persetujuan Pembagian KRO</h3><p>'+(adminMode?'Periksa pengajuan dari Ketua Tim. KRO baru ditetapkan setelah Admin menyetujui.':'Pengajuan KRO dapat dipantau di sini. Persetujuan hanya dapat dilakukan melalui Mode Admin.')+'</p></div>'+
  '<div class="kro-approval-summary"><b>'+nf(waiting.length)+' Menunggu</b><b>'+nf(approved.length)+' Disetujui</b><b>'+nf(unsubmitted)+' Belum Mengajukan</b></div></div>'+
- '<div class="kro-approval-actions"><button type="button" class="btn primary" id="kroApproveAll" '+(!actionable.length?'disabled':'')+'>✓ Setujui '+nf(actionable.length)+' Pengajuan</button><small>Persetujuan massal hanya untuk pengajuan masuk dan lengkap; tidak termasuk tim yang belum mengajukan.</small></div>'+
+ '<div class="kro-approval-actions"><button type="button" class="btn primary" id="kroApproveAll" '+(!adminMode||!actionable.length?'disabled':'')+'>✓ Setujui '+nf(actionable.length)+' Pengajuan</button><small>'+(adminMode?'Persetujuan massal hanya untuk pengajuan masuk dan lengkap; tidak termasuk tim yang belum mengajukan.':'🔒 Mode Baca Saja · Masuk sebagai Admin untuk menyetujui atau meminta perbaikan.')+'</small></div>'+
  '<div class="kro-approval-list">'+entries.map(({team,request,status})=>{
   const codes=request?.codes||team.kroCodes||[];
   const canApprove=status==='pending'&&(isBaseYear||yearTeamReady(team.id));
@@ -181,7 +181,7 @@ function kroApprovalPanelMarkup(){
    '<div class="kro-approval-code-list">'+(codes.length?codes.map(code=>'<span>'+esc(code)+'</span>').join(''):'<span>Belum dipilih</span>')+'</div>'+
    (status==='rejected'&&request?.note?'<small class="kro-approval-reason">Catatan Admin: '+esc(request.note)+'</small>':'')+
    '</div><div class="kro-approval-row-controls"><span class="kro-approval-status '+cls+'">'+(names[status]||'Belum Diajukan')+'</span>'+
-   (status==='pending'?'<button type="button" class="btn tiny primary" data-kro-approve="'+esc(team.id)+'" '+(!canApprove?'disabled title="Susunan tim harus ditetapkan"':'')+'>✓ Setujui</button><button type="button" class="btn tiny soft" data-kro-reject="'+esc(team.id)+'">Minta Perbaikan</button>':'')+
+   (status==='pending'?'<button type="button" class="btn tiny primary" data-kro-approve="'+esc(team.id)+'" '+(!adminMode||!canApprove?'disabled title="Persetujuan hanya tersedia pada Mode Admin atau setelah susunan tim lengkap"':'')+'>✓ Setujui</button><button type="button" class="btn tiny soft" data-kro-reject="'+esc(team.id)+'" '+(!adminMode?'disabled title="Hanya Mode Admin dapat meminta perbaikan"':'')+'>Minta Perbaikan</button>':'')+
    '</div></article>';
  }).join('')+(entries.length?'':'<p class="kro-approval-empty">Belum ada pengajuan KRO dari Ketua Tim. Status akan muncul di sini setelah diajukan.</p>')+'</div></section>';
 }
