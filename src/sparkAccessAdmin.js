@@ -13,11 +13,11 @@ const n=(tag,value)=>{const el=document.createElement(tag);if(value!==undefined)
 const button=(title,cb)=>{const b=n("button",title);b.type="button";b.addEventListener("click",cb);return b;};
 function labelled(label,input){const wrap=n("label",label);wrap.className="account-field";wrap.append(input);return wrap;}
 function passwordInput(placeholder){
- const i=n("input");i.type="password";i.required=true;i.autocomplete="new-password";i.placeholder=placeholder;return i;
+ const i=n("input");i.type="password";i.required=true;i.minLength=6;i.maxLength=72;
+ i.pattern="[A-Za-z0-9]{6,72}";i.autocomplete="new-password";i.placeholder=placeholder;return i;
 }
 function passwordLengthOk(value){
- const n=new TextEncoder().encode(String(value||"")).length;
- return n>=12&&n<=72;
+ return /^(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]{6,72}$/.test(String(value||""));
 }
 export function createSparkAccessAdminView(teams=[]){
  const section=n("section");section.className="admin-access";
@@ -72,12 +72,12 @@ export function createSparkAccessAdminView(teams=[]){
   }
  }
  function validatePw(a,b){
-  if(!passwordLengthOk(a)){say("Password harus 12–72 byte.");return false;}
+  if(!passwordLengthOk(a)){say("Password minimal 6 karakter, wajib mengandung huruf dan angka, tanpa spasi atau simbol.");return false;}
   if(a!==b){say("Konfirmasi password tidak sama.");return false;}
   return true;
  }
  function newPasswordFields(body){
-  const pass=passwordInput("Minimal 12 karakter, maksimal 72 byte");
+  const pass=passwordInput("Minimal 6 karakter; huruf dan angka saja");
   const confirm=passwordInput("Ulangi password baru");
   body.append(labelled("Password Baru",pass),labelled("Ulangi Password",confirm));
   return ()=>{
