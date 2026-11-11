@@ -992,7 +992,7 @@ function confirmTeamYear(){
  // Do not send the Ketua to another team or to KRO before Head approval.
  return;
 }
-async /* Head approval is intentionally separate from Admin and Ketua submissions.
+/* Head approval is intentionally separate from Admin and Ketua submissions.
    This only models local prototype review until the shared Matrix database
    and Kepala BPS role account are connected. */
 function decideTeamProposal(tid,approved,note=''){
@@ -1009,7 +1009,7 @@ function decideTeamProposal(tid,approved,note=''){
  renderTeamAdminPage();
  return true;
 }
-function confirmKroYear(){
+async function confirmKroYear(){
  const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
  if(!roleCanManageTeam(tid)||yearInfo().status==='closed')return;
  if(kroApprovalStatus(tid)==='pending')return toast('Pengajuan KRO sedang menunggu persetujuan Admin.');
