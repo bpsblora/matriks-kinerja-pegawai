@@ -41,11 +41,15 @@ service cloud.firestore {
   function properTeamIds(ids) {
    return ids is list && ids.size() > 0 && ids.size() <= 25;
   }
+  function validAccountTeams(role,ids) {
+   return (role == 'ketua_tim' && properTeamIds(ids))
+    || (role == 'kepala' && ids is list && ids.size() == 0);
+  }
   function handlePointsTo(uid,username,email) {
    return getAfter(handlePath(username)).data.uid == uid
     && getAfter(handlePath(username)).data.authEmail == email;
   }
-  function validKetuaAccount() {
+  function validRoleAccount() {
    return request.resource.data.keys().hasOnly([
      'username','loginEmail','role','teamIds','active',
      'createdAt','createdBy','updatedAt'
@@ -58,8 +62,8 @@ service cloud.firestore {
     && request.resource.data.loginEmail is string
     && request.resource.data.loginEmail.matches(
       '^[0-9a-f]{24}@roles[.]mkp-bps-blora[.]invalid$')
-    && request.resource.data.role == 'ketua_tim'
-    && properTeamIds(request.resource.data.teamIds)
+    && request.resource.data.role in ['ketua_tim','kepala']
+    && validAccountTeams(request.resource.data.role,request.resource.data.teamIds)
     && request.resource.data.active == true
     && request.resource.data.createdBy == request.auth.uid;
   }
@@ -75,7 +79,7 @@ service cloud.firestore {
     && request.resource.data.authEmail is string
     && request.resource.data.authEmail.matches(
       '^[0-9a-f]{24}@roles[.]mkp-bps-blora[.]invalid$')
-    && getAfter(profilePath(request.resource.data.uid)).data.role == 'ketua_tim'
+    && getAfter(profilePath(request.resource.data.uid)).data.role in ['ketua_tim','kepala']
     && getAfter(profilePath(request.resource.data.uid)).data.username == username
     && getAfter(profilePath(request.resource.data.uid)).data.loginEmail ==
        request.resource.data.authEmail;
@@ -89,11 +93,11 @@ service cloud.firestore {
    allow list: if isAdmin();
    // A role cannot create its own profile. All Admin writes must accompany
    // the corresponding username mapping in the SAME atomic Firestore batch.
-   allow create: if isAdmin() && validKetuaAccount()
+   allow create: if isAdmin() && validRoleAccount()
     && handlePointsTo(uid,request.resource.data.username,
          request.resource.data.loginEmail);
    allow update: if isAdmin() && uid != request.auth.uid
-    && resource.data.role == 'ketua_tim'
+    && resource.data.role in ['ketua_tim','kepala']
     && request.resource.data.diff(resource.data).affectedKeys()
        .hasOnly(['username','teamIds','active','updatedAt'])
     && request.resource.data.role == resource.data.role
@@ -103,7 +107,7 @@ service cloud.firestore {
     && request.resource.data.username.matches('^[a-z][a-z0-9._-]{2,31}$')
     && request.resource.data.username != 'admin'
     && request.resource.data.active is bool
-    && properTeamIds(request.resource.data.teamIds)
+    && validAccountTeams(resource.data.role,request.resource.data.teamIds)
     && (
       handlePointsTo(uid,request.resource.data.username,
         request.resource.data.loginEmail)
