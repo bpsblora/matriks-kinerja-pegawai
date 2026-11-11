@@ -46,9 +46,12 @@ function randomAlias(){
  return random+"@"+DOMAIN;
 }
 function validPassword(value){
- const size=new TextEncoder().encode(String(value||"")).length;
- if(size<12||size>72)throw Error("Password harus 12–72 byte.");
- return value;
+ const password=String(value||"");
+ // Firebase Email/Password allows >=6; require ASCII letters and digits only.
+ // At least one letter and one digit, to avoid easily guessed 6-digit passwords.
+ if(!/^(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]{6,72}$/.test(password))
+  throw Error("Password minimal 6 karakter, wajib mengandung huruf dan angka, tanpa spasi atau simbol (maksimal 72 karakter).");
+ return password;
 }
 function checkTeams(teamIds){
  if(!Array.isArray(teamIds)||!teamIds.length||teamIds.length>25)return false;
