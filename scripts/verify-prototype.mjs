@@ -1242,8 +1242,9 @@ assert(inline.includes("teamStage.classList.toggle('is-confirmed',progress.total
  "Warna status induk harus berdasarkan SELURUH tim, bukan satu tim terpilih");
 assert(inline.includes("querySelector('.team-roster-heading')?.classList.toggle('is-confirmed',teamComplete);"),
  "Status hijau panel kanan harus mengikuti tim yang sedang dipilih");
-assert(inline.includes("progress.ready+' dari '+progress.total+' Tim Aktif sudah ditetapkan"),
- "Keterangan induk wajib menjelaskan jumlah seluruh tim");
+assert(inline.includes("progress.ready+' dari '+progress.total+' Tim Aktif sudah memiliki susunan")&&
+ inline.includes("Pengesahan akhir menunggu Kepala BPS"),
+ "Keterangan induk wajib menjelaskan jumlah seluruh tim tanpa menganggap pengajuan sebagai persetujuan akhir");
 assert(inline.includes("rosterCard?.scrollIntoView({behavior:'smooth',block:'start'});"),
  "Ketika memilih tim di layar sempit, formulir tim di bawah harus otomatis terlihat");
 for(const cssRule of [
