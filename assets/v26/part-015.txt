@@ -249,7 +249,7 @@ function updateWorkspaceSubtitle(){
   teams: currentRole==='pegawai'?'Lihat data pegawai dan susunan tim.':(currentRole==='ketua'?'Tetapkan anggota tim. KRO ditetapkan di menu Pembagian KRO.':'Kelola daftar pegawai, ketua dan anggota tim. Pembagian KRO dilakukan di menu tersendiri.'),
   recon:read?'Rincian rekonsiliasi dapat dibaca, tetapi perubahan memerlukan login Edit.':'Pindahkan tanggal atau ubah penugasan; perubahan ditelusuri lewat Riwayat.',
   standards:read?'Lihat standar jam per satuan yang digunakan sebagai dasar perhitungan beban kerja.':currentRole==='ketua'?'Standar master hanya dapat diedit Admin/Kepala; penyesuaian tim dilakukan di Input Alokasi.':'Lengkapi standar yang kosong; perubahan master tidak mengubah jam yang sudah ditetapkan.',
-  history:'Perubahan tersimpan di browser yang digunakan; gunakan Ekspor Perubahan untuk membuat cadangan.'
+  history:'Riwayat perubahan dari browser ini, belum tersinkronisasi dengan perangkat lain.'
  };
  $('workspaceSubtitle').textContent=subtitle[activePage]||subtitle.input;
 }
@@ -548,7 +548,7 @@ $('navInput').onclick=()=>setPage('input');$('navTeams').onclick=()=>setPage('te
 for(const x of ['monitorPeriod','monitorTeam','monitorMetric'])$(x).onchange=renderMonitoring;$('monitorQuery').oninput=renderMonitoring;
 $('monitorWorkdays').onchange=()=>{const v=Number($('monitorWorkdays').value);if(Number.isFinite(v)&&v>=1&&v<=31){state.days=v;$('workdaysInput').value=v;persist();renderMonitoring()}else{$('monitorWorkdays').value=state.days;toast('Hari kerja harus antara 1–31')}};
 $('monitorDailyHours').onchange=()=>{const v=Number($('monitorDailyHours').value);if(Number.isFinite(v)&&v>=.5&&v<=24){state.dailyHours=v;$('hoursdayInput').value=v;persist();renderMonitoring()}else{$('monitorDailyHours').value=state.dailyHours;toast('Jam harian harus 0,5–24')}};$('downloadCSV').onclick=exportCSV;$('downloadPDF').onclick=printMonitoringPDF;
-$('btnExport').onclick=exportJson;$('historyExport').onclick=exportJson;
+
 $('workdaysInput').oninput=()=>{const v=Number($('workdaysInput').value);if(Number.isFinite(v)&&v>=1&&v<=31){state.days=v;if($('monitorWorkdays'))$('monitorWorkdays').value=v;persist()}};
 $('hoursdayInput').oninput=()=>{const v=Number($('hoursdayInput').value);if(Number.isFinite(v)&&v>0&&v<=24){state.dailyHours=v;if($('monitorDailyHours'))$('monitorDailyHours').value=v;persist()}};
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();if($('loginScreen'))$('loginScreen').classList.add('hidden');if($('rosterScreen'))$('rosterScreen').classList.add('hidden');if($('employeeScreen'))$('employeeScreen').classList.add('hidden')}})}
@@ -877,6 +877,42 @@ function renderYearSetup(){
   (headReview==='pending'?'◷ Menunggu Kepala BPS · ':headReview==='approved'?'✓ Disetujui Kepala BPS · ':headReview==='returned'?'↻ Perlu Perbaikan · ':'✓ Susunan Tersimpan · ')+(ro.members||[]).length+' Anggota':
   teamEditing?'Sedang Mengubah':'Belum Diajukan';
  $('annualTeamSummary').classList.toggle('is-pending',headReview==='pending'||headReview==='returned'||!teamComplete&&!teamEditing);
+ // One clear pending/review state for the selected team, not a demand for
+ // the Ketua to complete unrelated teams before Kepala BPS has reviewed it.
+ let reviewBanner=$('teamReviewBanner');
+ if(!reviewBanner){
+  reviewBanner=document.createElement('div');
+  reviewBanner.id='teamReviewBanner';
+  teamStage.querySelector('.annual-stage-head')?.insertAdjacentElement('afterend',reviewBanner);
+ }
+ const visibleReview=teamOk&&headReview!=='reference';
+ reviewBanner.className='team-review-banner is-'+headReview+(visibleReview?'':' hidden');
+ const displayTeam=demoTeams.find(t=>t.id===tid)?.name||'Tim Terpilih';
+ const headline=headReview==='pending'?'Menunggu Peninjauan dan Persetujuan Kepala BPS':
+  headReview==='approved'?'Susunan Tim Disetujui Kepala BPS':
+  headReview==='returned'?'Susunan Tim Dikembalikan untuk Diperbaiki':'Susunan Tim Belum Diajukan';
+ const explanation=headReview==='pending'?'Pengajuan '+displayTeam+' telah diterima dalam draf lokal. Tidak perlu menetapkan tim lain. Proses berikutnya adalah peninjauan Kepala BPS.':
+  headReview==='approved'?'Susunan tim telah disetujui. Lanjutkan pembagian KRO sesuai kewenangan.':
+  headReview==='returned'?(yearSetup.teams?.[tid]?.reviewNote||'Periksa ketua dan anggota, kemudian ajukan ulang.'):'';
+ reviewBanner.replaceChildren();
+ if(visibleReview){
+  const copy=document.createElement('div');copy.className='team-review-copy';
+  const strong=document.createElement('strong');strong.textContent=headline;
+  const paragraph=document.createElement('p');paragraph.textContent=explanation;
+  copy.append(strong,paragraph);reviewBanner.append(copy);
+  if(currentRole==='kepala'&&headReview==='pending'){
+   const actions=document.createElement('div');actions.className='team-review-actions';
+   const accept=document.createElement('button');accept.type='button';accept.className='btn success tiny';accept.textContent='✓ Setujui Susunan';
+   accept.onclick=async()=>{if(await uiConfirm('Setujui Susunan Tim '+displayTeam+'?'))decideTeamProposal(tid,true)};
+   const returnBtn=document.createElement('button');returnBtn.type='button';returnBtn.className='btn soft tiny';returnBtn.textContent='↩ Kembalikan';
+   returnBtn.onclick=async()=>{
+    const note=await uiPrompt('Catatan perbaikan untuk Susunan Tim '+displayTeam+':','');
+    if(note?.trim())decideTeamProposal(tid,false,note);
+   };
+   actions.append(accept,returnBtn);reviewBanner.append(actions);
+  }
+ }
+
  $('annualCopyRoster').classList.toggle('hidden',teamComplete||isBaseYear);
  // The lower action slot only contains the optional copy action now.
  // Hide the entire slot when it is unavailable to avoid a blank spacer.
