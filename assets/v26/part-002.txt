@@ -545,6 +545,15 @@ header{border-bottom:1px solid #d8e8f5;box-shadow:0 2px 12px rgba(21,88,148,.06)
 #pageTeams .team-review-banner.is-returned strong{color:#a13b44}
 #pageTeams .team-review-banner .team-review-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 #pageTeams .team-review-banner .team-review-actions button{min-height:35px;font-size:11px}
+#pageTeams #establishedTeamSummary.own-status{min-width:250px;max-width:100%;cursor:default;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:9px}
+#pageTeams #establishedTeamSummary.own-status .team-summary-heading{margin:0!important;flex:1 1 210px;min-width:0}
+#pageTeams #establishedTeamSummary.own-status .team-summary-heading strong{font-size:12px;color:#165789}
+#pageTeams #establishedTeamSummary.own-status .team-summary-heading small{font-size:11px;color:#51778f}
+#pageTeams .team-review-status-badge{display:inline-flex;align-items:center;justify-content:center;max-width:100%;padding:8px 11px;border:1px solid #bfd6e9;border-radius:11px;background:#edf6ff;font-weight:850;font-size:11px;color:#155987;white-space:normal;line-height:1.4}
+#pageTeams .team-review-status-badge.pending{background:#fff6e5;border-color:#f0d395;color:#955f05}
+#pageTeams .team-review-status-badge.approved{background:#ebfaf2;border-color:#a8dfc3;color:#16764c}
+#pageTeams .team-review-status-badge.returned{background:#fff2f2;border-color:#edbcbc;color:#a12a3d}
+
 @media(max-width:1120px){#pageTeams .team-admin-grid{grid-template-columns:1fr!important}#pageTeams .team-admin-list{position:static!important}}
 @media(max-width:700px){#pageTeams .team-roster-head-tools{justify-content:flex-start;width:100%}#pageTeams .team-admin-members{grid-template-columns:1fr}#pageTeams .team-review-banner{padding:11px}}
 </style>
