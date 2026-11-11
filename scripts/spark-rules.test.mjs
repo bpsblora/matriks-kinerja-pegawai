@@ -96,11 +96,46 @@ try{
  await assertFails(getDocs(collection(katim,"sparkRoleProfiles")));
  await assertFails(deleteDoc(h(admin,"katim_keuangan")));
 
+ // Kepala BPS uses the SAME protected Auth + Firestore flow, with zero team IDs.
+ const kepalaUid="dev_kepala_old", kepalaNext="dev_kepala_new";
+ const kepalaMail="c".repeat(24)+"@roles.mkp-bps-blora.invalid";
+ const kepalaNextMail="d".repeat(24)+"@roles.mkp-bps-blora.invalid";
+ const kepala=ctx(kepalaUid,kepalaMail);
+ const kepalaProfile=(uid,email,active=true)=>({
+  username:"kepala_uji",loginEmail:email,role:"kepala",teamIds:[],active,
+  createdBy:adminUid,createdAt:serverTimestamp(),updatedAt:serverTimestamp()
+ });
+ const badHead=writeBatch(admin);
+ badHead.set(p(admin,"head_with_team"),{
+  ...kepalaProfile("head_with_team",kepalaMail),teamIds:["T001"]
+ });
+ badHead.set(h(admin,"head_bad"),handle("head_with_team",kepalaMail));
+ await assertFails(badHead.commit());
+ const createHead=writeBatch(admin);
+ createHead.set(p(admin,kepalaUid),kepalaProfile(kepalaUid,kepalaMail));
+ createHead.set(h(admin,"kepala_uji"),handle(kepalaUid,kepalaMail));
+ await assertSucceeds(createHead.commit());
+ await assertSucceeds(getDoc(p(kepala,kepalaUid)));
+ await assertFails(getDocs(collection(kepala,"sparkRoleProfiles")));
+ await assertFails(updateDoc(p(kepala,kepalaUid),{role:"admin"}));
+ await assertFails(updateDoc(p(admin,kepalaUid),{teamIds:["T002"]}));
+ await assertSucceeds(updateDoc(p(admin,kepalaUid),{active:false,updatedAt:serverTimestamp()}));
+ await assertSucceeds(updateDoc(p(admin,kepalaUid),{active:true,updatedAt:serverTimestamp()}));
+ const rotateHead=writeBatch(admin);
+ rotateHead.set(p(admin,kepalaNext),kepalaProfile(kepalaNext,kepalaNextMail));
+ rotateHead.update(h(admin,"kepala_uji"),{
+  uid:kepalaNext,authEmail:kepalaNextMail,updatedAt:serverTimestamp()
+ });
+ rotateHead.update(p(admin,kepalaUid),{active:false,updatedAt:serverTimestamp()});
+ await assertSucceeds(rotateHead.commit());
+ assert.equal((await assertSucceeds(getDoc(h(viewerDb,"kepala_uji")))).data().uid,kepalaNext);
+ await assertFails(getDoc(doc(kepala,"matrixYears","2026")));
+
  // No one gets matrix permission because they know a role password.
  await assertFails(getDoc(doc(admin,"matrixYears","2026")));
  await assertFails(setDoc(doc(admin,"matrixYears","2026"),{status:"open"}));
  await assertFails(getDoc(doc(viewerDb,"matrixYears","2026")));
- console.log("Spark Firestore Rules: Admin create, rename, reset and revoke checks PASS");
+ console.log("Spark Firestore Rules: Admin/Kepala create, rename, reset and revoke checks PASS");
 }finally{
  await env.cleanup();
 }
