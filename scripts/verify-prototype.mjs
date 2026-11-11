@@ -1718,6 +1718,25 @@ assert(matrixSource.includes("createLiveMatrixWorkspace(context,{functionsClient
 const sparkRoleSource=fs.readFileSync("src/sparkRoleAuth.js","utf8");
 const sparkAdminSource=fs.readFileSync("src/sparkAccessAdmin.js","utf8");
 const sparkRules=fs.readFileSync("firestore.spark.rules","utf8");
+for(const token of [
+ 'throw Error("SPARK_PROFILE_MISSING:"+user.uid)',
+ 'throw Error("SPARK_PROFILE_INACTIVE:"+user.uid)',
+ 'throw Error("SPARK_PROFILE_ROLE_INVALID:"+user.uid)',
+ 'throw Error("SPARK_PROFILE_USERNAME_INVALID:"+user.uid)',
+ 'throw Error("SPARK_PROFILE_EMAIL_MISMATCH:"+user.uid)',
+ 'const profile=validProfile(data,user);',
+ 'if(profile)return profile;'
+])assert(sparkRoleSource.includes(token),
+ "Pesan diagnosis akun harus membedakan password dari profil Firestore: "+token);
+for(const token of [
+ 'if(message.startsWith("SPARK_PROFILE_")){',
+ 'const [reason,uid]=message.split(":");',
+ 'UID Authentication:',
+ 'Dokumen sparkRoleProfiles/{UID} tidak ditemukan.',
+ 'Password diterima Firebase.'
+])assert(previewSource.includes(token),
+ "Login Admin harus menampilkan UID Auth tanpa membocorkan password: "+token);
+
 const bootstrapLookup=sparkRoleSource.indexOf('if(name==="admin")return sparkLoginEmail(name);');
 const normalHandleLookup=sparkRoleSource.indexOf('const snap=await getDoc(doc(db,"sparkRoleHandles",name));');
 assert(bootstrapLookup>=0&&normalHandleLookup>bootstrapLookup,
