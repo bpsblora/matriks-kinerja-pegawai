@@ -76,6 +76,22 @@ firebase emulators:exec --project demo-matriks-spark \
 Aturan juga dijadwalkan diperiksa oleh workflow
 \`.github/workflows/verify-spark-role-rules.yml\`.
 
+## Ketentuan password baru
+
+Untuk **Tambah Akun Ketua Tim**, **Reset Password**, dan **Ubah Password Saya**:
+minimal **6 karakter**, maksimal **72 karakter**, hanya huruf Latin (A–Z, a–z)
+dan angka (0–9), wajib memuat paling sedikit satu huruf dan satu angka.
+Spasi, tanda baca dan simbol tidak diterima. Password Admin yang sudah dibuat
+tetap bisa dipakai untuk login; ketentuan baru hanya berlaku saat password
+baru ditetapkan. Gunakan password lebih panjang untuk akun penting.
+
+**Catatan aktivasi:** Jika di menu Admin muncul
+`Missing or insufficient permissions`, itu bukan masalah panjang password.
+Aturan Firestore sementara hanya mengizinkan akun membaca profilnya sendiri.
+Setelah **Firestore Emulator** meluluskan pengujian aturan, pengelola proyek
+perlu menerapkan `firestore.spark.rules` khusus akun untuk membuka
+pembuatan/edit/reset akun Ketua Tim. Data matriks lain tetap deny-all.
+
 ## Perilaku username dan password
 
 | Operasi Admin | Hasil |
