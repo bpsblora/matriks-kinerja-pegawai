@@ -53,6 +53,11 @@ try{
  await assertFails(setDoc(p(stranger,"fake_admin"),{
   username:"admin",role:"admin",active:true,teamIds:[]}));
  await assertSucceeds(getDocs(collection(admin,"sparkRoleProfiles")));
+ // A normal viewer or Ketua Tim must never grant their own Admin privileges.
+ await assertFails(updateDoc(p(admin,adminUid),{role:"ketua_tim"}));
+ await assertFails(setDoc(h(stranger,"katim_harga"),{
+  uid:"malicious",authEmail:"0123456789abcdef01234567@roles.mkp-bps-blora.invalid"
+ }));
 
  // Admin MUST create an Auth-backed profile and its handle atomically.
  await assertFails(setDoc(p(admin,oldUid),profile(oldUid,"katim_ppid",xEmail)));
