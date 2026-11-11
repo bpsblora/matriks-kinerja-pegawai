@@ -1718,6 +1718,17 @@ assert(matrixSource.includes("createLiveMatrixWorkspace(context,{functionsClient
 const sparkRoleSource=fs.readFileSync("src/sparkRoleAuth.js","utf8");
 const sparkAdminSource=fs.readFileSync("src/sparkAccessAdmin.js","utf8");
 const sparkRules=fs.readFileSync("firestore.spark.rules","utf8");
+const bootstrapLookup=sparkRoleSource.indexOf('if(name==="admin")return sparkLoginEmail(name);');
+const normalHandleLookup=sparkRoleSource.indexOf('const snap=await getDoc(doc(db,"sparkRoleHandles",name));');
+assert(bootstrapLookup>=0&&normalHandleLookup>bootstrapLookup,
+ "Login Admin pertama tidak boleh membaca direktori Firestore sebelum pemeriksaan Firebase Authentication");
+assert(previewSource.includes('sparkLoginErrorText(error,typedUser)')&&
+ previewSource.includes('code==="permission-denied"||code==="firestore/permission-denied"')&&
+ previewSource.includes('code==="auth/invalid-credential"'),
+ "Pop-up login harus membedakan password ditolak dari Firestore belum aktif");
+
+assert(sparkRules.includes("allow get: if (signedInPassword() && request.auth.uid == uid) || isAdmin();"),
+ "Profil Admin pertama harus bisa dibaca sendiri tanpa rekursi izin Admin");
 const sparkConfig=JSON.parse(fs.readFileSync("firebase.spark.json","utf8"));
 for(const token of [
  'import {createSparkAccessAdminView} from "./sparkAccessAdmin.js";',
