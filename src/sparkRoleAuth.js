@@ -16,7 +16,7 @@ import {
  updatePassword
 } from "firebase/auth";
 import {
- getFirestore,collection,doc,getDoc,getDocs,updateDoc,writeBatch,serverTimestamp,onSnapshot
+ getFirestore,collection,doc,getDoc,getDocFromServer,getDocs,updateDoc,writeBatch,serverTimestamp,onSnapshot
 } from "firebase/firestore";
 import {app,auth,db} from "./firebase/client.js";
 
@@ -65,7 +65,9 @@ function validProfile(p,user){
 export async function getSparkRoleProfile(){
  if(!sparkRoleReady||!sparkRoleAuth?.currentUser)return null;
  const user=sparkRoleAuth.currentUser;
- const snap=await getDoc(doc(roleDb,"sparkRoleProfiles",user.uid));
+ // Auth/role authorization must use the current server value, not an
+ // outdated local Firestore cache from earlier bootstrap attempts.
+ const snap=await getDocFromServer(doc(roleDb,"sparkRoleProfiles",user.uid));
  // Authentication and Firestore documents are independent. A successful
  // password sign-in must never be reported as an incorrect password merely
  // because the Firestore document ID differs by one character.
@@ -76,8 +78,13 @@ export async function getSparkRoleProfile(){
  if(data.active!==true)throw Error("SPARK_PROFILE_INACTIVE:"+user.uid);
  if(data.role!=="admin"&&data.role!=="ketua_tim"&&data.role!=="kepala")
   throw Error("SPARK_PROFILE_ROLE_INVALID:"+user.uid);
- if(data.username!=="admin"&&user.email===sparkLoginEmail("admin"))
-  throw Error("SPARK_PROFILE_USERNAME_INVALID:"+user.uid);
+ if(data.username!=="admin"&&user.email===sparkLoginEmail("admin")){
+  const actual=String(data.username??"");
+  const points=Array.from(actual,ch=>"U+"+ch.codePointAt(0).toString(16).toUpperCase().padStart(4,"0")).join(",");
+  // Only the username's type/Unicode codepoints are reported, never a password.
+  throw Error("SPARK_PROFILE_USERNAME_INVALID:"+user.uid+":"+
+   typeof data.username+":"+Array.from(actual).length+":"+points);
+ }
  const expectedEmail=data.loginEmail||sparkLoginEmail(data.username);
  if(expectedEmail.toLowerCase()!==user.email?.toLowerCase())
   throw Error("SPARK_PROFILE_EMAIL_MISMATCH:"+user.uid);
