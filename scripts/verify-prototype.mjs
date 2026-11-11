@@ -1169,7 +1169,8 @@ const sampleSummary=vm.runInNewContext(snapshotFn+";establishedTeamSnapshot()",{
  demoTeams:[{id:"A",active:true},{id:"B",active:true},{id:"C",active:false}],
  demoRoster:{A:{leaderId:"E1",members:["E1"]},B:{leaderId:"E2",members:["E2"]}},
  BASE:{employees:[{id:"E1",full_name:"Pegawai 1"},{id:"E2",full_name:"Pegawai 2"}]},
- teamEstablishmentIssue:tid=>tid==="A"?"":"Belum ditetapkan"
+ teamEstablishmentIssue:tid=>tid==="A"?"":"Belum ditetapkan",
+ teamReviewStatus:tid=>tid==="A"?"pending":"incomplete"
 });
 assert.equal(sampleSummary.list.length,2,"Tim nonaktif tidak termasuk ringkasan aktif");
 assert.equal(sampleSummary.ready.length,1,"Ringkasan harus tunduk pada validasi penetapan");
