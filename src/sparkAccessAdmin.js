@@ -5,7 +5,7 @@
  * revokes the old Firestore role profile; the user's username does not change.
  */
 import {
- listSparkRoleAccounts,createSparkKetuaAccount,updateSparkAccount,
+ listSparkRoleAccounts,createSparkRoleAccount,updateSparkAccount,
  resetSparkAccountPassword,changeSparkOwnPassword,normalizeSparkUsername
 } from "./sparkRoleAuth.js";
 
@@ -24,10 +24,10 @@ export function createSparkAccessAdminView(teams=[]){
  const head=n("div");head.className="admin-access-heading";
  const title=n("div");
  title.append(n("span","AKUN PERAN · FIREBASE SPARK"),n("h2","Kelola Akun Akses"),
-  n("p","Tambah akun Ketua Tim, edit username, tentukan tim, dan tetapkan ulang password."));
+  n("p","Kelola akun Ketua Tim dan Kepala BPS, kewenangan tim, serta password."));
  title.firstChild.className="admin-access-eyebrow";
  const actions=n("div");actions.className="actions";
- const add=button("+ Tambah Akun Ketua Tim",()=>openCreate());
+ const add=button("+ Tambah Akun",()=>openCreate());
  const reload=button("↻ Muat Ulang",()=>void load());reload.className="secondary";
  const mine=button("Ubah Password Saya",()=>openMyPassword());mine.className="secondary";
  actions.append(add,reload,mine);head.append(title,actions);
@@ -95,36 +95,44 @@ export function createSparkAccessAdminView(teams=[]){
  function openCreate(){
   const body=n("div");body.className="account-fields";
   const username=n("input");username.minLength=3;username.maxLength=32;
-  username.placeholder="Contoh: katim_ppid";username.required=true;
-  const getPassword=newPasswordFields(body);
+  username.placeholder="katim_sosial atau kepala_bps";username.required=true;
+  const role=n("select");
+  [["ketua_tim","Ketua Tim"],["kepala","Kepala BPS"]].forEach(([value,label])=>{
+   const opt=n("option",label);opt.value=value;role.append(opt);
+  });
   const choice=teamChooser();
-  body.prepend(labelled("Username Ketua Tim",username));
-  body.append(labelled("Tim yang Dikelola (centang)",choice.box));
+  const teamField=labelled("Tim yang Dikelola (centang)",choice.box);
+  role.onchange=()=>{teamField.hidden=role.value!=="ketua_tim";};
+  role.onchange();
+  body.append(labelled("Username",username),labelled("Peran",role),teamField);
+  const getPassword=newPasswordFields(body);
   body.append(button("Buat Akun",()=>{
-   let name;try{name=normalizeSparkUsername(username.value);}catch(e){say(e.message);return;}
-   const tids=choice.get();if(!tids.length){say("Pilih minimal satu tim.");return;}
+   let name;try{name=normalizeSparkUsername(username.value);}catch(error){say(error.message);return;}
+   const teamIds=role.value==="ketua_tim"?choice.get():[];
+   if(role.value==="ketua_tim"&&!teamIds.length){say("Pilih minimal satu tim.");return;}
    const pw=getPassword();if(pw===null)return;
-   void action(()=>createSparkKetuaAccount({username:name,password:pw,teamIds:tids}),
-    "Akun Ketua Tim dibuat. Berikan password awal secara pribadi.");
+   void action(()=>createSparkRoleAccount({username:name,password:pw,role:role.value,teamIds}),
+     "Akun berhasil dibuat. Sampaikan password awal secara pribadi.");
   }));
-  modal("Tambah Akun Ketua Tim",body);
+  modal("Tambah Akun Peran",body);
  }
  function openEdit(account){
   const body=n("div");body.className="account-fields";
-  const username=n("input");username.value=account.username;
-  username.maxLength=32;username.minLength=3;
+  const username=n("input");username.value=account.username;username.maxLength=32;username.minLength=3;
   const choice=teamChooser(account.teamIds||[]);
   const active=n("input");active.type="checkbox";active.checked=account.active;
-  body.append(labelled("Username",username),labelled("Tim yang Dikelola",choice.box),
-   labelled("Akun Aktif",active));
+  body.append(labelled("Username",username));
+  if(account.role==="ketua_tim")body.append(labelled("Tim yang Dikelola",choice.box));
+  else body.append(n("p","Kepala BPS meninjau dan menetapkan lintas tim, tanpa mengubah input alokasi."));
+  body.append(labelled("Akun Aktif",active));
   const help=n("p","Mengubah username tidak mengubah password. Username lama berhenti berlaku setelah perubahan berhasil.");
   help.className="account-help";body.append(help);
   body.append(button("Simpan Perubahan",()=>{
-   let name;try{name=normalizeSparkUsername(username.value);}catch(e){say(e.message);return;}
-   const tids=choice.get();if(!tids.length){say("Pilih minimal satu tim.");return;}
-   void action(()=>updateSparkAccount(account.uid,{
-    username:name,teamIds:tids,active:active.checked
-   }),"Username, tim, dan status akun diperbarui.");
+   let name;try{name=normalizeSparkUsername(username.value);}catch(error){say(error.message);return;}
+   const teamIds=account.role==="ketua_tim"?choice.get():[];
+   if(account.role==="ketua_tim"&&!teamIds.length){say("Pilih minimal satu tim.");return;}
+   void action(()=>updateSparkAccount(account.uid,{username:name,teamIds,active:active.checked}),
+    "Username, tim, dan status akun diperbarui.");
   }));
   modal("Edit Akun "+account.username,body);
  }
@@ -172,7 +180,7 @@ export function createSparkAccessAdminView(teams=[]){
      a.active?"Aktif":"Nonaktif"
     ].forEach(x=>row.append(n("td",x)));
     const controls=n("td");controls.className="account-actions";
-    if(a.role==="ketua_tim"){
+    if(a.role==="ketua_tim"||a.role==="kepala"){
      controls.append(
       button("Edit Akun",()=>openEdit(a)),
       button("Reset Password",()=>openReset(a)),
@@ -196,8 +204,7 @@ export function createSparkAccessAdminView(teams=[]){
    status.textContent="Daftar akun belum dapat dimuat. Periksa akun Admin dan aturan Firestore Spark.";
   }
  }
- add.disabled=!safeTeams.length;
- if(!safeTeams.length)status.textContent="Daftar tim belum tersedia.";
+ if(!safeTeams.length)status.textContent="Belum ada tim; akun Kepala BPS tetap dapat dibuat.";
  void load();
  return section;
 }
