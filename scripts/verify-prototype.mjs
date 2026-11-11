@@ -1730,7 +1730,7 @@ for(const token of [
  "Pesan diagnosis akun harus membedakan password dari profil Firestore: "+token);
 for(const token of [
  'if(message.startsWith("SPARK_PROFILE_")){',
- 'const [reason,uid]=message.split(":");',
+ 'const [reason,uid,fieldType,length,codepoints]=message.split(":");',
  'UID Authentication:',
  'Dokumen sparkRoleProfiles/{UID} tidak ditemukan.',
  'Password diterima Firebase.'
