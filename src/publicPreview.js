@@ -70,6 +70,28 @@ window.setTimeout(()=>{
   revealWelcome();
  }
 },12000);
+function sparkLoginErrorText(error,username){
+ const code=String(error?.code||"");
+ const message=String(error?.message||"");
+ if(code==="permission-denied"||code==="firestore/permission-denied"){
+  return "Login belum selesai: Firestore menolak pembacaan profil. Aturan firestore.spark.rules belum diterapkan atau akun tidak memiliki izin. Jangan ubah password dahulu.";
+ }
+ if(code==="auth/invalid-credential"||code==="auth/wrong-password"||code==="auth/user-not-found"){
+  return username==="admin"?
+   "Kredensial Admin ditolak Firebase. Periksa kembali username admin, password, dan email internal akun yang dibuat di Firebase Authentication.":
+   "Username atau password tidak cocok.";
+ }
+ if(code==="auth/operation-not-allowed"){
+  return "Metode Email/Password belum diaktifkan pada Firebase Authentication.";
+ }
+ if(message.includes("Akun tidak aktif")||message.includes("belum diizinkan Admin")){
+  return "Kredensial diterima, tetapi profil peran belum aktif. Pastikan dokumen sparkRoleProfiles dengan Document ID = UID akun Admin sudah dibuat dan berisi role admin serta active true.";
+ }
+ if(code==="unavailable"||code==="firestore/unavailable"){
+  return "Layanan Firestore belum dapat dihubungi. Periksa koneksi lalu coba lagi.";
+ }
+ return "Login belum berhasil. Periksa akun, izin Firestore Spark dan koneksi; jangan membuat ulang akun Admin sebelum penyebabnya diketahui.";
+}
 function errorText(code){
  if(code==="auth/unauthorized-domain")return "Domain website belum diizinkan di Firebase Authentication.";
  if(code==="auth/popup-blocked")return "Izinkan pop-up browser, kemudian coba lagi.";
@@ -435,7 +457,7 @@ function bindAuthenticatedSession(frame){
    password.value="";
   }catch(error){
    warning.textContent=sparkRoleReady?
-    "Login ditolak. Periksa username, password, akun aktif, atau pengaturan Firebase Email/Password dan Firestore Rules.":
+    sparkLoginErrorText(error,typedUser):
     "Login gagal: periksa username, password, atau izin akun peran.";
    password.value="";
   }finally{busy=false;apply.disabled=!roleLoginReady;}
