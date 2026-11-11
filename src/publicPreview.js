@@ -368,10 +368,10 @@ function bindAuthenticatedSession(frame){
   form=get("mpRoleLoginForm"),username=get("mpRoleUsername"),
   password=get("mpRolePassword"),apply=get("mpRoleApply"),
   badge=get("mpCurrentRole"),warning=get("mpRoleError"),roleLogout=get("mpRoleLogout"),
-  accountButton=get("mpManageAccounts"),accountDialog=$("mpAccountsDialog"),
+  accountButton=get("mpManageAccounts"),simButton=get("mpManageSimulation"),accountDialog=$("mpAccountsDialog"),
   accountContent=$("mpAccountsContent"),assignedTeam=get("mpAssignedTeam"),
   assignedTeamLabel=get("mpAssignedTeamLabel");
- if(!dialog||!opener||!form||!username||!password||!apply||!badge||!warning||!roleLogout||!accountButton||!accountDialog||!accountContent||!assignedTeam||!assignedTeamLabel)return;
+ if(!dialog||!opener||!form||!username||!password||!apply||!badge||!warning||!roleLogout||!accountButton||!simButton||!accountDialog||!accountContent||!assignedTeam||!assignedTeamLabel)return;
  let liveRole=null,busy=false,stopRoleWatch=null;
  const closeAccounts=()=>{
   if(accountDialog.open)accountDialog.close();
@@ -394,6 +394,31 @@ function bindAuthenticatedSession(frame){
   if(!accountDialog.open)accountDialog.showModal();
  });
 
+
+ const simDialog=$("mpSimDialog"),simConfirm=$("mpSimConfirm");
+ function closeSim(){if(simDialog.open)simDialog.close();}
+ simButton.addEventListener("click",()=>{
+  if(liveRole?.role!=="admin")return;
+  simConfirm.checked=false;
+  $("mpSimLoad").disabled=true;$("mpSimClear").disabled=true;
+  if(!simDialog.open)simDialog.showModal();
+ });
+ $("mpSimCancel").addEventListener("click",closeSim);
+ simConfirm.addEventListener("change",()=>{
+  $("mpSimLoad").disabled=!simConfirm.checked;
+  $("mpSimClear").disabled=!simConfirm.checked||!simulationMode;
+ });
+ function switchSimulation(nextMode){
+  if(liveRole?.role!=="admin"||!simConfirm.checked)return;
+  clearSimulationData(localStorage);
+  simulationMode=nextMode;
+  sessionStorage.setItem("mkp-simulation-mode",nextMode?"1":"0");
+  closeSim();
+  if(auth.currentUser)void openPrototype(auth.currentUser,++runId);
+ }
+ $("mpSimLoad").addEventListener("click",()=>switchSimulation(true));
+ $("mpSimClear").addEventListener("click",()=>switchSimulation(false));
+
  function renderRole(profile){
   if(stopRoleWatch){stopRoleWatch();stopRoleWatch=null;}
   liveRole=profile;
@@ -412,6 +437,8 @@ function bindAuthenticatedSession(frame){
   roleLogout.hidden=!profile;
   roleLogout.disabled=!profile;
   accountButton.hidden=profile?.role!=="admin";
+  simButton.hidden=profile?.role!=="admin";
+  simButton.textContent=simulationMode?"Kelola Data Uji":"Muat Data Simulasi";
   accountButton.disabled=profile?.role!=="admin"||!accountsReady;
   accountButton.title=accountsReady?"Kelola username, password dan tim melalui Firebase Spark":"Kelola akun belum diaktifkan di Firebase";
   const assigned=profile?.role==="ketua"?profile.teamIds||[]:[];
@@ -422,7 +449,7 @@ function bindAuthenticatedSession(frame){
    const option=doc.createElement("option");option.value=t.id;option.textContent=t.name;return option;
   }));
   if(options.length)assignedTeam.value=state?.teamId||options[0].id;
-  if(profile?.role!=="admin")closeAccounts();
+  if(profile?.role!=="admin"){closeAccounts();closeSim();}
   opener.setAttribute("aria-label",profile?"Masuk sebagai "+display:"Login Peran untuk mengelola data");
  }
  async function exitRole(){
@@ -535,7 +562,8 @@ function bindAuthenticatedSession(frame){
 }
 async function openPrototype(user,run){
  try{
-   const html=addAuthenticatedHeader(await loadPrototype(),user);
+   const source=await loadPrototype();
+   const html=addAuthenticatedHeader(simulationMode?simulationMarkup(source):source,user);
    if(run!==runId)return;
    const frame=$("mpFrame");
    frame.onload=()=>bindAuthenticatedSession(frame);
