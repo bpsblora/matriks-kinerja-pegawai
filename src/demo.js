@@ -1,0 +1,21 @@
+import "./style.css";
+import { createReference2026View } from "./reference2026.js";
+
+const root = document.getElementById("app");
+const layout = document.createElement("div");
+layout.className = "container";
+const brand = document.createElement("div");
+brand.className = "eyebrow";
+brand.textContent = "BPS KABUPATEN BLORA • DEMO 2026";
+const heading = document.createElement("h1");
+heading.textContent = "Matriks Kinerja Pegawai";
+const status = document.createElement("p");
+status.className = "warning";
+status.textContent = "DEMO TANPA LOGIN — hanya referensi anonim 2026. Data tidak tersimpan ke Firebase, fitur penyuntingan belum aktif.";
+const entry = document.createElement("a");
+entry.href = "./";
+entry.textContent = "Halaman Login Pengujian";
+entry.style.display = "inline-block";
+entry.style.marginBottom = "16px";
+layout.append(brand, heading, status, entry, createReference2026View());
+root.replaceChildren(layout);

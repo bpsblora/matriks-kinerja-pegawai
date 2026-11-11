@@ -1,0 +1,47 @@
+:root{font-family:Georgia,"Times New Roman",serif;font-size:16px;color:#14395b;background:#f1f6fc}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}.container{width:min(100%,690px);background:#fff;border:1px solid #cbdff4;border-radius:18px;box-shadow:0 15px 44px rgba(14,54,95,.1);padding:clamp(22px,5vw,38px)}.eyebrow{font-family:Arial,sans-serif;letter-spacing:.13em;font-size:.72rem;font-weight:750;color:#1766a7}h1{font-size:clamp(1.6rem,3.3vw,2.05rem);line-height:1.25;margin:13px 0 8px}p{line-height:1.65;color:#42627e}.status{background:#f0f6ff;border:1px solid #cfe2fb;border-radius:12px;margin:18px 0;padding:16px}.status h2{font-size:1.1rem;margin:0 0 6px}.status p{margin:0}.actions{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0}button{background:#1767ad;color:white;border:0;border-radius:10px;padding:11px 17px;font:700 .94rem Arial,sans-serif;cursor:pointer}button:hover{background:#0f518b}button:disabled{opacity:.55;cursor:wait}.secondary{background:#eaf2fc;color:#1b5686}.secondary:hover{background:#dceafb}.meta{font-family:Arial,sans-serif;font-size:.8rem;color:#516f88;border-top:1px solid #e2eaf3;padding-top:14px;margin-top:20px;overflow-wrap:anywhere}.meta p{margin:5px 0}code{background:#eef4fa;padding:2px 5px;border-radius:4px;color:#214e75}.warning{color:#8b4e0f}.error{color:#9a2d27}@media(max-width:450px){.actions button{width:100%}}
+
+/* Username/password form: only enabled after secured backend validation */
+.login-form{display:grid;gap:14px;margin:18px 0}
+.login-form label{font:600 .91rem Arial,sans-serif;color:#285475;display:grid;gap:7px}
+.login-form input{width:100%;border:1px solid #b8cee3;border-radius:10px;padding:12px 14px;font:400 1rem Arial,sans-serif;color:#183d5e;background:#fff}
+.login-form input:focus{outline:2px solid #3e8bd7;outline-offset:1px}
+.login-form button{justify-self:start}
+.login-form[hidden],.actions[hidden]{display:none}
+
+/* Matriks 2026 reference and administrator tools */
+.reference-view{margin-top:18px}
+.reference-view section{margin:24px 0}
+.reference-head h2,.admin-access h2{font-size:1.32rem;margin-bottom:4px}
+.reference-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+.reference-stat{background:#f0f6fd;border:1px solid #d8e6f6;border-radius:12px;padding:13px;display:grid;gap:4px}
+.reference-stat span{font:600 .78rem Arial,sans-serif;color:#456885}
+.reference-stat strong{font:800 1.6rem Arial,sans-serif;color:#15548e}
+.reference-filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.reference-filters select,.reference-filters input,.account-fields select,.account-fields input{border:1px solid #b7cde3;border-radius:9px;background:#fff;padding:10px;min-width:0;color:#193c60;font:400 .88rem Arial,sans-serif}
+.reference-filters input{flex:1;min-width:200px}
+.year-mark{font:700 .72rem Arial,sans-serif;padding:9px;background:#ddeefb;color:#15548e;border-radius:9px}
+.team-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-height:400px;overflow:auto}
+.team-card{padding:13px;border:1px solid #d7e4f2;border-radius:11px;background:#fafcff}
+.team-card strong{font-size:.95rem}.team-card p{font:400 .8rem Arial,sans-serif;margin:5px 0}.team-card small{font:400 .75rem Arial,sans-serif;color:#68809b}
+.table-wrap{overflow-x:auto;max-height:435px;overflow-y:auto;border:1px solid #d8e5f1;border-radius:10px}
+.table-wrap table{width:100%;border-collapse:collapse;text-align:left;font:400 .8rem Arial,sans-serif}
+.table-wrap th{background:#eaf2fc;color:#31516f;position:sticky;top:0;z-index:1}
+.table-wrap th,.table-wrap td{padding:11px;border-bottom:1px solid #e4edf6;vertical-align:top}
+.table-wrap tbody tr:nth-child(even){background:#fafcff}
+.admin-access{margin-top:26px;border-top:1px solid #d8e5f1;padding-top:20px}
+.account-dialog{width:min(95vw,540px);max-height:90vh;overflow-y:auto;border:1px solid #c8d9eb;border-radius:16px;padding:24px;background:#fff;color:#224561;box-shadow:0 15px 60px #153c633c}
+.account-dialog::backdrop{background:#102f4a96}
+.account-dialog h2{font-size:1.22rem}
+.account-fields{display:grid;gap:12px;margin:16px 0}
+.account-field{display:grid;gap:7px;font:600 .84rem Arial,sans-serif}
+.account-fields select[multiple]{height:118px}
+.account-actions{display:flex;flex-wrap:wrap;gap:6px}
+.account-actions button{font-size:.72rem;padding:7px 9px}
+@media(max-width:620px){.reference-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.team-grid{grid-template-columns:1fr}}
+
+/* Google viewer account provisioning — no access without an approved UID. */
+.auth-account-info{display:grid;justify-items:start;gap:5px;margin-top:12px}
+.auth-account-info p{margin:0 0 3px;line-height:1.6}
+.auth-account-info code{font-size:13px;overflow-wrap:anywhere}
+.auth-account-info button{margin:4px 0;font-size:12px}
+.demo-link{display:inline-flex;align-items:center;font:700 13px Arial,sans-serif;color:#1767ad;padding:10px 0;margin:8px 0 4px}

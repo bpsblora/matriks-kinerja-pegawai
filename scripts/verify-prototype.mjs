@@ -1,0 +1,2011 @@
+import fs from "node:fs";
+import vm from "node:vm";
+import assert from "node:assert/strict";
+import {simulationMarkup,simulationSeed,simulationKroSeed,simulationOverlay,SIM_PREFIX,clearSimulationData} from "../src/simulationFixture.js";
+const paths=Array.from({length:17},(_,i)=>"assets/v26/part-"+String(i+1).padStart(3,"0")+".txt");
+for(const path of paths)assert(fs.existsSync(path),"File V25 belum lengkap: "+path);
+const html=paths.map(path=>fs.readFileSync(path,"utf8")).join("");
+assert(html.includes("Prototipe V25 v2.6"),"Versi bukan v2.6");
+assert(html.includes("function enterPrototypeEdit()"),"Gerbang Gmail belum menggantikan login demo");
+const scriptStart=html.lastIndexOf("<script>");
+const scriptEnd=html.indexOf("</script>",scriptStart);
+assert(scriptStart>=0 && scriptEnd>scriptStart,"Script fungsional V25 tidak tersedia");
+const inline=html.slice(scriptStart+"<script>".length,scriptEnd);
+new vm.Script(inline,{filename:"prototipe-v26-inline.js"});
+
+assert(!html.includes("demo2026"),"Password demo lama tidak boleh ikut");
+const simHtml=simulationMarkup(html);
+const simNeedle='<script id="seed" type="application/json">';
+const simStart=simHtml.indexOf(simNeedle)+simNeedle.length;
+const simEnd=simHtml.indexOf("</script>",simStart);
+assert(simStart>simNeedle.length&&simEnd>simStart,"Seed simulasi harus tersedia di iframe");
+const simSeedLoaded=JSON.parse(simHtml.slice(simStart,simEnd));
+assert.equal(simSeedLoaded.teams.length,3,"Simulasi wajib tepat tiga tim");
+assert.equal(simSeedLoaded.employees.length,10,"Simulasi wajib tepat sepuluh pegawai");
+assert.equal(simSeedLoaded.activities.length,8,"Simulasi wajib tepat delapan kegiatan");
+assert.equal(simulationKroSeed.kros.length,6,"Simulasi wajib enam KRO");
+assert(simulationSeed.employees.every(e=>e.id.startsWith("E9")),"Pegawai simulasi harus terisolasi");
+assert.equal(simulationOverlay.dailyHours,8,"Kapasitas harian simulasi 8 jam");
+assert(simHtml.includes(SIM_PREFIX),"Penyimpanan simulasi wajib berbeda dengan operasional");
+assert(!html.includes(SIM_PREFIX),"Referensi normal tidak boleh memakai key simulasi");
+const shimStart=simHtml.indexOf("<script>\n (function(){");
+assert(shimStart>=0,"Bootstrap simulasi belum termuat sebelum prototipe");
+const shimEnd=simHtml.indexOf("</script>",shimStart);
+new vm.Script(simHtml.slice(shimStart+8,shimEnd),{filename:"simulation-storage-isolation.js"});
+const stub=new Map([["other-key","keep"],[SIM_PREFIX+"temp","remove"]]);
+const mockStorage={get length(){return stub.size},key:i=>[...stub.keys()][i],removeItem:k=>stub.delete(k)};
+assert.equal(clearSimulationData(mockStorage),1);
+assert.equal(stub.get("other-key"),"keep","Pembersihan simulasi tidak boleh menghapus data lain");
+const extract=id=>{
+  const needle='<script id="'+id+'" type="application/json">';
+  const from=html.indexOf(needle);
+  assert(from>=0,"Seed "+id+" hilang");
+  const end=html.indexOf("</script>",from+needle.length);
+  assert(end>from,"Seed "+id+" terpotong");
+  return JSON.parse(html.slice(from+needle.length,end));
+};
+const seed=extract("seed"),kro=extract("kroSeed"),kro2027=extract("kro2027Seed");
+assert.equal(seed.meta.year,2026);
+assert.equal(seed.teams.length,25);
+assert.equal(seed.employees.length,40);
+assert.equal(seed.activities.length,1412);
+assert.equal(seed.annual_allocations_source.length,3224);
+assert.equal(seed.monthly_allocations_source.length,2779);
+assert.equal(kro.kros.length,33);
+assert.equal(kro2027.kros.length,32);
+assert(seed.employees.every(e=>/^Pegawai \d+$/.test(e.full_name)),"Nama asli pegawai tidak boleh di preview statis");
+assert(Object.values(kro.official_roster).every(x=>!x.leaderName||x.leaderName.startsWith("Pegawai ")),"Nama ketua tim masih asli");
+// Prevent regressions in displayed unit captions and numeric summaries.
+// Prose descriptions intentionally retain ordinary Indonesian sentence case.
+const unitCaptions = [
+  "<div class=\"pm-sub\">Jam-Orang</div>",
+  "<div class=\"pm-sub\">Jam/Hari Kerja Efektif</div>",
+  "<div class=\"pm-sub\">Jam per Bulan dalam Periode</div>",
+  "Hari Ekuivalen (Total Jam ÷ Jam Efektif/Hari)",
+  "Rata-rata Jam/Hari",
+  "0 Pegawai Dipilih",
+  "Uraian Ditampilkan",
+  "Jam/Satuan",
+  "Jam Kerja Efektif / Hari (Acuan)",
+  "Hari Kerja Efektif",
+  "Kegiatan pada KRO ini",
+  "Jumlah Tim"
+];
+for (const label of unitCaptions) {
+  assert(html.includes(label), "Label satuan belum konsisten: "+label);
+}
+const rejectedCaptions = [
+  "<div class=\"pm-sub\">jam-orang</div>",
+  "<div class=\"pm-sub\">jam/hari kerja efektif</div>",
+  "<div class=\"pm-sub\">jam per bulan dalam periode</div>",
+  "<span>Jam/hari</span>",
+  "0 pegawai dipilih",
+  "hari kerja efektif · ${months[m-1]}",
+  "metric==='daily'?'Jam/hari'",
+  "rows.length+' uraian dengan alokasi pada periode terpilih'"
+];
+for (const label of rejectedCaptions) {
+  assert(!html.includes(label), "Label satuan lama masih ditemukan: "+label);
+}
+
+// Reconciliation labels must identify the annual baseline and monthly coverage.
+for (const text of [
+  "Kelengkapan Alokasi Tahunan 2026",
+  "Alokasi Tahunan Awal",
+  "Alokasi yang Sudah Dirinci per Bulan",
+  "Jam Belum Terurai ke Bulan",
+  "Rincian Bulanan Belum Lengkap",
+  "selisih tidak boleh dibagikan otomatis"
+]) {
+  assert(html.includes(text), "Rekonsiliasi 2026 kehilangan penjelasan: "+text);
+}
+assert(!html.includes("Referensi Tahunan Lama"), "Nama acuan tahunan lama belum diperjelas");
+assert(!html.includes("Selisih terhadap Referensi"), "Nama selisih bulanan lama belum diperjelas");
+
+
+// Dashboard warning behavior test: duplicate team membership must not double
+// the office denominator, and only planned/recorded work triggers date warnings.
+const beginAlert=inline.indexOf("function capacityWarningEvents(period){");
+const endAlert=inline.indexOf("function renderCapacityWarnings(){",beginAlert);
+assert(beginAlert>=0&&endAlert>beginAlert,"Fungsi peringatan bulanan/tahunan tidak ditemukan");
+const warningCode=inline.slice(beginAlert,endAlert);
+const e1={id:"E1",full_name:"Pegawai A",type:"pegawai",active:true};
+const e2={id:"E2",full_name:"Pegawai B",type:"pegawai",active:true};
+const a1={id:"A1",team_id:"T1",status:"aktif",description:"Uraian uji"};
+const context={
+ activeYear:2027,isBaseYear:false,
+ months:["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],
+ BASE:{employees:[e1,e2],teams:[{id:"T1",name:"Tim A"},{id:"T2",name:"Tim B"}]},
+ yearSetup:{staff:{ids:["E1","E2"]}},
+ capacity:()=>10,nf:n=>String(n),
+ periodAgg:(period,team)=>({totals:team==="T1"
+  ?new Map([["E1",11],["E2",0]]):team==="T2"
+  ?new Map([["E1",0],["E2",7]]):new Map([["E1",11],["E2",7]])}),
+ assignedStaff:()=>[e1,e2],
+ assignedStaffIds:()=>new Set(["E1","E2"]),
+ byId:new Map([["A1",a1]]),baseMonthly:new Map(),amKey:(id,m)=>id+"|"+m,
+ state:{allocEdits:{},targets:{},workflowPlans:{},scheduleEdits:{}}
+};
+const evaluate=()=>vm.runInNewContext(warningCode+";capacityWarningEvents('monthly')",context);
+let events=evaluate().events;
+assert(events.some(e=>e.scope==="pegawai"&&e.level==="over"),"Pegawai di atas kapasitas harus terdeteksi");
+assert(!events.some(e=>(e.scope==="kantor"||e.scope==="tim")&&(e.level==="over"||e.level==="near")),"Tim/kantor tidak boleh memakai peringatan batas kapasitas pegawai");
+assert(!events.some(e=>e.scope==="alokasi"),"Katalog tanpa alokasi tidak boleh ditandai belum lengkap");
+
+// Each actionable warning title states a concrete name and amount, not just
+// a generic capacity status. The subtitle retains the ratio and context.
+assert(events.some(e=>e.scope==="pegawai"&&e.level==="over"&&e.title==="Pegawai A — Melebihi Kapasitas Total Efektif 1 Jam"),"Judul pegawai harus menyebut Kapasitas Total Efektif dan kelebihan Jam");
+const originalAggregate=context.periodAgg;
+const originalTeams=context.BASE.teams;
+context.periodAgg=(period,team)=>({totals:team==="T1"
+ ?new Map([["E1",250],["E2",0]]):team==="T2"
+ ?new Map([["E1",40],["E2",0]]):team==="T3"
+ ?new Map([["E1",20],["E2",0]]):team==="T4"
+ ?new Map([["E1",10],["E2",0]]):new Map([["E1",180],["E2",140]])});
+context.BASE.teams=[{id:"T1",name:"Tim A"},{id:"T2",name:"Tim B"},{id:"T3",name:"Tim C"},{id:"T4",name:"Tim D"}];
+events=vm.runInNewContext(warningCode+";capacityWarningEvents('1')",context).events;
+assert(events.some(e=>e.scope==="tim"&&e.anomaly==="high"&&e.title.includes("Jam di Atas Rata-rata Tim")),"Beban tim bulanan yang jauh di atas rata-rata harus diperingatkan");
+assert(events.some(e=>e.scope==="tim"&&e.anomaly==="low"&&e.title.includes("Jam di Bawah Rata-rata Tim")),"Beban tim bulanan yang jauh di bawah rata-rata harus diperingatkan");
+assert(!events.some(e=>e.scope==="tim"&&e.level==="over"),"Ketimpangan tim bukan kelebihan kapasitas tim");
+assert(!vm.runInNewContext(warningCode+";capacityWarningEvents('monthly')",context).events.some(e=>e.scope==="tim"&&e.anomaly),"Ketimpangan tim hanya dinilai untuk tiap bulan");
+context.BASE.teams=originalTeams;
+context.periodAgg=(period,team)=>({totals:team==="T1"
+ ?new Map([["E1",11],["E2",0]]):team==="T2"
+ ?new Map([["E1",0],["E2",2]]):new Map([["E1",11],["E2",2]])});
+events=evaluate().events;
+assert(events.some(e=>e.scope==="pegawai"&&e.level==="under"&&e.title.includes("2 Jam Alokasi")),"Pegawai dengan 20% beban tercatat harus diperingatkan");
+context.periodAgg=(period,team)=>({totals:team==="T1"
+ ?new Map([["E1",11],["E2",0]]):team==="T2"
+ ?new Map([["E1",0],["E2",0]]):new Map([["E1",11],["E2",0]])});
+events=evaluate().events;
+assert(!events.some(e=>e.scope==="pegawai"&&e.level==="under"&&e.employeeId==="E2"),"Nol Jam berarti belum tercatat, bukan bukti pegawai sangat under");
+assert(events.some(e=>e.title.includes("Pegawai Belum Memiliki Alokasi Tercatat")),"Pegawai nol Jam harus masuk pemeriksaan kelengkapan");
+context.periodAgg=originalAggregate;
+events=evaluate().events;
+
+context.state.allocEdits={"A1|E1|1":4};
+events=evaluate().events;
+assert(events.some(e=>e.title.includes("Uraian Belum Memiliki Tanggal Pelaksanaan")),"Tanggal kegiatan kosong harus diperingatkan");
+context.state.scheduleEdits={"A1|1":{start:"2027-01-04",end:"2027-01-06"}};
+events=evaluate().events;
+assert(!events.some(e=>e.title.includes("Uraian Belum Memiliki Tanggal Pelaksanaan")),"Tanggal valid tidak boleh diperingatkan");
+context.state.allocEdits={};
+context.state.targets={"A1|1":2};
+events=evaluate().events;
+assert(events.some(e=>e.title.includes("Uraian Belum Dialokasikan ke Pegawai")),"Target tanpa penugasan harus diperingatkan");
+
+// Outside-team assignments are legitimate. The dashboard may still request a
+// date, but must not reject an assignee merely for lacking team membership.
+context.assignedStaffIds=()=>new Set(["E2"]);
+context.state.allocEdits={"A1|E1|1":4};
+events=evaluate().events;
+assert(!events.some(e=>e.title.includes("Penugasan di Luar Tim")),"Penugasan lintas tim bukan masalah validasi");
+context.state.allocEdits={};
+assert(!warningCode.includes("members.length*perPerson"),"Kapasitas tim tidak boleh dijumlah dari anggota tetap");
+assert(!warningCode.includes("officeCap"),"Kantor tidak memiliki ambang maksimum volume beban kerja");
+assert(warningCode.includes("pct<=.25"),"Pegawai dengan alokasi tercatat di bawah 25% belum dipantau");
+assert(warningCode.includes("working.length>=3"),"Pembandingan tim harus menggunakan sampel bulan yang memadai");
+
+assert(html.includes("Tanggal Mulai dan Selesai wajib diisi"),"Tahun baru harus mewajibkan tanggal pelaksanaan");
+assert(html.includes("moveAnnualAuditToRecon()"),"Pemeriksaan tahun 2026 harus tersedia di Rekonsiliasi");
+assert(html.includes('id="capacityWarningBoard"'),"Pusat peringatan Dashboard tidak ditemukan");
+
+
+const warnSummaryStart=inline.indexOf("function renderCapacityWarnings(){");
+const warnSummaryEnd=inline.indexOf("function renderCombinedDashboard(){",warnSummaryStart);
+const warnSummary=inline.slice(warnSummaryStart,warnSummaryEnd);
+assert(warnSummaryStart>=0&&warnSummaryEnd>warnSummaryStart,"Ringkasan peringatan Dashboard tidak ditemukan");
+for(const level of ["over","near","under","pending"]){
+  assert(warnSummary.includes("data-warning-category"),"Kartu "+level+" belum dapat membuka pop-up");
+}
+assert(warnSummary.includes('id="openAllWarnings"'),"Tombol Seluruh Peringatan tidak ditemukan");
+assert(!warnSummary.includes('class="mkp-warning-item"'),"Daftar panjang masih dirender di Dashboard");
+assert(inline.includes("dialog.showModal()"),"Pop-up peringatan belum dapat dibuka");
+assert(inline.includes('id="warningDialogResults"'),"Daftar peringatan dalam pop-up belum tersedia");
+assert(inline.includes('id="warningDialogPeriod"'),"Filter periode pop-up belum tersedia");
+assert(inline.includes("dialog.addEventListener('close'"),"Pemulihan fokus saat pop-up ditutup belum ada");
+const cssPolish=fs.readFileSync("src/sitePolish.css","utf8");
+assert(cssPolish.includes(".mkp-warning-dialog-scroll{overflow-y:auto"),"Daftar pop-up tidak dapat digulir");
+const collStart=inline.indexOf("function warningCollection(){");
+const collEnd=inline.indexOf("function ensureWarningDialog(){",collStart);
+assert(collStart>=0&&collEnd>collStart,"Pengurutan prioritas peringatan tidak ditemukan");
+const priorityFixture={
+  months:["Januari"],
+  capacityWarningEvents:period=>({
+    events:period==="monthly"?[
+      {level:"near",title:"Cukup Dipantau",loadRatio:.91,period:"monthly",description:""},
+      {level:"over",title:"Berlebih Ringan",loadRatio:1.03,period:"monthly",description:""},
+      {level:"pending",title:"Data Perlu Diperiksa",period:"monthly",description:""},
+      {level:"under",title:"Beban Sangat Rendah",loadRatio:.15,period:"monthly",description:""},
+      {level:"over",title:"Berlebih Tinggi",loadRatio:1.55,period:"monthly",description:""}
+    ]:[],hasData:true
+  })
+};
+const sorted=vm.runInNewContext(inline.slice(collStart,collEnd)+";warningCollection().all.map(x=>x.title).slice(0,5).join('|')",priorityFixture);
+assert.equal(sorted,"Berlebih Tinggi|Berlebih Ringan|Data Perlu Diperiksa|Cukup Dipantau|Beban Sangat Rendah","Prioritas pop-up tidak sesuai tingkat urgensi");
+
+
+// Monthly trend follows active year; office/team/employee comparison is a
+// horizontal selection control, not a redundant year dropdown.
+assert(html.includes('id="trendTitle">Tren Beban Kerja Antarbulan 2026'),"Judul tren tahunan tidak tersedia");
+assert(html.includes('id="trendYear" hidden'),"Dropdown tahun tren belum disembunyikan");
+assert(html.includes('id="trendScope" hidden'),"Dropdown perbandingan lama belum diganti tombol");
+for(const scope of ["office","allTeams","allEmployees"]){
+ assert(html.includes('data-trend-scope="'+scope+'"'),"Tombol grafik "+scope+" belum tersedia");
+}
+assert(inline.includes("button.dataset.trendScope===scope"),"Status aktif tombol filter belum sinkron dengan grafik");
+assert(inline.includes("button.onclick=()=>{\n  $('trendScope').value=button.dataset.trendScope;"),"Tombol filter belum terhubung ke grafik");
+assert(inline.includes("const scope=$('trendScope').value,year=activeYear;"),"Tren belum mengikuti tahun aktif");
+assert(cssPolish.includes(".trend-scope-buttons"),"Tombol pilihan grafik belum mendapat desain horizontal");
+
+
+
+// The top filter selects the ACTIVITY OWNER and the activity, not the
+// employee's organizational team. Checkboxes follow the resulting workload.
+assert(html.includes('id="trendOwnerTeam"'),"Filter Tim Pemilik Kegiatan tidak ditemukan");
+assert(html.includes('id="trendActivityFilter"'),"Filter Kegiatan tidak ditemukan");
+assert(!html.includes('id="trendTeamOptions"'),"Dropdown checkbox tim keanggotaan lama masih tampil");
+const trendStart=inline.indexOf("function trendWorkloadMonth(");
+const trendEnd=inline.indexOf("function renderTrendActivityFilters(",trendStart);
+assert(trendStart>=0&&trendEnd>trendStart,"Agregasi kegiatan berdasarkan tim pemilik belum tersedia");
+const trendData=vm.runInNewContext(inline.slice(trendStart,trendEnd)+";trendWorkloadMonth(1,'T1','SHKK')",{
+ periodAgg:()=>({details:new Map([
+  ["A1|E1",8],["A1|E2",12],["A2|E2",7],["A3|E1",6]
+ ])}),
+ byId:new Map([
+  ["A1",{team_id:"T1",group:"SHKK"}],
+  ["A2",{team_id:"T2",group:"SHKK"}],
+  ["A3",{team_id:"T1",group:"SHP"}]
+ ]),
+ baseActivity:new Map(),groupName:a=>a.group
+});
+assert.equal(trendData.totals.get("E1"),8,"Beban pegawai pemilik kegiatan salah");
+assert.equal(trendData.totals.get("E2"),12,"Pegawai luar tim yang mengerjakan kegiatan harus ikut dihitung");
+assert.equal(trendData.teamTotals.get("T1"),20,"Beban tim harus memasukkan seluruh pelaksana kegiatan");
+assert.equal(trendData.teamTotals.has("T2"),false,"Beban kegiatan tim lain harus dikecualikan");
+assert(inline.includes("renderTrendActivityFilters(scope)"),"Filter berjenjang belum terhubung pada grafik");
+assert(inline.includes("all.filter(e=>e.total>0).slice(0,6)"),"Pilihan seri awal tidak otomatis mengikuti beban terbesar");
+assert(inline.includes("function applyTrendFilterChange(kind){"),"Perubahan checkbox Tim/Kegiatan belum mengubah grafik");
+assert(inline.includes("trendSeriesSelection.allTeams=null;trendSeriesSelection.allEmployees=null;"),"Perubahan filter tidak mengurutkan ulang seri");
+assert(inline.includes("initTrendPickers();"),"Pop-up checkbox belum aktif pada inisialisasi");
+assert(inline.includes("trendSeriesSelection.allTeams=null;trendSeriesSelection.allEmployees=null"),"Perubahan filter tidak memicu urutan tim dan pegawai");
+assert(!inline.includes("trendSelectedTeams"),"Logika daftar keanggotaan tim lama harus dilepas");
+assert(cssPolish.includes("#pageDashboard .tl-trend-filters #trendActivityFilterWrap"),"Tata letak Kegiatan belum disesuaikan");
+
+assert(html.includes('id="trendTeamPopover"'),"Pop-up checkbox Tim Pemilik belum dibuat");
+assert(html.includes('id="trendActivityPopover"'),"Pop-up checkbox Kegiatan belum dibuat");
+assert(html.includes('id="trendTeamChoices"'),"Checkbox multi-Tim belum tersedia");
+assert(html.includes('id="trendActivityChoices"'),"Checkbox multi-Kegiatan belum tersedia");
+assert(!html.includes('<select id="trendOwnerTeam"'),"Filter Tim masih dropdown tunggal");
+assert(!html.includes('<select id="trendActivityFilter"'),"Filter Kegiatan masih dropdown tunggal");
+assert(inline.includes("trendOwnerTeams=next;"),"Pilihan beberapa Tim belum tersimpan");
+assert(inline.includes("trendActivityKeys=next;"),"Pilihan beberapa Kegiatan belum tersimpan");
+assert(inline.includes("trendActivityKeys=null; // options must always reflect the selected owner teams"),"Perubahan Tim harus mereset Kegiatan untuk menjaga filter berjenjang");
+assert(inline.includes("openTrendPicker('activity');"),"Pemilihan Tim belum bisa dilanjutkan ke pop-up Kegiatan");
+assert(inline.includes("trendAvailableActivities().filter("),"Pilihan Kegiatan belum mengikuti Tim yang dicentang");
+assert(cssPolish.includes(".trend-picker-popover{"),"Pop-up checkbox belum didesain");
+assert(cssPolish.includes(".trend-picker-list{"),"Daftar checkbox yang panjang belum dapat digulir");
+
+// Verify multi-team aggregation and activity identity with identical names
+// in two teams. Include employees who belong to a different owner team.
+const fullTrendStart=inline.indexOf("const trendActivityId=");
+const fullTrendEnd=inline.indexOf("function renderTrendActivityFilters(",fullTrendStart);
+assert(fullTrendStart>=0&&fullTrendEnd>fullTrendStart,"Model multi-team/activity tidak ditemukan");
+const multiFixture={
+  periodAgg:()=>({details:new Map([
+    ["A1|E1",8],["A1|E2",12],["A2|E2",7],["A3|E1",6]
+  ])}),
+  byId:new Map([
+    ["A1",{team_id:"T1",group:"SHKK"}],
+    ["A2",{team_id:"T2",group:"SHKK"}],
+    ["A3",{team_id:"T1",group:"SHP"}]
+  ]),
+  baseActivity:new Map(),groupName:a=>a.group
+};
+const trendFunctions=inline.slice(fullTrendStart,fullTrendEnd);
+const multiTeam=vm.runInNewContext(trendFunctions+";trendWorkloadMonth(1,new Set(['T1','T2']),new Set([JSON.stringify(['T1','SHKK']),JSON.stringify(['T2','SHKK'])]))",{...multiFixture});
+assert.equal(multiTeam.totals.get("E1"),8,"Multi-Tim gagal membaca pegawai pertama");
+assert.equal(multiTeam.totals.get("E2"),19,"Pegawai lintas tim atau kelompok senama tidak terhitung");
+assert.equal(multiTeam.teamTotals.get("T1"),20,"Beban Tim pemilik pertama tidak sesuai");
+assert.equal(multiTeam.teamTotals.get("T2"),7,"Beban Tim pemilik kedua tidak sesuai");
+const onlySecond=vm.runInNewContext(trendFunctions+";trendWorkloadMonth(1,new Set(['T1','T2']),new Set([JSON.stringify(['T2','SHKK'])]))",{...multiFixture});
+assert.equal(onlySecond.totals.get("E1")||0,0,"Kegiatan senama dari Tim lain tidak boleh terikut");
+assert.equal(onlySecond.totals.get("E2"),7,"Kegiatan pada Tim kedua harus tetap ada");
+const noTeams=vm.runInNewContext(trendFunctions+";trendWorkloadMonth(1,new Set(),null)",{...multiFixture});
+assert.equal(noTeams.totals.size,0,"Kosongkan Tim harus menghasilkan grafik tanpa data");
+
+
+// Historical 2026 must expose the same staff -> team establishment workflow
+// as subsequent years without overwriting its source allocations.
+const setupStart=inline.indexOf("function renderYearSetup(){");
+const setupEnd=inline.indexOf("function confirmStaffYear(){",setupStart);
+const yearSetupCode=inline.slice(setupStart,setupEnd);
+assert(setupStart>=0&&setupEnd>setupStart,"Panel penetapan pegawai dan tim tidak tersedia");
+assert(yearSetupCode.includes("panel.classList.remove('hidden')"),"Tahapan tahun 2026 masih disembunyikan");
+assert(yearSetupCode.includes("isBaseYear?!!(yearSetup.staff?.confirmed"),"Tahun 2026 harus memerlukan penetapan daftar pegawai");
+assert(yearSetupCode.includes("teamStage.classList.toggle('hidden',isBaseYear&&!allReady)"),"Tahap tim tidak menunggu penetapan pegawai");
+const stageStart=inline.indexOf("function setupYearStages(){");
+const stageEnd=inline.indexOf("function refreshTeamStore(){",stageStart);
+const stageCode=inline.slice(stageStart,stageEnd);
+assert(stageStart>=0&&stageEnd>stageStart,"Pengaitan tahap penetapan tidak tersedia");
+assert(stageCode.includes("if(grid)$('annualTeamGridSlot').appendChild(grid)"),"Rincian tim belum berada di bawah tahapan penetapan");
+assert(stageCode.includes("addEventListener('click',confirmStaffYear)"),"Tombol penetapan pegawai belum aktif di 2026");
+assert(stageCode.includes("addEventListener('click',confirmTeamYear)"),"Tombol penetapan tim belum aktif di 2026");
+assert(!stageCode.includes("if(!isBaseYear){\n  if(hero&&panel)"),"Tahapan 2026 tidak boleh dikecualikan");
+assert(inline.includes("if(membershipChanged&&(!isBaseYear||yearSetup.staff?.confirmed))"),"Perubahan pegawai perlu meninjau ulang penetapan");
+assert(inline.includes("el.classList.toggle('hidden',isBaseYear&&!yearSetup.staff?.confirmed)"),"Ringkasan tim 2026 harus menunggu tahap pegawai");
+
+
+// Paired cards must have identical outside height and independently scroll
+// their lengthy employee/activity lists. Do not hide full forms by overflow.
+for (const rule of [
+  "#pageDashboard .monitor-main-grid{",
+  "#pageDashboard .monitor-main-grid > :is(.chart-panel,.person-panel){",
+  "#pageDashboard .monitor-main-grid #barRows,",
+  "#pageDashboard .monitor-main-grid #personDetails{",
+  "#pageTeams .team-admin-grid{align-items:stretch!important}",
+  "#pageTeams .team-admin-grid > .team-admin-card{",
+  "@media(max-width:1240px){",
+  "@media(max-width:980px){"
+]) assert(cssPolish.includes(rule),"Aturan penyamaan kartu/area gulir belum tersedia: "+rule);
+assert(cssPolish.includes("overflow-y:auto;"),"Daftar panjang perlu gulir vertikal");
+assert(cssPolish.includes("max-height:none!important;"),"Batas lama tinggi daftar di desktop perlu ditimpa");
+assert(cssPolish.includes("overflow:visible;"),"Formulir kartu bertumpuk tidak boleh terpotong");
+
+
+// A work detail should group by team AND activity and sum hours exactly.
+const workStart=inline.indexOf("function groupPersonWorkload(rows){");
+const workEnd=inline.indexOf("let personWorkModalReturn=",workStart);
+assert(workStart>=0&&workEnd>workStart,"Pengelompokan Tim–Kegiatan belum tersedia");
+const workFixture=[
+ {ac:{id:"A1",team_id:"T1",team:"Tim Harga",group:"SHKK",description:"Rekrutmen"},h:12},
+ {ac:{id:"A2",team_id:"T1",team:"Tim Harga",group:"SHKK",description:"Pemeriksaan"},h:24},
+ {ac:{id:"A3",team_id:"T2",team:"Tim Lain",group:"SHKK",description:"Pendataan"},h:16},
+ {ac:{id:"A4",team_id:"T1",team:"Tim Harga",group:"SHP",description:"Rekrutmen"},h:42}
+];
+const groups=vm.runInNewContext(inline.slice(workStart,workEnd)+";groupPersonWorkload(rows)",{
+ rows:workFixture,teamMap:new Map(),groupName:a=>a.group
+});
+assert.equal(groups.length,3,"Kegiatan sama pada tim berbeda tidak boleh digabung");
+assert.equal(groups[0].activity,"SHP","Urutan kartu harus dari total Jam terbesar");
+assert.equal(groups[0].hours,42,"Total Jam kelompok harus dihitung tepat");
+assert.equal(groups[1].hours,36,"Jam dalam satu Tim–Kegiatan harus dijumlahkan");
+assert.equal(groups[1].items[0].title,"Pemeriksaan","Uraian per kartu harus diurutkan dari Jam terbesar");
+assert.equal(groups.reduce((n,g)=>n+g.hours,0),94,"Total seluruh kartu harus cocok dengan total alokasi");
+const modalCode=inline.slice(workEnd,inline.indexOf("function renderPerson(data,period",workEnd));
+assert(modalCode.includes("Daftar Beban Pekerjaan Pegawai"),"Judul pop-up pekerjaan belum tersedia");
+assert(modalCode.includes("dialog.showModal()"),"Daftar pekerjaan belum menjadi pop-up");
+assert(modalCode.includes("person-work-dialog-scroll"),"Pop-up pekerjaan belum memiliki area gulir");
+assert(modalCode.includes("colors[i%colors.length]"),"Kartu Tim–Kegiatan belum dibedakan warna");
+assert(modalCode.includes("group.items.map(item=>"),"Uraian pekerjaan belum ada di setiap kartu");
+assert(inline.includes("groupPersonWorkload(rows)"),"Detail Pegawai belum memakai data kelompok");
+assert(inline.includes("id=\"openPersonWorkDialog\""),"Tombol pembuka pop-up belum tersedia");
+assert(!inline.includes("rows.slice(0,90)"),"Pembatasan 90 pekerjaan lama belum dihapus");
+for(const selector of [
+ ".person-work-dialog-scroll{",
+ ".person-work-group.person-work-green{",
+ ".person-work-group.person-work-amber{",
+ ".person-work-group.person-work-purple{",
+ ".person-work-group.person-work-rose{",
+ ".person-work-group.person-work-teal{"
+]) assert(cssPolish.includes(selector),"Desain kartu berwarna atau gulir belum lengkap: "+selector);
+
+
+// Employee detail card now contains only the direct modal button; only the
+// modal itself scrolls. Its summary metrics remain above the button.
+const renderPersonStart=inline.indexOf("function renderPerson(data,period,team,annual,monthly){");
+const renderPersonEnd=inline.indexOf("function renderHistory(){",renderPersonStart);
+const employeeRenderer=inline.slice(renderPersonStart,renderPersonEnd);
+assert(renderPersonStart>=0&&renderPersonEnd>renderPersonStart,"Detail Pegawai tidak ditemukan");
+assert(employeeRenderer.includes('id="openPersonWorkDialog"'),"Tombol detail pegawai harus langsung tersedia");
+assert(!employeeRenderer.includes('person-work-compact-highlights'),"Ringkasan tiga pekerjaan seharusnya tidak tampil lagi");
+assert(!employeeRenderer.includes('person-work-mini'),"Daftar pekerjaan kecil seharusnya dihapus dari panel");
+assert(cssPolish.includes('overflow:visible!important;'),"Panel tombol detail harus tanpa gulir internal");
+const detailCss=cssPolish.slice(cssPolish.lastIndexOf("#pageDashboard .person-panel #personDetails{"));
+assert(detailCss.includes("flex:0 0 auto!important;"),"Tombol detail tidak boleh mengisi area gulir");
+assert(detailCss.includes("overflow:visible!important;"),"Tombol detail tidak boleh memiliki scrollbar");
+assert(modalCode.includes('person-work-dialog-scroll'),"Daftar panjang tetap digulir di pop-up");
+
+
+// Activity growth and cross-team validation regression.
+assert(html.includes('id="staffOnlyTeam"')&&!html.includes('id="staffOnlyTeam" checked hidden'),"Filter keanggotaan tim masih mengunci pegawai");
+assert(html.includes('Anggota Tim Saja'),"Filter opsional anggota tim belum tersedia");
+const eligibleStart=inline.indexOf("function allocationEligibleEmployees(){");
+const eligibleEnd=inline.indexOf("let editingEmployeeId=null;",eligibleStart);
+assert(eligibleStart>=0&&eligibleEnd>eligibleStart,"Pemilihan pegawai aktif lintas tim belum tersedia");
+const activeEmployees=vm.runInNewContext(inline.slice(eligibleStart,eligibleEnd)+";allocationEligibleEmployees().map(e=>e.id).join(',')",{
+ BASE:{employees:[
+  {id:"E1",type:"pegawai",active:true},
+  {id:"E2",type:"pegawai",active:true},
+  {id:"E3",type:"pegawai",active:false},
+  {id:"E4",type:"mitra",active:true}
+ ]},isBaseYear:true,yearSetup:{staff:{ids:[]}}
+});
+assert.equal(activeEmployees,"E1,E2","Keanggotaan tim tidak boleh menjadi syarat pemilihan pegawai aktif");
+const inputStart=inline.indexOf("function allocationStatus(){");
+const inputEnd=inline.indexOf("function updateCalculations(){",inputStart);
+const validationCode=inline.slice(inputStart,inputEnd);
+assert(!validationCode.includes('assignedStaffIds('),"Validasi masih melarang penugasan lintas tim");
+assert(validationCode.includes('allocationEligibleIds()'),"Validasi harus mengacu pada seluruh pegawai aktif");
+assert(validationCode.includes("!Number.isFinite(personH)"),"Beban numerik tidak valid perlu ditolak");
+assert(inline.includes("if(partial===baseline)delete state.allocEdits[allocKey]"),"Override sparse harus mempertahankan volume yang sangat kecil");
+assert(inline.includes("if(allocatedMonths.length){"),"Satuan kegiatan beralokasi belum dikunci");
+assert(inline.includes("Satuan uraian yang sudah dialokasikan dikunci"),"Peringatan perubahan makna satuan belum tersedia");
+assert(inline.includes("state.monthlyStdEdits[k]=getStandard(previous,m)"),"Standar historis belum dibekukan sebelum edit master");
+assert(inline.includes("Uraian identik dengan satuan yang sama sudah terdaftar"),"Duplikasi uraian identik perlu ditolak");
+assert(inline.includes("Kegiatan dengan nama tersebut sudah ada"),"Ubah nama kegiatan tidak boleh menggabungkan kelompok tanpa sengaja");
+assert(inline.includes("Nama Kegiatan sudah terdaftar pada tim ini"),"Tambah kegiatan tidak boleh diam-diam menggabungkan kelompok lama");
+assert(inline.includes("let taskVisibleLimit=100"),"Daftar uraian belum dirender bertahap");
+assert(inline.includes("visible.slice(0,taskVisibleLimit)"),"Uraian besar masih seluruhnya dirender sekaligus");
+assert(inline.includes("let reconVisibleLimit=200"),"Rekonsiliasi belum ditampilkan bertahap");
+assert(inline.includes("rows.slice(0,reconVisibleLimit)"),"Rekonsiliasi masih memotong daftar secara permanen");
+assert(inline.includes("entry.qty=a.calculation_mode==='bersama'?Math.max(entry.qty,Number(q))"),"Volume kegiatan bersama terhitung berulang per peserta");
+assert(inline.includes("const nfPrecise=v=>"),"Standar waktu yang sangat kecil masih ditampilkan nol");
+
+// Unit suggestions normalize common case variants without preventing custom units.
+const unitStart=inline.indexOf("const ACTIVITY_UNIT_HINTS=");
+const unitEnd=inline.indexOf("// Hari libur nasional",unitStart);
+assert(unitStart>=0&&unitEnd>unitStart,"Katalog saran satuan belum ada");
+const known=vm.runInNewContext(inline.slice(unitStart,unitEnd)+";canonicalActivityUnit('dOkUmEn')");
+const custom=vm.runInNewContext(inline.slice(unitStart,unitEnd)+";canonicalActivityUnit('  Berkas Khusus  ')");
+assert.equal(known,"Dokumen","Nama satuan umum harus dibakukan kapitalisasinya");
+assert.equal(custom,"Berkas Khusus","Satuan khusus tidak boleh dibatasi secara kaku");
+assert(inline.includes("inp.setAttribute('list','activityUnitHints')"),"Input satuan belum memiliki pilihan saran");
+
+
+
+// Yearly KRO mapping must be explicit and independent of a permanent code.
+const kroResolveStart=inline.indexOf("function groupKroKey(team,group){");
+const kroResolveEnd=inline.indexOf("function renderKroOptions(prefer){",kroResolveStart);
+assert(kroResolveStart>=0&&kroResolveEnd>kroResolveStart,"Pemetaan kegiatan ke KRO tidak ditemukan");
+const kroResolveCode=inline.slice(kroResolveStart,kroResolveEnd);
+const kroContext={
+ demoTeams:[{id:"T1",kroCodes:["9999.ABC.001"]}],
+ POK_KROS:[{code:"9999.ABC.001",name:"Contoh KRO"}],
+ NO_KRO:"__UNMAPPED__",
+ state:{groupKroOverrides:{}},
+ activeYear:2027,isBaseYear:false,
+ GROUP_KRO_HINTS:{},
+};
+const evaluateKro=()=>vm.runInNewContext(kroResolveCode+";resolveGroupKro('T1','Kegiatan A')",kroContext);
+assert.equal(evaluateKro(),"__UNMAPPED__","Tahun baru tidak boleh mengikat kegiatan otomatis ke satu KRO");
+kroContext.state.groupKroOverrides={'["T1","Kegiatan A"]':"9999.ABC.001"};
+assert.equal(evaluateKro(),"9999.ABC.001","Pemetaan KRO eksplisit tahun berjalan tidak terbaca");
+kroContext.state.groupKroOverrides={};
+kroContext.activeYear=2028;
+assert.equal(evaluateKro(),"__UNMAPPED__","Pemetaan KRO tahun lama tidak boleh terbawa otomatis");
+kroContext.isBaseYear=true;
+assert.equal(evaluateKro(),"9999.ABC.001","Perilaku referensi 2026 harus dipertahankan");
+kroContext.isBaseYear=false;
+kroContext.state.groupKroOverrides={'["T1","Kegiatan A"]':"9999.XYZ.009"};
+assert.equal(evaluateKro(),"__UNMAPPED__","Kode yang tidak berlaku untuk tim harus ditandai belum dipetakan");
+
+const recommendStart=inline.indexOf("const KRO_SIMILAR_STOP=");
+const recommendEnd=inline.indexOf("function suggestedKroForTeam(k,tid){",recommendStart);
+assert(recommendStart>=0&&recommendEnd>recommendStart,"Rekomendasi KRO berdasar nama tidak ditemukan");
+const recCtx={
+ activeYear:2027,
+ groupList:()=>[["Perencanaan Konsumsi Pangan",[]]],
+ KRO_2026_REFERENCE:[],
+ REKOMENDASI_KRO_LINTAS_TIM:{},
+};
+const rec=vm.runInNewContext(inline.slice(recommendStart,recommendEnd)+";kroRecommendation({code:'2027.AAA.001',name:'Perencanaan Konsumsi Pangan'},'T1')",recCtx);
+assert.equal(rec.label,"Nama Kegiatan Sesuai","Saran KRO perlu mengikuti kesamaan Nama Kegiatan");
+assert(rec.reason.includes("POK 2027"),"Rekomendasi harus menegaskan penetapan berdasarkan POK tahun berjalan");
+
+const mapStart=inline.indexOf("function ensureKroActivityMapDialog(){");
+const mapEnd=inline.indexOf("function renderKroBoard(){",mapStart);
+const mapCode=inline.slice(mapStart,mapEnd);
+assert(mapStart>=0&&mapEnd>mapStart,"Pop-up Pemetaan KRO dan Kegiatan belum ada");
+assert(inline.includes('id="kroHubActivity"'),"Kartu Pemetaan KRO–Kegiatan belum ada");
+assert(inline.includes("$('kroHubActivity').onclick=()=>showKroActivityMap()"),"Pembuka popup belum aktif");
+assert(mapCode.includes('data-kro-activity-index'),"Pemilihan KRO per kegiatan belum tersedia");
+assert(mapCode.includes("state.groupKroOverrides[x.key]=x.code"),"Pemetaan tahunan belum tersimpan");
+assert(mapCode.includes("groupKroKey(tid,row[0])"),"Pemetaan KRO belum memakai pasangan Tim dan Kegiatan");
+assert(mapCode.includes("if(!dialog.open)dialog.showModal()"),"Pemetaan harus tampil di pop-up");
+assert(cssPolish.includes(".kro-activity-map-scroll{"),"Kegiatan panjang harus bergulir di pop-up");
+assert(cssPolish.includes("#pageKRO .kro-hub-grid{display:grid;grid-template-columns:repeat(3"),"Tiga menu KRO harus berjajar rapi");
+
+const aggStart=inline.indexOf("function periodAgg(period,teamFilter){");
+const aggEnd=inline.indexOf("function workDays(period){",aggStart);
+assert(aggStart>=0&&aggEnd>aggStart,"Fungsi beban tim tidak ditemukan");
+const aggCtx={
+ BASE:{employees:[{id:"E1"},{id:"E2"}],annual_allocations_source:[]},
+ byId:new Map([["A1",{id:"A1",team_id:"T1"}]]),
+ baseActivity:new Map(),
+ baseMonthly:new Map([["A1|E1|1",3],["A1|E2|1",5]]),
+ state:{allocEdits:{}},
+ getStandard:()=>1,
+};
+const teamLoad=vm.runInNewContext(inline.slice(aggStart,aggEnd)+";periodAgg('1','T1')",aggCtx);
+assert.equal(teamLoad.totals.get("E1"),3,"Alokasi anggota tim harus dihitung");
+assert.equal(teamLoad.totals.get("E2"),5,"Pelaksana di luar keanggotaan tim tetap dihitung");
+assert.equal([...teamLoad.totals.values()].reduce((sum,v)=>sum+v,0),8,"Beban Tim harus total Jam-Orang semua pelaksana kegiatan milik tim");
+
+
+// Visual card-density regression suite: prevent broad, empty KPI cards.
+const visualStart=cssPolish.indexOf("/* Audit visual menyeluruh November 2026: metric density and readable hierarchy.");
+assert(visualStart>=0,"Audit visual Dashboard dan submenu belum diterapkan");
+const visualRules=cssPolish.slice(visualStart);
+const dashboardCardRules=[
+ "#pageDashboard>.combined-metrics{",
+ "grid-template-columns:repeat(4,minmax(0,1fr))!important;",
+ "#pageDashboard>.combined-metrics>article{",
+ "grid-template-columns:minmax(0,1fr) auto!important;",
+ "min-height:76px!important;",
+ "#pageDashboard>.combined-metrics>article>small{",
+ "#pageDashboard>.combined-metrics>article>strong{",
+ "justify-self:end!important;",
+ "background:linear-gradient(125deg,#d6eaff,#e9f5ff)!important;",
+ "#pageDashboard>.combined-metrics>article:nth-child(4)>strong{"
+];
+for(const rule of dashboardCardRules)assert(visualRules.includes(rule),"KPI Dashboard masih berpotensi kosong atau angkanya kurang tegas: "+rule);
+for(const rule of [
+ "#pageTeams .team-admin-kpis>.quickbox:not(.hidden){",
+ "#pageRecon .mini-kpi{",
+ "#pageFinal .combined-final-grid>div{",
+ "#pageInput .input-quick-grid .quickbox{",
+ "#pageKRO .kro-hub-grid>.kro-hub-card{",
+ ".page :is(.mon-kpi,.tl-kpi,.recon-card,.kro-audit-kpi,.stat){",
+ "@media(max-width:1410px){",
+ "@media(max-width:600px){",
+ "@media(prefers-reduced-motion:reduce){"
+]) assert(visualRules.includes(rule),"Audit kartu lintas submenu belum lengkap: "+rule);
+const dashboardRenderStart=inline.indexOf("function renderCombinedDashboard(){");
+const dashboardRenderEnd=inline.indexOf("let kroBoardDraft=",dashboardRenderStart);
+assert(dashboardRenderStart>=0&&dashboardRenderEnd>dashboardRenderStart,"Kartu ringkasan Dashboard tidak dapat diperiksa");
+const dashboardRender=inline.slice(dashboardRenderStart,dashboardRenderEnd);
+for(const label of ["Tim","Pegawai Aktif","Uraian Aktif","Total Jam Alokasi"]){
+ assert(dashboardRender.includes("<small>"+label+"</small>"),"Label ringkasan Dashboard terhapus: "+label);
+}
+assert(dashboardRender.split("<article><small>").length===5,"Dashboard harus tetap memiliki empat KPI, bukan duplikasi atau kartu kosong");
+
+
+// Audit lanjutan 9 November: kartu monitoring tidak boleh menyisakan
+// tinggi paksa, laporan cetak harus menggunakan tahun dan periode aktual.
+// Companion cards must use grid stretch, not independently sized content
+// and not a fixed height that creates a giant blank detail panel.
+const pairStart=cssPolish.indexOf("/* Desktop: two companion cards share the SAME grid-row height.");
+const pairEnd=cssPolish.indexOf("#pageDashboard .person-panel .person-metrics{",pairStart);
+assert(pairStart>=0&&pairEnd>pairStart,"Aturan tinggi seimbang kartu tidak ditemukan");
+const pairCss=cssPolish.slice(pairStart,pairEnd);
+for(const rule of [
+  "align-items:stretch!important;",
+  "align-self:stretch!important;",
+  "height:auto!important;",
+  "grid-auto-rows:auto!important;",
+  "max-height:none!important;",
+  "max-height:min(54dvh,440px)!important;",
+  "margin-top:auto!important;",
+  "overflow-y:auto!important;"
+]) assert(pairCss.includes(rule),"Dua kartu monitoring belum setara: "+rule);
+assert(!pairCss.includes("height:clamp("),"Tinggi tetap kartu dapat menghasilkan ruang kosong berlebihan");
+assert(!pairCss.includes("align-items:start!important"),"Kartu berdampingan masih disejajarkan ke atas saja");
+assert(!cssPolish.includes("height:clamp(470px,54dvh,560px)"),
+  "Aturan tinggi 560px lama masih bertentangan");
+assert(cssPolish.includes("#pageDashboard .person-panel .person-work-trigger"),
+  "Tombol rincian pegawai harus tetap tersedia");
+
+assert(html.includes('id="barMetricTitle">Jam Kerja</span>'),
+  "Label indikator grafik belum konsisten Kapital Awal Kata");
+const personStart=inline.indexOf("function renderPerson(");
+const personEnd=inline.indexOf("function renderHistory(",personStart);
+assert(personStart>=0&&personEnd>personStart,"Rincian pegawai tidak ditemukan");
+const personCode=inline.slice(personStart,personEnd);
+assert(personCode.includes("const auditMarkup=isBaseYear?"),
+  "Audit acuan 2026 tidak boleh ditampilkan sebagai perbandingan pada tahun berikutnya");
+assert(personCode.includes("${auditMarkup}</div>"),
+  "Ringkasan pegawai belum memakai audit sesuai tahun aktif");
+
+/* The dashboard employee detail must not repeat the full activities view.
+   One enlarged button summarizes workload across Tim, Kegiatan and Uraian.
+   Full group names and descriptions are always available in the modal. */
+for(const token of [
+ "const teamCount=new Set(groups.map(g=>g.team)).size;",
+ "person-work-trigger-large",
+ "person-work-trigger-metrics",
+ "${nf(teamCount)}",
+ "${nf(groups.length)}",
+ "${nf(rows.length)}",
+ "Klik untuk melihat nama kegiatan, uraian tugas, dan alokasi Jam tiap pekerjaan.",
+ "openPersonWorkDialog({"
+]){
+ assert(personCode.includes(token),"Ringkasan beban kerja pegawai tidak lengkap: "+token);
+}
+assert(!personCode.includes("const featuredGroups=groups.slice(0,5);"),
+ "Kartu pegawai masih menduplikasi daftar pekerjaan sebelum tombol pop-up");
+const modalStart=inline.indexOf("function openPersonWorkDialog(");
+const modalEnd=inline.indexOf("function renderPerson(",modalStart);
+assert(modalStart>=0&&modalEnd>modalStart,"Fungsi rincian pekerjaan tidak ditemukan");
+const workDialogCode=inline.slice(modalStart,modalEnd);
+for(const token of [
+ "group.items.map(item=>",
+ "${esc(group.activity)}",
+ "${esc(item.title)}",
+ "${nf(item.hours)} Jam",
+ "Tim Terlibat",
+ "Kegiatan Tim",
+ "Uraian Pekerjaan"
+ ]) assert(workDialogCode.includes(token),"Pop-up kehilangan rincian kegiatan/uraian: "+token);
+for(const token of [
+ "#pageDashboard .person-panel .person-work-trigger-large{",
+ "min-height:156px!important;",
+ ".person-work-trigger-metrics{",
+ ".person-work-dialog-scroll{",
+ "display:block!important;",
+ ".person-work-dialog-scroll>.person-work-group{",
+ "height:auto!important;",
+ ".person-work-dialog-scroll .person-work-items{",
+ "overflow-y:auto!important;",
+ "grid-template-columns:repeat(4,minmax(0,1fr))!important;"
+]) assert(cssPolish.includes(token),"Desain modal / kartu rincian belum tepat: "+token);
+assert(!cssPolish.includes("person-work-preview-list"),
+ "CSS ringkasan pekerjaan ganda belum dibersihkan");
+const printStart=inline.indexOf("function printMonitoringPDF(){");
+const printEnd=inline.indexOf("function exportCSV(){",printStart);
+assert(printStart>=0&&printEnd>printStart,"Cetak laporan monitoring tidak ditemukan");
+const printCode=inline.slice(printStart,printEnd);
+assert(printCode.includes("p==='annual'?'Referensi Tahunan '"),
+  "Periode cetak annual harus ditulis sebagai referensi tahunan, bukan undefined");
+assert(printCode.includes("Dicetak pada ${new Date().toLocaleString('id-ID')}"),
+  "Tanggal cetak belum diisi dinamis");
+assert(!printCode.includes("prototipe '+activeYear+'"),
+  "Laporan cetak masih menampilkan teks tahun yang tidak dievaluasi");
+
+
+/* Checklist dropdown audit: rows must not inherit the normal field input's
+   43–44px minimum height. Selection should not jump back to the list top. */
+for(const rule of [
+ "grid-template-columns:18px minmax(0,1fr)!important;",
+ "min-height:16px!important;",
+ "padding:0!important;",
+ "align-items:center!important;",
+ "min-height:37px!important;",
+ "scrollbar-gutter:stable;",
+ ".trend-picker-list > label.trend-picker-choice > span",
+ ".trend-picker-list > label.trend-picker-choice.trend-picker-all"
+]){
+ assert(cssPolish.includes(rule),"Daftar checkbox Tim/Kegiatan belum rapi: "+rule);
+}
+const popupFnStart=inline.indexOf("function renderTrendPickerOptions(kind){");
+const popupFnEnd=inline.indexOf("function openTrendPicker(kind){",popupFnStart);
+assert(popupFnStart>=0&&popupFnEnd>popupFnStart,"Renderer checkbox Tim/Kegiatan tidak ditemukan");
+const popupRenderCode=inline.slice(popupFnStart,popupFnEnd);
+assert(popupRenderCode.includes("const scrollTop=list.scrollTop;")&&popupRenderCode.includes("list.scrollTop=scrollTop;"),
+ "Daftar checkbox meloncat ke awal setelah mengubah pilihan");
+
+
+// Kelola Tim: list is searchable and rows allow select / edit / guarded delete.
+// Legacy hidden select is retained only as internal state for dependent views.
+for(const token of [
+ 'id="teamAdminSearch"',
+ 'id="teamAdminStatus"',
+ 'id="teamAdminDirectory"',
+ 'id="teamAdminDirectoryCount"',
+ 'id="teamAdminSelect" class="hidden" hidden',
+ 'id="teamAdminNew"',
+ 'data-team-dir-delete'
+]) {
+ if(token==='data-team-dir-delete')continue;
+ assert(html.includes(token),"Daftar Tim belum tersedia: "+token);
+}
+// Add Team should appear under search and directly above the status filter,
+ // not beside the Daftar Tim heading.
+const teamDirStart=html.indexOf('<h3>01 · Pilih Tim</h3>');
+const teamDirEnd=html.indexOf('id="teamAdminDirectoryCount"',teamDirStart);
+assert(teamDirStart>=0&&teamDirEnd>teamDirStart,"Daftar Tim heading/filter markup tidak ditemukan");
+const teamHeaderBlock=html.slice(teamDirStart,teamDirEnd);
+const searchPos=teamHeaderBlock.indexOf('id="teamAdminSearch"');
+const addPos=teamHeaderBlock.indexOf('id="teamAdminNew"');
+const statusPos=teamHeaderBlock.indexOf('id="teamAdminStatus"');
+assert(searchPos>=0&&searchPos<addPos&&addPos<statusPos,
+ "Tombol Tambah Tim wajib tepat di antara Cari Tim Kerja dan Status Tim");
+assert((html.match(/id="teamAdminNew"/g)||[]).length===1,
+ "Tombol Tambah Tim tidak boleh muncul ganda");
+assert(cssPolish.includes("#pageTeams .team-admin-list .team-directory-add{"),
+ "Tombol Tambah Tim belum tampil penuh dan rapi di atas filter status");
+assert(!html.includes('<label>Tim kerja</label><select id="teamAdminSelect"'),
+ "Daftar Tim masih memakai dropdown tunggal yang tidak dapat dikelola.");
+for(const token of [
+ "function renderTeamDirectory(){",
+ "function selectTeamFromDirectory(",
+ "function renameTeamFromDirectory(",
+ "function commitTeamDirectoryRename(",
+ "function activeTeamList(){",
+ "host.querySelectorAll('[data-team-rename-save]')",
+ "host.querySelectorAll('[data-team-rename-cancel]')",
+ "const actionLabel=inactive?'Aktifkan'",
+ "$('teamAdminStatus').onchange=renderTeamDirectory;",
+ "team.active=false;",
+ "team.active=true;",
+ "renderTeamAdminPage();renderYearUI();",
+ "function renameTeamFromDirectory(",
+ "async function createTeamAdmin(){",
+ "async function deleteTeamAdmin(requestedId=null){",
+ "function teamDeletionReason(tid){",
+ "host.querySelectorAll('[data-team-dir-delete]')",
+ "$('teamAdminSearch').oninput=renderTeamDirectory;",
+ "renderEstablishedTeams();renderTeamDirectory();",
+ "saveTeamStore();",
+ "yearInfo().status==='closed'",
+ "logChange('Hapus tim kerja'"
+])assert(inline.includes(token),"Daftar Tim belum terintegrasi dengan sistem: "+token);
+for(const token of [
+ "#pageTeams .team-directory-list{",
+ "#pageTeams .team-directory-inline-edit{",
+ "#pageTeams .team-directory-status{",
+ "#pageTeams .team-directory-action.archive{",
+ "#pageTeams .team-directory-action.restore{",
+ "#pageTeams .team-directory-row{",
+ "#pageTeams .team-directory-action.delete:disabled{",
+ "#pageTeams .team-directory-row.is-selected{",
+ "#pageTeams .team-directory-toolbar>input{"
+])assert(cssPolish.includes(token),"Tampilan Daftar Tim belum rapi: "+token);
+const guardStart=inline.indexOf("function activeTeamList(){");
+const guardEnd=inline.indexOf("let editingTeamNameId=null;",guardStart);
+assert(guardStart>=0&&guardEnd>guardStart,"Validasi penghapusan tim tidak ditemukan");
+const guardCode=inline.slice(guardStart,guardEnd);
+const sampleTeams=[{id:'T1',name:'Satu'},{id:'T2',name:'Dua'}];
+// Make the guard tests independent of the browser and verify year-specific
+// history, including when an old activity has disappeared from the new year.
+const guardCase=(opts={})=>{
+ const teams=opts.teams||sampleTeams,year=opts.year||2026,seed=opts.seed||{activities:[],monthly_allocations_source:[]};
+ const live=opts.live||{added:[],allocEdits:{},workflowPlans:{}};
+ const saved=opts.saved||{};
+ const context={
+  demoTeams:teams,activities:opts.activities||[],state:live,
+  yearSetup:opts.setup||{teams:{},kros:{}},
+  demoRoster:opts.roster||{},baseMonthly:opts.monthly||new Map(),
+  activeYear:year,
+  yearInfo:()=>({status:opts.status||'draft'}),
+  document:{getElementById:()=>({textContent:JSON.stringify(seed)})},
+  localStorage:{getItem:key=>JSON.stringify(saved[key]||null)}
+ };
+ return vm.runInNewContext(guardCode+";teamDeletionReason('T1')",context);
+};
+assert.equal(guardCase(),'', "Tim tanpa hubungan boleh dihapus");
+assert.equal(guardCase({roster:{T1:{members:['E01'],leaderId:''}}}),'Masih memiliki ketua atau anggota',
+ "Tim dengan anggota tidak boleh dihapus sebelum keanggotaan dibersihkan");
+assert.equal(guardCase({roster:{T1:{members:[],leaderId:'E01'}}}),'Masih memiliki ketua atau anggota',
+ "Tim yang masih memiliki ketua tidak boleh dihapus");
+assert.equal(guardCase({activities:[{id:'A01',team_id:'T1'}]}),'Masih memiliki kegiatan',
+ "Tim dengan kegiatan belum dialokasikan tidak boleh dihapus");
+assert.equal(guardCase({setup:{teams:{T1:{leaderId:'E01'}},kros:{}}}),
+ 'Susunan Tim atau KRO sudah ditetapkan',"Penetapan tim tidak boleh hilang");
+assert.equal(guardCase({teams:[{id:'T1',name:'Satu',kroCodes:['K01']},sampleTeams[1]]}),
+ 'Masih memiliki KRO',"Tim masih terikat KRO tidak boleh dihapus");
+assert.equal(guardCase({seed:{activities:[{id:'A01',team_id:'T1'}],monthly_allocations_source:[['A01','E01',1,8]]}}),
+ 'Pernah memiliki alokasi pekerjaan',"Acuan alokasi tahun 2026 tidak boleh hilang");
+assert.equal(guardCase({activities:[{id:'A01',team_id:'T1'}],live:{added:[],allocEdits:{'A01|E01|2':0},workflowPlans:{}}}),
+ 'Pernah memiliki alokasi pekerjaan',"Jejak revisi nol tetap riwayat alokasi");
+assert.equal(guardCase({year:2027,live:{added:[],allocEdits:{},workflowPlans:{}},saved:{
+ 'bps-blora-matriks-pegawai-2026-prototype-v13':{added:[{id:'AOLD',team_id:'T1'}],allocEdits:{'AOLD|E01|1':6}}
+ }}),'Pernah memiliki alokasi pekerjaan',
+ "Riwayat tahun sebelumnya wajib menghalangi penghapusan permanen");
+assert.equal(guardCase({status:'closed'}),'Tahun telah ditutup',
+ "Tim pada tahun tutup tidak boleh dihapus");
+assert.equal(guardCase({teams:[sampleTeams[0]]}),'Minimal satu tim aktif harus tetap tersedia',
+ "Tim aktif terakhir tidak boleh dihapus");
+assert.equal(guardCase({teams:[{id:'T1',name:'Satu',active:false},sampleTeams[1]]}),'',
+ "Tim nonaktif tanpa ketergantungan dapat diperiksa kembali");
+assert(inline.includes("const actionLabel=inactive?'Aktifkan':reason?'Nonaktifkan':'Hapus'"),
+ "Tim yang memiliki ketergantungan wajib hanya bisa dinonaktifkan");
+assert(inline.includes("if(teamDeletionReason(id))return toast("),
+ "Wajib memeriksa ulang seluruh syarat sebelum penghapusan permanen");
+assert(inline.includes("Keanggotaan, kegiatan, KRO, dan alokasi historis tidak akan dihapus."),
+ "Konfirmasi nonaktifkan harus menjelaskan riwayat yang tetap tersimpan");
+assert(inline.includes("const historicalTeamOpts=BASE.teams.map("),
+ "Tim nonaktif harus tetap dapat ditemukan pada monitoring historis");
+assert(inline.includes("const teamOpts=BASE.teams.filter(t=>t.active!==false)"),
+ "Tim nonaktif tidak boleh tersedia pada penugasan baru");
+assert(inline.includes("data-team-rename-value="),
+ "Edit nama tim harus menampilkan input dan tombol simpan langsung pada baris");
+assert(!inline.includes("async function renameTeamFromDirectory("),
+ "Edit nama tim tidak boleh bergantung pada prompt yang tidak terlihat");
+assert(inline.includes("const name=input.value.trim();"),
+ "Simpan ubah nama tim harus memakai nilai input dari baris");
+
+
+// Guided team setup: selecting a team and establishing its roster must
+// precede annual KRO assignment and activity allocation.
+const teamChoose=html.indexOf('<h3>01 · Pilih Tim</h3>');
+const teamRoster=html.indexOf('<h3>02 · Ketua dan Anggota Tim Terpilih</h3>');
+const teamKro=html.indexOf('id="teamKroStep"');
+const teamActivity=html.indexOf('id="teamOverviewHeading"');
+const teamActivityAction=html.indexOf('id="teamAdminGoInput"');
+assert(teamChoose>=0&&teamChoose<teamRoster&&teamRoster<teamKro&&teamKro<teamActivity&&teamActivity<teamActivityAction,
+ "Kelola Tim belum berurutan: Pilih Tim → Ketua/Anggota → KRO → Kegiatan");
+for(const token of [
+ 'id="teamRosterActionSlot"',
+ 'id="teamRosterGuide"',
+ 'id="teamAdminSelectedName"',
+ 'id="teamOverviewList"',
+ 'id="teamAdminGoKro"',
+ 'id="teamNextHint"',
+ 'id="teamAdminName" type="hidden"'
+])assert(html.includes(token),"Elemen alur Kelola Tim hilang: "+token);
+assert((html.match(/id="teamAdminGoInput"/g)||[]).length===1,
+ "Tombol kelola kegiatan tidak boleh muncul ganda atau mendahului penetapan tim");
+for(const token of [
+ "function renderTeamWorkflow(){",
+ "renderEstablishedTeams();renderTeamDirectory();renderTeamWorkflow();",
+ "const actions=page.querySelector('#annualTeamStage > .annual-team-actions');",
+ "$('teamRosterActionSlot').appendChild(actions);",
+ "for(const id of ['annualConfirmTeam','annualEditTeam','annualCancelTeam'])",
+ "headActions.appendChild(control);",
+ "$('teamAdminLeader').onchange=onTeamLeaderChanged;", 
+ "drawWorkingMembers();renderYearSetup();renderTeamWorkflow()", 
+ "$('teamAdminGoKro').onclick=()=>",
+ "$('teamAdminGoInput').onclick=event=>",
+ "const issue=teamActivityAccessIssue(tid);",
+ "if(issue){openTeamActivityDialog(tid,'',event.currentTarget);return;}",
+ "openTeamActivityInInput(tid);"
+])assert(inline.includes(token),"Alur penetapan tidak tersambung: "+token);
+for(const token of [
+ "#pageTeams #annualTeamStage .annual-stage-select{display:none!important}",
+ "#pageTeams .team-roster-action-slot{",
+ "#pageTeams .team-activity-overview{",
+ "#pageTeams .team-overview-chip{",
+ "#pageTeams .team-activity-open:disabled,",
+ "#pageTeams #annualTeamGridSlot .team-admin-grid{"
+])assert(cssPolish.includes(token),"Desain tahapan Kelola Tim belum selesai: "+token);
+const workflowStart=inline.indexOf("function renderTeamWorkflow(){");
+const workflowEnd=inline.indexOf("function renderTeamAdminPage(){",workflowStart);
+assert(workflowStart>=0&&workflowEnd>workflowStart,"Renderer alur Kelola Tim tidak ditemukan");
+const workflowCode=inline.slice(workflowStart,workflowEnd);
+assert(workflowCode.includes("goInput.disabled=false;")&&workflowCode.includes("goInput.classList.toggle('is-locked',!!issue);")&&
+ workflowCode.includes("goInput.textContent=issue?'Lihat Persyaratan Pengelolaan →':'Kelola Kegiatan dan Alokasi →';"),
+ "Tombol ringkasan wajib tetap dapat diklik untuk menjelaskan syarat, bukan membeku tanpa umpan balik");
+assert(workflowCode.includes("const activeTasks=activities.filter(")&&workflowCode.includes("groupName(a)"),
+ "Ringkasan Kegiatan harus berasal dari kepemilikan kegiatan, bukan keanggotaan");
+
+
+// Active activity chips open a read-only dialog even before annual approval.
+// Opening Input Alokasi still checks role, staff, team, KRO and year status.
+const activityOverviewStart=inline.indexOf("let teamActivityDialogTeam=");
+const activityOverviewEnd=inline.indexOf("function renderTeamWorkflow(){",activityOverviewStart);
+assert(activityOverviewStart>=0&&activityOverviewEnd>activityOverviewStart,
+ "Rincian kegiatan interaktif tidak tersedia");
+const activityOverviewCode=inline.slice(activityOverviewStart,activityOverviewEnd);
+for(const token of [
+ "function teamActivityAccessIssue(tid){",
+ "function openTeamActivityInInput(tid,group=''){",
+ "const issue=teamActivityAccessIssue(tid);",
+ "if(issue){toast(issue);return false;}",
+ "renderKroOptions(group?resolveGroupKro(tid,group):",
+ "renderGroups(group||undefined);",
+ "return setPage('input');",
+ "function ensureTeamActivityDialog(){",
+ "dialog=document.createElement('dialog');",
+ "dialog.id='teamActivityDialog';",
+ "dialog.showModal();",
+ "teamActivityDialogReturnFocus=trigger||document.activeElement;",
+ "function renderTeamActivityDialog(){",
+ "a.status==='aktif'",
+ "function openTeamActivityDialog(tid,group='',trigger=null){",
+ "teamActivityDialogManage"
+])assert(activityOverviewCode.includes(token),"Rincian kegiatan tidak terhubung: "+token);
+for(const token of [
+ "data-team-overview-group=",
+ "data-team-overview-all",
+ "btn.onclick=()=>openTeamActivityDialog(tid,btn.dataset.teamOverviewGroup,btn)",
+ "openTeamActivityDialog(tid,'',event.currentTarget)",
+ "Kegiatan aktif milik Tim",
+ "const issue=teamActivityAccessIssue(tid);"
+])assert(workflowCode.includes(token),"Kartu kegiatan belum berfungsi: "+token);
+assert(cssPolish.includes("#pageTeams #annualTeamGridSlot .team-admin-grid > .team-admin-card{")&&
+ cssPolish.includes("max-height:none!important;")&&
+ cssPolish.includes(".team-activity-dialog::backdrop{")&&
+ cssPolish.includes("#pageTeams .team-overview-chip:hover{"),
+ "Perbaikan gulir kartu dan desain pop-up kegiatan belum lengkap");
+const gateSource=activityOverviewCode.slice(
+ activityOverviewCode.indexOf("function teamActivityAccessIssue(tid){"),
+ activityOverviewCode.indexOf("function openTeamActivityInInput(")
+);
+const gateBase={
+ demoTeams:[{id:'T1',active:true}],roleCanManageTeam:()=>true,
+ yearInfo:()=>({status:'draft'}),staffReady:()=>true,
+ teamEstablishmentIssue:()=>'',isBaseYear:false,yearKroReady:()=>true,
+ stageAccess:()=>true,stageBlockReason:()=>'',activeYear:2027,
+ annualEditingTeamId:null,currentRole:'admin',roleTeamId:'',
+ $:id=>({value:id==='teamAdminSelect'?'T1':'E1'}),
+ demoRoster:{T1:{leaderId:'E1',members:['E1']}},
+ adminMemberWorking:new Set(['E1']),
+ equalIds:(a,b)=>[...(a||[])].sort().join('|')===[...(b||[])].sort().join('|')
+};
+const gateTest=({draftMembers=['E1'],...overrides})=>vm.runInNewContext(
+ "adminMemberWorking=new Set("+JSON.stringify(draftMembers)+");"+gateSource+";teamActivityAccessIssue('T1')",
+ {...gateBase,...overrides});
+assert.equal(gateTest({}),'',"Tim aktif yang sudah lengkap harus dapat membuka Input Alokasi");
+assert.match(gateTest({staffReady:()=>false}),/Daftar Pegawai/,"Pegawai belum ditetapkan tidak boleh diedit");
+assert.match(gateTest({teamEstablishmentIssue:()=> 'Ketua belum dipilih'}),/Ketua/,"Ketua tidak lengkap wajib diblokir");
+assert.match(gateTest({yearKroReady:()=>false}),/KRO/,"KRO belum ditetapkan wajib diblokir");
+assert.match(gateTest({roleCanManageTeam:()=>false}),/hak/,"Pengguna tanpa izin tidak boleh mengelola tim");
+assert.match(gateTest({annualEditingTeamId:'T1'}),/Ubah Susunan Tim/,"Mode ubah susunan tidak boleh memintas penetapan");
+assert.match(gateTest({draftMembers:['E1','E2']}),/perubahan Ketua dan Anggota/,"Draf anggota yang belum disimpan harus diblokir");
+assert.match(gateTest({yearInfo:()=>({status:'closed'})}),/ditutup/,"Tahun tertutup tidak boleh disunting");
+
+// Unified staff/team cards and safe amendment rules, November 2026.
+const staffCardStart=html.indexOf('<details id="annualStaffChooser"');
+const staffCompleteStart=html.indexOf('id="annualStaffComplete"');
+const teamStageStart=html.indexOf('id="annualTeamStage"');
+const teamStageEnd=html.indexOf('id="annualKroStage"',teamStageStart);
+assert(staffCardStart>=0&&staffCompleteStart>staffCardStart&&teamStageStart>staffCompleteStart,
+ "Kartu Daftar Pegawai dan Susunan Tim hilang");
+const staffCardMarkup=html.slice(staffCardStart,staffCompleteStart);
+assert(staffCardMarkup.includes('annual-staff-unified')&&staffCardMarkup.includes('id="annualStaffActionLabel"'),
+ "Status dan tombol Daftar Pegawai wajib berada di satu kartu yang bisa dibuka");
+assert(html.includes('id="annualStaffComplete" class="annual-step-complete hidden" hidden aria-hidden="true"'),
+ "Ringkasan hijau Daftar Pegawai lama tidak boleh tampil kedua kalinya");
+assert(!html.includes('class="panel employee-master-panel"'),
+ "Panel Daftar Pegawai duplikat harus dihapus sepenuhnya, bukan sekadar disembunyikan");
+assert(!html.includes('id="employeeMasterList"')&&!html.includes('id="empSearch"')&&!html.includes('id="empStatus"')&&!html.includes('id="empType"')&&!html.includes('id="empAdd"'),
+ "Kontrol Daftar Pegawai lama masih tertinggal dan menimbulkan duplikasi");
+assert(!inline.includes('function renderEmployeeMaster()')&&!inline.includes("renderEmployeeMaster();"),
+ "Renderer Daftar Pegawai duplikat masih dipanggil di JavaScript");
+assert(!inline.includes("$('empSearch')")&&!inline.includes("$('empAdd')"),
+ "Handler Daftar Pegawai lama masih mengakses elemen yang telah dihapus");
+assert(inline.includes("$('annualAddStaff').addEventListener('click'")&&
+ inline.includes("host.querySelectorAll('[data-annual-edit]')")&&
+ inline.includes("openEmployeeEditor(el.dataset.annualEdit)"),
+ "Tambah dan Edit Pegawai di pop-up Daftar Pegawai tahunan harus tetap berfungsi");
+assert(html.includes('id="employeeScreen"')&&html.includes('id="annualStaffList"'),
+ "Editor dan pemilihan pegawai tahunan tetap harus tersedia");
+const teamStageMarkup=html.slice(teamStageStart,teamStageEnd);
+const selectedTeamHeading=html.slice(html.indexOf('class="section-top team-roster-heading"'),html.indexOf('id="teamRosterGuide"'));
+assert(selectedTeamHeading.includes('id="annualTeamSummary" class="annual-team-state hidden"')&&
+ selectedTeamHeading.includes('id="annualTeamHeadAction"')&&
+ selectedTeamHeading.includes('id="teamAdminSelectedName"'),
+ "Status dan tombol penetapan harus berada pada panel KETUA/ANGGOTA tim terpilih");
+assert(!teamStageMarkup.includes('id="annualTeamHeadAction"')&&
+ !teamStageMarkup.includes('id="annualTeamSummary"'),
+ "Jangan menaruh status satu tim di kepala ringkasan SELURUH tim");
+assert(teamStageMarkup.includes('id="annualCancelTeam"'),
+ "Mode Ubah Tim memerlukan Batal untuk membuang draf");
+const stageRenderStart=inline.indexOf("function renderYearSetup(){");
+const stageRenderEnd=inline.indexOf("function confirmStaffYear(){",stageRenderStart);
+const renderYearCode=inline.slice(stageRenderStart,stageRenderEnd);
+assert(renderYearCode.includes("chooser.classList.toggle('is-confirmed'"),
+ "Daftar Pegawai harus berubah menjadi satu kartu hijau ketika sudah ditetapkan");
+assert(renderYearCode.includes("teamStage.classList.toggle('is-confirmed'"),
+ "Susunan Tim juga harus memiliki status hijau dalam kartu yang sama");
+assert(renderYearCode.includes("const rosterLocked=teamComplete||!writable||!allReady||!canTeam;")&&
+ renderYearCode.includes("$('annualCancelTeam').classList.toggle('hidden'"),
+ "Susunan Tim yang sudah ditetapkan tidak boleh tersunting diam-diam sebelum mode Ubah");
+assert(inline.includes("$('annualStaffChooser').addEventListener('toggle'"),
+ "Klik kartu Daftar Pegawai harus membuka daftar yang dapat diperiksa/diubah");
+assert(inline.includes("$('annualCancelTeam').addEventListener('click'"),
+ "Batalkan edit tim harus mengembalikan keadaan tersimpan");
+assert(inline.includes("if(String(previous)!==String(tid)&&annualEditingTeamId===previous)"),
+ "Perubahan anggota yang belum disimpan harus dibatalkan jelas ketika berganti tim");
+const confirmTeamStart=inline.indexOf("function confirmTeamYear(){");
+const confirmTeamEnd=inline.indexOf("function confirmKroYear(){",confirmTeamStart);
+const confirmTeamCode=inline.slice(confirmTeamStart,confirmTeamEnd);
+assert(!confirmTeamCode.includes("delete yearSetup.kros[tid]"),
+ "Mengubah anggota tidak boleh menghapus penetapan KRO tim");
+const confirmStaffStart=inline.indexOf("function confirmStaffYear(){");
+const confirmStaffEnd=inline.indexOf("function copyPreviousRoster(){",confirmStaffStart);
+const confirmStaffCode=inline.slice(confirmStaffStart,confirmStaffEnd);
+assert(!confirmStaffCode.includes("delete yearSetup.kros[tid]"),
+ "Mengubah daftar pegawai tidak boleh menghapus KRO tanpa perubahan kepemilikan KRO");
+const saveTeamStart=inline.indexOf("function saveTeamAdmin(){");
+const saveTeamEnd=inline.indexOf("function renameTeamFromDirectory(",saveTeamStart);
+const saveTeamCode=inline.slice(saveTeamStart,saveTeamEnd);
+assert(saveTeamCode.includes("if(rosterChanged){delete yearSetup.teams[tid];")&&
+ saveTeamCode.includes("if(!equalIds(oldKro,team.kroCodes)){delete yearSetup.kros[tid];"),
+ "Perubahan susunan menuntut penetapan ulang, tetapi perubahan KRO saja yang membatalkan penetapan KRO");
+const teamWorkflowStart=inline.indexOf("function renderTeamWorkflow(){");
+const teamWorkflowEnd=inline.indexOf("function renderTeamAdminPage(){",teamWorkflowStart);
+const teamWorkflowCode=inline.slice(teamWorkflowStart,teamWorkflowEnd);
+assert(teamWorkflowCode.includes("const ready=confirmed&&staffReady()&&!editing&&!draftChanged;"),
+ "Tombol lanjutan KRO/Alokasi wajib terkunci saat revisi anggota belum ditetapkan");
+for(const token of [
+ "#pageTeams #annualSetupPanel .annual-staff-unified.is-confirmed{",
+ "#pageTeams .annual-staff-action{",
+ "#pageTeams #annualTeamStage.is-confirmed>.annual-stage-head{",
+ "#pageTeams .annual-team-head-right{",
+ "#pageTeams .employee-master-panel[hidden],",
+ "#pageTeams #annualTeamStage .team-admin-grid.is-complete{display:grid}"
+])assert(cssPolish.includes(token),"Tampilan kartu gabungan Daftar Pegawai/Tim belum lengkap: "+token);
+
+
+// Per-team establishment, bidirectional leader/member validation, and
+// all-active-team approval; test the status model with two disjoint teams.
+const leaderHelperStart=inline.indexOf("function eligibleAnnualTeamEmployees(){");
+const leaderHelperEnd=inline.indexOf("function renderTeamAdminPage(){",leaderHelperStart);
+assert(leaderHelperStart>=0&&leaderHelperEnd>leaderHelperStart,
+ "Sinkronisasi Ketua dan Anggota Tim tidak ditemukan");
+const leaderHelper=inline.slice(leaderHelperStart,leaderHelperEnd);
+for(const token of [
+ "memberIds.size?eligible.filter(e=>memberIds.has(e.id)):eligible",
+ "if(chosen&&chosen!=='external'&&!adminMemberWorking.has(chosen))adminMemberWorking.add(chosen);",
+ "syncLeaderWithMembers();",
+ "drawWorkingMembers();"
+])assert(leaderHelper.includes(token),"Pilihan Ketua dan Anggota belum saling terhubung: "+token);
+assert(inline.includes("if(!adminMemberWorking.has(leaderId))return toast("),
+ "Ketua wajib tercentang ketika melakukan penetapan susunan");
+assert(inline.includes("if(currentRole==='ketua'&&id===demoRoster[tid]?.leaderId)"),
+ "Ketua tidak boleh mengeluarkan dirinya dari keanggotaan tim yang ditetapkan");
+const leaderSelect={value:'',options:[],disabled:false};
+const leaderControls={
+ teamAdminLeader:leaderSelect,
+ teamAdminSelect:{value:'T1'},
+ teamAdminLeaderHint:{textContent:''},
+ teamAdminMemberCount:{textContent:''}
+};
+const leadCtx={
+ $:id=>leaderControls[id],
+ currentRole:'admin',roleTeamId:'T1',
+ demoRoster:{T1:{leaderId:'',members:[]}},
+ yearSetup:{staff:{confirmed:true,ids:['E1','E2','E3']}},
+ BASE:{employees:[{id:'E1',type:'pegawai',active:true,full_name:'A'},{id:'E2',type:'pegawai',active:true,full_name:'B'},{id:'E3',type:'pegawai',active:true,full_name:'C'}]},
+ adminMemberWorking:new Set(),
+ fillSelect:(node,options,value)=>{node.options=options;node.value=value},
+ drawWorkingMembers:()=>{},
+ nf:n=>String(n),renderYearSetup:()=>{},renderTeamWorkflow:()=>{}
+};
+vm.runInNewContext(leaderHelper+";syncLeaderWithMembers()",leadCtx);
+assert.deepEqual(Array.from(leaderSelect.options,o=>o.value),['','E1','E2','E3'],
+ "Sebelum ada centang, pilihan Ketua harus menampilkan seluruh Pegawai Tahunan");
+leaderSelect.value='E2';
+vm.runInNewContext(leaderHelper+";onTeamLeaderChanged()",leadCtx);
+assert(leadCtx.adminMemberWorking.has('E2'),
+ "Memilih Ketua lebih dahulu harus otomatis mencentang dirinya pada Anggota");
+leadCtx.adminMemberWorking.add('E3');
+vm.runInNewContext(leaderHelper+";syncLeaderWithMembers()",leadCtx);
+assert.deepEqual(Array.from(leaderSelect.options,o=>o.value),['','E2','E3'],
+ "Sesudah mencentang anggota, pilihan Ketua hanya boleh dari anggota tercentang");
+const teamValidationStart=inline.indexOf("function teamEstablishmentIssue(tid){");
+const teamValidationEnd=inline.indexOf("function yearKroReady(tid){",teamValidationStart);
+assert(teamValidationStart>=0&&teamValidationEnd>teamValidationStart,
+ "Pemeriksaan lengkap seluruh Tim Aktif tidak ditemukan");
+const teamValidationCode=inline.slice(teamValidationStart,teamValidationEnd);
+const establishCase=(opts={})=>{
+ const setup={staff:{confirmed:true,ids:['E1','E2','E3']},teams:{T1:{leaderId:'E1',members:['E1','E2']}}};
+ const roster={T1:{leaderId:'E1',members:['E1','E2']},T2:{leaderId:'E3',members:['E3']}};
+ const ctx={
+  demoTeams:opts.teams||[{id:'T1',name:'Satu',active:true},{id:'T2',name:'Dua',active:true}],
+  yearSetup:opts.setup||setup,
+  yearRosterRecord:id=>(opts.roster||roster)[id]||{members:[],leaderId:''},
+  equalIds:(a,b)=>[...new Set(a||[])].sort().join('|')===[...new Set(b||[])].sort().join('|')
+ };
+ return vm.runInNewContext(teamValidationCode+";annualTeamCompletion()",ctx);
+};
+const incomplete=establishCase();
+assert.equal(incomplete.total,2,"Persetujuan harus memeriksa SEMUA Tim Aktif");
+assert.equal(incomplete.ready,1,"Penetapan satu tim saja tidak cukup untuk persetujuan");
+assert.equal(incomplete.pending[0].name,'Dua',"Nama Tim yang belum menetapkan wajib muncul");
+const readyCase=establishCase({setup:{staff:{confirmed:true,ids:['E1','E2','E3']},teams:{
+ T1:{leaderId:'E1',members:['E1','E2']},T2:{leaderId:'E3',members:['E3']}}}});
+assert.equal(readyCase.ready,2,"Seluruh Tim lengkap harus lolos pemeriksaan");
+assert.equal(readyCase.pending.length,0,"Tidak boleh ada Tim menghambat persetujuan bila semua lengkap");
+assert.equal(readyCase.awaiting.length,2,
+ "Susunan tim yang lengkap masih menunggu persetujuan Kepala BPS, bukan otomatis disahkan");
+const approvedCase=establishCase({setup:{staff:{confirmed:true,ids:['E1','E2','E3']},teams:{
+ T1:{leaderId:'E1',members:['E1','E2'],reviewStatus:'approved'},
+ T2:{leaderId:'E3',members:['E3'],reviewStatus:'approved'}}}});
+assert.equal(approvedCase.awaiting.length,0,
+ "Hanya seluruh tim yang sudah disetujui Kepala BPS dapat melewati validasi");
+
+const mismatch=establishCase({roster:{T1:{leaderId:'E1',members:['E2']},T2:{leaderId:'E3',members:['E3']}}});
+assert.equal(mismatch.ready,0,"Ketua yang tidak dicentang sebagai Anggota tidak boleh dianggap ditetapkan");
+const inactiveCase=establishCase({teams:[{id:'T1',name:'Satu',active:true},{id:'T2',name:'Dua',active:false}]});
+assert.equal(inactiveCase.total,1,"Tim Nonaktif tidak menghambat persetujuan tahunan");
+const approveAt=inline.indexOf("async function approveAnnual(){");
+const approveBody=inline.slice(approveAt,inline.indexOf("function refreshYearLabels()",approveAt));
+assert(approveBody.includes("const teams=annualTeamCompletion();")&&approveBody.includes("if(teams.pending.length)"),
+ "Admin/Kepala tidak boleh menyetujui sebelum semua Tim Aktif selesai");
+assert(approveBody.includes("if(annualTeamCompletion().pending.length)"),
+ "Penetapan Tim harus dicek ulang pada saat persetujuan akhir");
+assert(inline.includes("const teamProgress=annualTeamCompletion();")&&
+ inline.includes("teamProgress.pending.length===0"),
+ "Tombol persetujuan di dashboard harus terkunci bila ada tim belum ditetapkan");
+assert(inline.includes("const pendingTeamLabels=teamProgress.pending.map("),
+ "Finalisasi harus menunjukkan daftar tim penghambat persetujuan");
+assert(inline.includes("teamProgress.pending.length||teamProgress.awaiting.length||!publishedAllocationCount()?"),
+ "Tombol Finalisasi harus memvalidasi semua Tim Aktif serta alokasi");
+
+
+// Ketua's team submission is a proposal, not approval.
+for(const token of [
+ "function teamReviewStatus(tid){",
+ "function decideTeamProposal(tid,approved,note=''){",
+ "if(currentRole!=='kepala'||yearInfo().status==='closed')return false;",
+ "reviewStatus:'pending'",
+ "Menunggu Peninjauan dan Persetujuan Kepala BPS.",
+ "const awaiting=all.filter(",
+ "teamProgress.awaiting.length",
+ "teamReviewStatus(tid)==='approved'"
+])assert(inline.includes(token),"Alur peninjauan susunan tim oleh Kepala BPS belum lengkap: "+token);
+assert(!inline.includes("Pilih tim lain untuk melanjutkan penetapan."),
+ "Setelah Ketua mengajukan tim, jangan meminta menetapkan tim lain");
+for(const token of ["teamReviewBanner","team-review-banner is-","team-review-actions","Setujui Susunan","Kembalikan"])
+ assert(inline.includes(token),"Status persetujuan dan tindakan Kepala BPS belum tampil: "+token);
+assert(html.includes("#pageTeams .team-review-banner")&&
+ html.includes("#pageTeams .team-roster-head-tools")&&
+ html.includes("grid-template-columns:1fr!important"),
+ "Tampilan pilihan tim, anggota dan status peninjauan perlu rapi dan responsif");
+
+// Team status summary is a compact card; full lists open in a native modal.
+const teamSummaryStart=inline.indexOf("let establishedTeamFilter='ready';");
+const teamSummaryEnd=inline.indexOf("/* Daftar Tim tahunan:",teamSummaryStart);
+assert(teamSummaryStart>=0&&teamSummaryEnd>teamSummaryStart,
+ "Ringkasan Penetapan Tim dan filter status tidak ditemukan");
+const teamSummaryCode=inline.slice(teamSummaryStart,teamSummaryEnd);
+for(const token of [
+ "function establishedTeamSnapshot(){",
+ "function ensureEstablishedTeamDialog(){",
+ "function renderEstablishedTeamDialog(){",
+ "function openEstablishedTeamDialog(filter='ready',trigger=null){",
+ "function renderEstablishedTeams(){",
+ "dialog=document.createElement('dialog');",
+ "dialog.id='establishedTeamDialog';",
+ "dialog.setAttribute('aria-labelledby','establishedTeamDialogTitle');",
+ "dialog.showModal();",
+ "dialog.addEventListener('close'",
+ "if(back?.isConnected)back.focus({preventScroll:true});",
+ "data-team-summary-filter=",
+ "data-team-summary-dialog-filter=",
+ "aria-haspopup=\"dialog\"",
+ "id=\"teamSummaryDialogList\"",
+ "el.onclick=event=>",
+ "el.onkeydown=event=>",
+ "openEstablishedTeamDialog(btn.dataset.teamSummaryFilter,btn);",
+ "establishedTeamFilter=btn.dataset.teamSummaryDialogFilter;",
+ "if(!roleCanManageTeam(tid))",
+ "teamEstablishmentIssue(t.id)",
+ "data-team-summary-edit="
+])assert(teamSummaryCode.includes(token),"Pop-up status Penetapan Tim belum benar: "+token);
+// The full-width detached summary is gone; the existing green Susunan Tim
+// header owns the status controls, but the detail modal is unchanged.
+const teamHostStart=inline.indexOf("const rosterHost=$('establishedTeamSummary')||document.createElement('div');");
+const teamHostEnd=inline.indexOf("const legacy=document.createElement('div');",teamHostStart);
+assert(teamHostStart>=0&&teamHostEnd>teamHostStart,
+ "Ringkasan Penetapan Tim harus dipindah ke kepala kartu Susunan Tim");
+const teamHostCode=inline.slice(teamHostStart,teamHostEnd);
+assert(teamHostCode.includes("rosterHost.className='team-summary-inline';")&&
+ teamHostCode.includes("teamHead.appendChild(rosterHost)"),
+ "Status penetapan wajib berada di dalam header hijau Susunan Tim");
+assert(!teamHostCode.includes("grid.after(rosterHost)")&&
+ !teamHostCode.includes("panel.after(rosterHost)"),
+ "Kartu Ringkasan Penetapan Tim terpisah harus dihilangkan");
+assert(teamSummaryCode.includes("<strong>Ringkasan Seluruh Tim</strong>")&&
+ teamSummaryCode.includes("data-team-summary-open")&&
+ teamSummaryCode.includes("openEstablishedTeamDialog('ready',event.currentTarget);"),
+ "Ringkasan dalam kartu Susunan Tim harus menyediakan tombol lihat rincian");
+assert(teamSummaryCode.includes("const reason=teamEstablishmentIssue(t.id);")&&
+ teamSummaryCode.includes("const complete=reason==='';"),
+ "Jumlah tim ditetapkan harus memakai validasi yang SAMA dengan status tahunan");
+assert(!teamSummaryCode.includes("yearSetup.teams[t.id].leaderId===ro.leaderId"),
+ "Hitungan legacy 2026 tidak boleh bertentangan dengan validasi Finalisasi");
+for(const rule of [
+ "#pageTeams #annualTeamStage>.annual-stage-head{",
+ "#pageTeams #annualTeamStage .annual-stage-head>#establishedTeamSummary.team-summary-inline{",
+ "border-top:1px solid #cce6d8!important;",
+ "#pageTeams #annualTeamStage .team-summary-inline .team-status-count{",
+ "#pageTeams #annualTeamStage .team-summary-inline .team-summary-open-hint{"
+])assert(cssPolish.includes(rule),"Kartu hijau Susunan Tim belum mengintegrasikan ringkasan: "+rule);
+const snapshotStart=teamSummaryCode.indexOf("function establishedTeamSnapshot(){");
+const snapshotEnd=teamSummaryCode.indexOf("function ensureEstablishedTeamDialog()",snapshotStart);
+const snapshotFn=teamSummaryCode.slice(snapshotStart,snapshotEnd);
+const sampleSummary=vm.runInNewContext(snapshotFn+";establishedTeamSnapshot()",{
+ demoTeams:[{id:"A",active:true},{id:"B",active:true},{id:"C",active:false}],
+ demoRoster:{A:{leaderId:"E1",members:["E1"]},B:{leaderId:"E2",members:["E2"]}},
+ BASE:{employees:[{id:"E1",full_name:"Pegawai 1"},{id:"E2",full_name:"Pegawai 2"}]},
+ teamEstablishmentIssue:tid=>tid==="A"?"":"Belum ditetapkan",
+ teamReviewStatus:tid=>tid==="A"?"pending":"incomplete"
+});
+assert.equal(sampleSummary.list.length,2,"Tim nonaktif tidak termasuk ringkasan aktif");
+assert.equal(sampleSummary.ready.length,1,"Ringkasan harus tunduk pada validasi penetapan");
+assert.equal(sampleSummary.missing.length,1,"Tim yang belum ditetapkan muncul di filter belum lengkap");
+
+const compactBody=teamSummaryCode.slice(teamSummaryCode.indexOf("function renderEstablishedTeams(){"));
+assert(!compactBody.includes("team-summary-ready")&&!compactBody.includes("team-summary-pending-list"),
+ "Daftar detail tidak boleh tetap tampil di bawah kartu ringkasan");
+const popupBody=teamSummaryCode.slice(teamSummaryCode.indexOf("function renderEstablishedTeamDialog(){"),
+ teamSummaryCode.indexOf("function openEstablishedTeamDialog("));
+assert(popupBody.includes("team-summary-ready")&&popupBody.includes("team-summary-pending-list"),
+ "Pop-up wajib memuat daftar Tim Ditetapkan dan Tim Belum Lengkap");
+assert(popupBody.includes("Seluruh susunan tim aktif sudah terkumpul"),
+ "Status kosong tetap harus bisa dibuka dan menunjukkan keterangan");
+for(const rule of [
+ "#pageTeams #annualTeamStage .annual-stage-head>#establishedTeamSummary.team-summary-inline{",
+ ".team-establishment-dialog{",
+ ".team-establishment-dialog::backdrop{",
+ ".team-establishment-dialog .team-establishment-scroll{",
+ ".team-establishment-dialog .team-summary-ready{",
+ ".team-establishment-dialog .team-summary-pending-list{",
+ ".team-establishment-dialog .team-establishment-close:focus-visible"
+])assert(cssPolish.includes(rule),"Desain pop-up Ringkasan Penetapan Tim tidak lengkap: "+rule);
+
+
+// Confirm/Edit/Cancel should all be in the green header, never underneath
+// the member checklist; only optional copying of prior-year roster remains
+// near that checklist.
+const headerMoveStart=inline.indexOf("const actions=page.querySelector('#annualTeamStage > .annual-team-actions');");
+const headerMoveEnd=inline.indexOf("const steps=panel.querySelectorAll('.annual-step');",headerMoveStart);
+assert(headerMoveStart>=0&&headerMoveEnd>headerMoveStart,
+ "Pemindahan tombol penetapan susunan ke header tidak ditemukan");
+const headerMoveCode=inline.slice(headerMoveStart,headerMoveEnd);
+for(const id of ["annualConfirmTeam","annualEditTeam","annualCancelTeam"]){
+ assert(headerMoveCode.includes("'"+id+"'"),
+  "Tombol "+id+" belum dipindahkan ke header Susunan Tim");
+}
+assert(headerMoveCode.includes("headActions.appendChild(control);"),
+ "Ketiga tombol penetapan harus memakai satu slot aksi bagian atas");
+const staffRenderStart=inline.indexOf("function renderYearSetup(){");
+const staffRenderEnd=inline.indexOf("function confirmStaffYear(){",staffRenderStart);
+const teamHeaderRender=inline.slice(staffRenderStart,staffRenderEnd);
+assert(teamHeaderRender.includes("$('teamRosterActionSlot')?.classList.toggle('hidden',teamComplete||isBaseYear);"),
+ "Area aksi bawah wajib hilang jika salin anggota tahun lalu tidak tersedia");
+for(const rule of [
+ "#pageTeams #annualTeamHeadAction{",
+ "#pageTeams #annualTeamHeadAction>.btn.primary{",
+ "#pageTeams #annualTeamHeadAction>#annualCancelTeam{",
+ "#pageTeams #annualTeamHeadAction>.btn.hidden{display:none!important}",
+ "#pageTeams #teamRosterActionSlot.hidden{",
+ "#pageTeams #annualTeamStage .annual-stage-head>.annual-team-head-right{"
+]) assert(cssPolish.includes(rule),"Layout tombol penetapan di header belum lengkap: "+rule);
+assert(html.includes('id="annualTeamHeadAction"')&&
+ html.includes('id="teamRosterActionSlot"'),
+ "Slot header dan slot tombol salin anggota harus ada tepat satu");
+
+
+// The parent team stage represents ALL active teams; identity and confirmation
+// of the selected team are deliberately restricted to the right-hand roster.
+assert(teamStageMarkup.includes('class="team-stage-overall-heading"'),
+ "Judul induk Susunan Tim harus berupa ringkasan seluruh tim");
+assert(!teamStageMarkup.includes('02 · Susunan Tim <span id="annualSelectedTeam"></span></strong><p id="annualTeamStatusNote">Tetapkan ketua'),
+ "Kepala Susunan Tim masih mewarisi penjelasan khusus tim terpilih");
+assert(html.includes('class="team-roster-head-tools"'),
+ "Nama tim terpilih dan aksi terkait harus dikelompokkan di panel kanan");
+assert(inline.includes("$('annualSelectedTeam').textContent='· '+activeYear;"),
+ "Judul induk tidak boleh berubah menjadi nama tim yang dipilih");
+assert(inline.includes("teamStage.classList.toggle('is-confirmed',progress.total>0&&progress.pending.length===0);"),
+ "Warna status induk harus berdasarkan SELURUH tim, bukan satu tim terpilih");
+assert(inline.includes("querySelector('.team-roster-heading')?.classList.toggle('is-confirmed',teamComplete);"),
+ "Status hijau panel kanan harus mengikuti tim yang sedang dipilih");
+assert(inline.includes("progress.ready+' dari '+progress.total+' Tim Aktif sudah memiliki susunan")&&
+ inline.includes("Pengesahan akhir menunggu Kepala BPS"),
+ "Keterangan induk wajib menjelaskan jumlah seluruh tim tanpa menganggap pengajuan sebagai persetujuan akhir");
+assert(inline.includes("rosterCard?.scrollIntoView({behavior:'smooth',block:'start'});"),
+ "Ketika memilih tim di layar sempit, formulir tim di bawah harus otomatis terlihat");
+for(const cssRule of [
+ "#pageTeams #annualTeamStage>.annual-stage-head>.team-stage-overall-heading{",
+ "#pageTeams #teamAdminGrid>.team-admin-card .team-roster-heading{",
+ "#pageTeams #teamAdminGrid .team-roster-head-tools{",
+ "#pageTeams #teamAdminGrid .team-roster-head-tools .team-focus-name::before{",
+ "#pageTeams #teamAdminGrid .team-roster-head-tools #annualTeamSummary.is-pending{",
+ "@media(max-width:1050px){"
+])assert(cssPolish.includes(cssRule),"Pemisahan visual seluruh tim vs tim terpilih belum lengkap: "+cssRule);
+
+
+// Picker modal replaces the 25-row inline team list; original controls,
+// selection, role restrictions and management actions remain functional.
+const teamPanelStart=html.indexOf('class="team-admin-card team-admin-list team-picker-compact"');
+const teamPanelEnd=html.indexOf('class="section-top team-roster-heading"',teamPanelStart);
+assert(teamPanelStart>=0&&teamPanelEnd>teamPanelStart,
+ "Panel pemilih Tim dan panel Ketua/Anggota harus tetap berurutan");
+const pickerPanel=html.slice(teamPanelStart,teamPanelEnd);
+for(const token of [
+ 'id="teamPickerCurrentName"',
+ 'id="teamPickerCurrentMeta"',
+ 'id="teamPickerOpen"',
+ 'id="teamPickerDialog"',
+ 'id="teamPickerDialogTitle"',
+ 'id="teamPickerClose"',
+ 'id="teamPickerDone"',
+ 'id="teamPickerYear"',
+ 'id="teamAdminDirectory"',
+ 'id="teamAdminSearch"',
+ 'id="teamAdminStatus"',
+ 'id="teamAdminNew"',
+ 'id="teamAdminSelect"',
+ 'id="teamAdminCount"',
+ 'id="teamAdminMemberCount"'
+])assert(pickerPanel.includes(token),"Pop-up Pilih Tim kehilangan elemen: "+token);
+assert(pickerPanel.indexOf('id="teamPickerOpen"')<pickerPanel.indexOf('id="teamPickerDialog"'),
+ "Tombol pilih tim harus ada di kartu ringkas, bukan di dalam pop-up");
+assert(pickerPanel.indexOf('id="teamAdminNew"')<pickerPanel.indexOf('id="teamAdminStatus"'),
+ "Tambah Tim harus mendahului filter Aktif/Nonaktif");
+assert((html.match(/id="teamPickerDialog"/g)||[]).length===1,
+ "Pop-up Pilih Tim tidak boleh terduplikasi");
+const teamModalStart=inline.indexOf("function renderTeamPickerSummary(){");
+const teamModalEnd=inline.indexOf("function renderTeamDirectory(){",teamModalStart);
+assert(teamModalStart>=0&&teamModalEnd>teamModalStart,
+ "Fungsi pembukaan dan ringkasan Tim tidak ditemukan");
+const modalFns=inline.slice(teamModalStart,teamModalEnd);
+for(const token of [
+ "function openTeamPickerDialog(){",
+ "function closeTeamPickerDialog(){",
+ "dialog.showModal();",
+ "dialog.close();",
+ "$('teamPickerCurrentName').textContent",
+ "$('teamPickerCurrentMeta').textContent",
+ "renderTeamDirectory();",
+ "$('teamAdminSearch').focus({preventScroll:true});"
+])assert(modalFns.includes(token),"Aksi pop-up pemilih Tim belum terhubung: "+token);
+assert(inline.includes("$('teamPickerOpen').onclick=openTeamPickerDialog;")&&
+ inline.includes("$('teamPickerClose').onclick=closeTeamPickerDialog;")&&
+ inline.includes("$('teamPickerDone').onclick=closeTeamPickerDialog;"),
+ "Tombol Buka/Tutup pemilih Tim tidak tersambung");
+assert(inline.includes("closeTeamPickerDialog();\n renderTeamAdminPage();"),
+ "Memilih Tim harus menutup pop-up dan memperbarui Ketua/Anggota");
+assert(inline.includes("await deleteTeamAdmin(tid);\n  openTeamPickerDialog();"),
+ "Konfirmasi Nonaktif/Hapus harus bisa terlihat dan pop-up kembali terbuka");
+assert(inline.includes("await createTeamAdmin();\n  if(demoTeams.length===before)openTeamPickerDialog();"),
+ "Konfirmasi Tambah Tim harus tidak tertutup dialog native");
+assert(inline.includes("renderTeamDirectory();renderTeamWorkflow();renderTeamPickerSummary();"),
+ "Ringkasan tim terpilih tidak memperbarui setelah pilihan berubah");
+for(const token of [
+ "#pageTeams .team-picker-compact{",
+ "#pageTeams .team-picker-compact>.team-picker-open{",
+ "#pageTeams .team-picker-dialog{",
+ "#pageTeams .team-picker-dialog[open]{",
+ "#pageTeams .team-picker-dialog::backdrop{",
+ "#pageTeams .team-picker-dialog #teamAdminDirectory.team-directory-list{",
+ "grid-template-columns:repeat(2,minmax(0,1fr))!important;",
+ "@media(max-width:720px){"
+])assert(cssPolish.includes(token),"Desain pop-up lebar/tampilan mobile Pilih Tim belum lengkap: "+token);
+
+// Team picker status must use the same validation as the annual approval.
+const pickerStatusFrom=inline.indexOf("function renderTeamDirectory(){");
+const pickerStatusTo=inline.indexOf("function selectTeamFromDirectory(",pickerStatusFrom);
+assert(pickerStatusFrom>=0&&pickerStatusTo>pickerStatusFrom,"Daftar Tim tidak ditemukan");
+const pickerStatusCode=inline.slice(pickerStatusFrom,pickerStatusTo);
+for(const token of [
+ "const teamIssue=inactive?'':teamEstablishmentIssue(t.id);",
+ "const stateLabel=inactive?'Nonaktif':teamReviewLabel(t.id);",
+ "const activityLabel=hasActivities?'Memiliki Kegiatan':'Belum Ada Kegiatan';",
+ "esc(stateLabel)+' · '+esc(activityLabel)",
+ "is-pending",
+ "is-ready",
+ "completion=annualTeamCompletion()",
+ "nf(completion.pending.length)+' Belum Ditetapkan"
+])assert(pickerStatusCode.includes(token),"Status penetapan Tim tidak konsisten: "+token);
+assert(cssPolish.includes(".team-directory-row.is-pending:not(.is-selected)"),
+ "Tim belum ditetapkan harus terlihat di pemilih Tim");
+
+
+// Keep every KRO catalogue and assignment display sorted by code, not by
+// selection, recommendation priority, display name, or source import order.
+const kroCompareStart=inline.indexOf("function compareKroCodes(a,b){");
+const kroCompareEnd=inline.indexOf("function teamKroCodes(tid){",kroCompareStart);
+assert(kroCompareStart>=0&&kroCompareEnd>kroCompareStart,"Pembanding kode KRO tidak ditemukan");
+const kroCompareCode=inline.slice(kroCompareStart,kroCompareEnd);
+const testKroCodes=['2900.QMA.10','2897.BMA.004','2900.QMA.2','2896.BMA.004','2897.BMA.003'];
+const sortedKroCodes=vm.runInNewContext(
+ kroCompareCode+";codes.sort(compareKroCodes)",
+ {codes:testKroCodes.slice()});
+assert.deepEqual(Array.from(sortedKroCodes),
+ ['2896.BMA.004','2897.BMA.003','2897.BMA.004','2900.QMA.2','2900.QMA.10'],
+ "KRO harus diurutkan secara natural menurut seluruh segmen kode");
+assert(inline.includes(")].sort(compareKroCodes)}"),
+ "KRO terpilih dalam dropdown Input Alokasi harus diurutkan menurut kode");
+const kroListStart=inline.indexOf("function renderKroChecks(){");
+const kroMapStart=inline.indexOf("function renderKroMap(){",kroListStart);
+const kroMapEnd=inline.indexOf("function paintTeamAdminMembers(){",kroMapStart);
+const kroBoardStart=inline.indexOf("function renderKroBoard(){");
+const kroBoardEnd=inline.indexOf("function renderFinalBoard(){",kroBoardStart);
+assert(kroListStart>=0&&kroMapStart>kroListStart&&kroMapEnd>kroMapStart&&
+ kroBoardStart>=0&&kroBoardEnd>kroBoardStart,
+ "Renderer KRO yang harus konsisten tidak lengkap");
+for(const code of [
+ inline.slice(kroListStart,kroMapStart),
+ inline.slice(kroMapStart,kroMapEnd),
+ inline.slice(kroBoardStart,kroBoardEnd),
+]){
+ assert(code.includes(".sort((a,b)=>compareKroCodes(a.code,b.code))"),
+  "Seluruh daftar KRO harus menggunakan pembanding kode yang sama");
+}
+assert(inline.slice(kroBoardStart,kroBoardEnd).includes(
+ "const masterRows=POK_KROS.filter")&&
+ inline.slice(kroBoardStart,kroBoardEnd).includes(
+ "const arr=POK_KROS.filter"),
+ "Daftar induk dan daftar penetapan KRO harus tetap tersedia");
+
+
+// KRO audit: three compact clickable status cards open issue dialogs.
+// The assigned KRO editor itself must stay visible at the bottom of the page.
+for(const id of [
+ "kroAuditOpenTeams","kroAuditOpenUnassigned",
+ "kroAuditOpenActivities",
+ "kroAuditTeamsDialog","kroAuditUnassignedDialog","kroAuditActivitiesDialog",
+ "kroAuditNoKroTeamsRows","kroAuditNoTeamRows","kroAuditNoTaskRows"
+])assert(html.includes('id="'+id+'"'),"Tombol atau pop-up KRO belum lengkap: "+id);
+const auditHtmlFrom=html.indexOf('id="kroAuditPanel"');
+const auditHtmlEnd=html.indexOf('id="kroAuditStatus"',auditHtmlFrom);
+assert(auditHtmlFrom>=0&&auditHtmlEnd>auditHtmlFrom,
+ "Kartu audit Pembagian KRO tidak ditemukan");
+const auditMarkup=html.slice(auditHtmlFrom,auditHtmlEnd);
+assert((auditMarkup.match(/class="kro-audit-kpi kro-audit-action/g)||[]).length===3,
+ "Hanya tiga kartu temuan yang harus berjajar di atas");
+assert(!html.includes('id="kroAuditOpenManage"'),
+ "Tombol Kelola KRO tidak boleh lagi memenuhi area monitoring");
+assert(!html.includes('<details open class="kro-audit-issues"'),
+ "Rincian audit tidak boleh lagi memenuhi ruang halaman utama");
+const auditFnsFrom=inline.indexOf("function closeKroAuditDialogs(){");
+const auditFnsTo=inline.indexOf("// V1.8:",auditFnsFrom);
+assert(auditFnsFrom>=0&&auditFnsTo>auditFnsFrom,
+ "Logika pop-up KRO tidak ditemukan");
+const auditFns=inline.slice(auditFnsFrom,auditFnsTo);
+for(const token of [
+ "function bindKroAuditDialogs(){",
+ "dialog.showModal();",
+ "dialog.close()",
+ "card.classList.toggle('has-issues',count>0)",
+ "card.classList.toggle('is-complete',count===0)",
+ "closeKroAuditDialogs();",
+ "renderKroBoard();"
+])assert(auditFns.includes(token),"Kartu audit KRO belum interaktif: "+token);
+const boardFrom=inline.indexOf("function renderKroBoard(){");
+const boardTo=inline.indexOf("function renderFinalBoard(){",boardFrom);
+assert(boardFrom>=0&&boardTo>boardFrom,"Pengelolaan KRO tidak ditemukan");
+const boardCode=inline.slice(boardFrom,boardTo);
+assert(boardCode.includes("const auditPanel=$('kroAuditPanel');")&&
+ boardCode.includes('id="kroAuditSlot"')&&
+ boardCode.includes("el.querySelector('#kroAuditSlot')?.appendChild(auditPanel);"),
+ "Kartu audit harus berada di atas menu pengelolaan KRO");
+assert(boardCode.includes('id="kroAssignmentSection"')&&
+ boardCode.includes('class="panel kro-assignment-inline"')&&
+ boardCode.includes('id="kroAssignmentHeading"')&&
+ boardCode.indexOf('id="kroAssignmentSection"')>boardCode.indexOf('id="kroHubActivity"'),
+ "Kelola KRO wajib menjadi kartu tersendiri di paling bawah, setelah tiga menu");
+assert(!boardCode.includes('<dialog id="kroAssignmentPopup"'),
+ "Kelola KRO tidak boleh berada di pop-up lagi");
+assert(!boardCode.includes("assignmentWasOpen")&&!boardCode.includes("showBoardDialog('kroAssignmentPopup')"),
+ "Tidak boleh membuka ulang pop-up Kelola KRO saat rendering");
+const inlineOpenStart=inline.indexOf("function openKroAssignmentPopup(){");
+const inlineOpenEnd=inline.indexOf("/* KRO and activity groups",inlineOpenStart);
+assert(inlineOpenStart>=0&&inlineOpenEnd>inlineOpenStart,
+ "Akses Kelola KRO tidak ditemukan");
+const inlineOpenCode=inline.slice(inlineOpenStart,inlineOpenEnd);
+assert(inlineOpenCode.includes("card.scrollIntoView({behavior:'smooth',block:'start'})")&&
+ inlineOpenCode.includes("heading.focus({preventScroll:true})")&&
+ !inlineOpenCode.includes("showModal()"),
+ "Akses Kelola KRO harus menuju kartu permanen tanpa pop-up");
+assert(boardCode.includes("if($('kroBoardEdit'))")&&boardCode.includes("if($('kroBoardConfirm'))"),
+ "Mode Edit dan Simpan Penetapan KRO harus tetap berfungsi");
+assert(boardCode.includes("✎ Edit Ketetapan KRO")&&
+ boardCode.includes("kroBoardEditTeam=tid;renderKroBoard()"),
+ "KRO yang telah ditetapkan perlu menyediakan tombol Edit Ketetapan KRO");
+// KRO ordering is intentionally special only in the editable assignment card:
+// checked first, code ascending inside both groups; all master lists stay by code.
+const selectedFirstStart=boardCode.indexOf("const arr=POK_KROS.filter(");
+const selectedFirstEnd=boardCode.indexOf("const teamTitle=",selectedFirstStart);
+assert(selectedFirstStart>=0&&selectedFirstEnd>selectedFirstStart,
+ "Pemeringkatan KRO yang dicentang pada editor tidak ditemukan");
+const selectedFirstCode=boardCode.slice(selectedFirstStart,selectedFirstEnd);
+assert(selectedFirstCode.includes("checkedA=kroBoardDraft.has(a.code),checkedB=kroBoardDraft.has(b.code)")&&
+ selectedFirstCode.includes("checkedA===checkedB?compareKroCodes(a.code,b.code):checkedA?-1:1;"),
+ "KRO tercentang wajib naik ke atas dengan urutan kode di dalam tiap kelompok");
+const exampleKroRows=[
+ {code:'2900.QMA.006',name:'Pengembangan'},
+ {code:'2886.EBA.962',name:'Umum'},
+ {code:'2897.BMA.004',name:'Diseminasi'},
+ {code:'2886.EBA.956',name:'BMN'},
+ {code:'2896.BMA.004',name:'Analisis'}
+];
+const chosenKroCodes=new Set(['2897.BMA.004','2886.EBA.956']);
+const actualOrder=vm.runInNewContext(
+ selectedFirstCode+";arr.map(k=>k.code)",
+ {POK_KROS:exampleKroRows,query:'',kroBoardDraft:chosenKroCodes,
+ compareKroCodes:(a,b)=>a.localeCompare(b,'id',{numeric:true,sensitivity:'base'})});
+assert.deepEqual(Array.from(actualOrder),
+ ['2886.EBA.956','2897.BMA.004','2886.EBA.962','2896.BMA.004','2900.QMA.006'],
+ "KRO terpilih harus tampil pertama, lalu yang lain menurut kode");
+assert(boardCode.includes("const writable=roleCanManageTeam(tid)&&approvalStatus!=='pending'&&(!locked||editing)&&yearInfo().status!=='closed';")&&
+ !boardCode.includes("if(!canUse||isBaseYear)return;"),
+ "KRO 2026 dapat diajukan oleh pengelola, sedangkan pengajuan menunggu tidak dapat diedit");
+assert(boardCode.includes("submitKroProposal(tid,chosen)")&&
+ !boardCode.includes("yearSetup.kros[tid]=[...team.kroCodes]")&&
+ boardCode.includes("Penyesuaian KRO 2026 disimpan terpisah dari sumber asli."),
+ "Ketua Tim tidak boleh menetapkan langsung ataupun mengubah data sumber KRO 2026");
+const draftOrderStart=inline.indexOf("function syncKroBoardDraftRows(){");
+const draftOrderEnd=inline.indexOf("function renderKroBoard(){",draftOrderStart);
+assert(draftOrderStart>=0&&draftOrderEnd>draftOrderStart,
+ "Pengurutan interaktif setelah KRO dicentang tidak ditemukan");
+const draftOrderCode=inline.slice(draftOrderStart,draftOrderEnd);
+for(const token of [
+ "kroBoardDraft.has(a.code),bChosen=kroBoardDraft.has(b.code)",
+ "aChosen===bChosen?compareKroCodes(a.code,b.code):aChosen?-1:1;",
+ "row.classList.toggle('is-draft-selected',box.checked);",
+ "list.appendChild(row);",
+ "currentFocus.focus({preventScroll:true});",
+ "state.textContent=nf(kroBoardDraft.size)+' KRO Dipilih';"
+])assert(draftOrderCode.includes(token),"Pembaruan centang KRO belum menjaga urutan/posisi: "+token);
+assert(boardCode.includes("syncKroBoardDraftRows();")&&
+ cssPolish.includes("#pageKRO #kroAssignmentSection #kroBoardEdit{")&&
+ cssPolish.includes("#pageKRO #kroAssignmentSection .combined-kro-row.is-draft-selected{"),
+ "Tombol Edit dan highlight KRO tercentang belum tersedia");
+
+assert(boardCode.includes("assigned=locked&&selectedCodes.has(k.code)")&&
+ boardCode.includes("kro-assignment-confirmed"),
+ "Hanya KRO yang telah ditetapkan boleh ditandai selesai");
+assert(boardCode.includes("yearInfo().status!=='closed'")&&
+ boardCode.includes("roleCanManageTeam(tid)"),
+ "Edit penetapan KRO harus tetap dibatasi peran dan tahun");
+for(const token of [
+ "#pageKRO #kroAuditPanel .kro-audit-kpis-compact{",
+ "grid-template-columns:repeat(3,minmax(0,1fr))!important;",
+ "#pageKRO #kroAssignmentSection.kro-assignment-inline{",
+ "#pageKRO .kro-assignment-inline-content #kroBoardList{",
+ "#pageKRO #kroAuditPanel dialog.kro-audit-dialog{",
+ "#pageKRO #kroAuditPanel .kro-audit-action.has-issues{",
+ "#pageKRO .combined-kro-list .combined-kro-row.is-assigned{",
+ ".kro-master-usage .kro-master-team-name{"
+])assert(cssPolish.includes(token),"Penekanan visual KRO belum lengkap: "+token);
+
+
+
+// Two-stage KRO approval: submitting must never unlock the team; only Admin
+// approval may mark it ready. Rejected proposals return to editable status.
+const kroApprovalStart=inline.indexOf("function kroApprovalRequest(tid){");
+const kroApprovalEnd=inline.indexOf("function allowYearTask(tid){",kroApprovalStart);
+assert(kroApprovalStart>=0&&kroApprovalEnd>kroApprovalStart,
+ "Status pengajuan dan persetujuan KRO oleh Admin belum tersedia");
+const approvalFns=inline.slice(kroApprovalStart,kroApprovalEnd);
+const approvalCtx=vm.createContext({
+ currentRole:'ketua',roleTeamId:'T1',activeYear:2027,isBaseYear:false,
+ yearSetup:{kros:{},kroRequests:{}},
+ demoTeams:[{id:'T1',active:true,name:'Tim Uji',kroCodes:[]}],
+ POK_KROS:[{code:'2897.BMA.004'},{code:'2886.EBA.956'}],
+ roleCanManageTeam:tid=>tid==='T1',
+ yearInfo:()=>({status:'draft'}),yearTeamReady:()=>true,
+ roleActor:()=> 'Pengguna Uji',
+ saveTeamStore:()=>{},storeYearSetup:()=>{},logChange:()=>{},persist:()=>{},
+ compareKroCodes:(a,b)=>a.localeCompare(b,'id',{numeric:true}),
+ equalIds:(a,b)=>[...new Set(a||[])].sort().join('|')===[...new Set(b||[])].sort().join('|')
+});
+vm.runInContext(approvalFns,approvalCtx);
+assert.equal(vm.runInContext("kroApprovalStatus('T1')",approvalCtx),'draft');
+assert.equal(vm.runInContext("yearKroReady('T1')",approvalCtx),false,
+ "KRO belum diajukan tidak boleh dianggap disetujui");
+assert.equal(vm.runInContext("submitKroProposal('T1',['2897.BMA.004'])",approvalCtx),true,
+ "Ketua Tim harus dapat mengajukan pilihan KRO");
+assert.equal(vm.runInContext("kroApprovalStatus('T1')",approvalCtx),'pending');
+assert.equal(vm.runInContext("yearKroReady('T1')",approvalCtx),false,
+ "Mengajukan KRO tidak boleh langsung membuka Input Alokasi");
+assert.equal(vm.runInContext("yearSetup.kros['T1']",approvalCtx),undefined,
+ "Pengajuan tidak boleh mengisi data KRO yang telah disetujui");
+assert.equal(vm.runInContext("submitKroProposal('T1',['2897.BMA.004'])",approvalCtx),false,
+ "Pengajuan yang sedang menunggu Admin tidak boleh diajukan ulang");
+vm.runInContext("currentRole='pegawai'",approvalCtx);
+assert.equal(vm.runInContext("decideKroProposal('T1',true)",approvalCtx),false,
+ "Pegawai tidak berhak menyetujui KRO");
+vm.runInContext("currentRole='kepala'",approvalCtx);
+assert.equal(vm.runInContext("decideKroProposal('T1',true)",approvalCtx),false,
+ "Persetujuan KRO tahap ini hanya untuk Admin");
+vm.runInContext("currentRole='admin'",approvalCtx);
+assert.equal(vm.runInContext("decideKroProposal('T1',true)",approvalCtx),true);
+assert.equal(vm.runInContext("yearKroReady('T1')",approvalCtx),true,
+ "Setelah Admin menyetujui, KRO tim baru boleh dianggap ditetapkan");
+vm.runInContext("currentRole='ketua'",approvalCtx);
+assert.equal(vm.runInContext("submitKroProposal('T1',['2886.EBA.956'])",approvalCtx),true,
+ "Mengubah KRO yang telah disetujui harus diajukan kembali");
+assert.equal(vm.runInContext("yearKroReady('T1')",approvalCtx),false,
+ "Pengajuan revisi harus membatalkan izin dari persetujuan lama");
+vm.runInContext("currentRole='admin'",approvalCtx);
+assert.equal(vm.runInContext("decideKroProposal('T1',false,'Sesuaikan kode KRO')",approvalCtx),true);
+assert.equal(vm.runInContext("kroApprovalStatus('T1')",approvalCtx),'rejected');
+assert.equal(vm.runInContext("yearKroReady('T1')",approvalCtx),false);
+assert.equal(vm.runInContext("yearSetup.kroRequests['T1'].note",approvalCtx),'Sesuaikan kode KRO');
+assert(boardCode.includes("kroApprovalPanelMarkup()")&&
+ boardCode.includes("approvalStatus==='pending'")&&
+ boardCode.includes("⏳ Menunggu Persetujuan Admin")&&
+ boardCode.includes("submitKroProposal(tid,chosen)")&&
+ !boardCode.includes("showKroCoverageDialog({tid,selectedCodes:chosen,onSave"),
+ "Tombol Ketua Tim harus membuat pengajuan, bukan langsung menetapkan KRO");
+const panelStart=inline.indexOf("function kroApprovalPanelMarkup(){");
+const panelEnd=inline.indexOf("function renderKroBoard(){",panelStart);
+assert(panelStart>=0&&panelEnd>panelStart,"Menu persetujuan Admin tidak tersedia");
+const panelCode=inline.slice(panelStart,panelEnd);
+for(const token of [
+ "const adminMode=currentRole==='admin';",
+ "data-kro-approve=",
+ "data-kro-reject=",
+ "id=\"kroApproveAll\"",
+ "decideKroProposal(tid,true)",
+ "decideKroProposal(tid,false,note)",
+ "decideKroProposal(t.id,true)"
+])assert(panelCode.includes(token),"Panel review Admin tidak lengkap: "+token);
+assert(cssPolish.includes("#pageKRO .kro-approval-admin{")&&
+ cssPolish.includes("#pageKRO .kro-approval-row.is-pending{")&&
+ cssPolish.includes("#pageKRO .kro-approval-status.is-approved{")&&
+ cssPolish.includes("#pageKRO #kroAdminApprovalPanel.kro-approval-admin.is-readonly{")&&
+ cssPolish.includes("#pageKRO #kroAdminApprovalPanel.is-readonly :is(button,[data-kro-approve],[data-kro-reject]){"),
+ "Status menunggu/disetujui dan penonaktifan peran non-Admin harus terlihat");
+assert(!panelCode.includes("if(currentRole!=='admin')return '';")&&
+ !panelCode.includes("WEWENANG ADMIN")&&
+ panelCode.includes("TAHAP PERSETUJUAN KRO · TAHUN"),
+ "Panel KRO harus selalu terlihat dengan judul netral, bukan label Wewenang Admin");
+const approvalRenderBody=inline.slice(panelStart,inline.indexOf("function bindKroApprovalPanel(){",panelStart));
+const sampleApprovalData={
+ demoTeams:[{id:'T1',name:'Tim A',active:true,kroCodes:['2897.BMA.004']},{id:'T2',name:'Tim B',active:true,kroCodes:[]}],
+ activeYear:2026,isBaseYear:true,
+ kroApprovalRequest:id=>id==='T1'?{status:'pending',codes:['2897.BMA.004'],submittedBy:'Ketua Tim'}:null,
+ kroApprovalStatus:id=>id==='T1'?'pending':'reference',
+ yearTeamReady:()=>true,
+ nf:n=>String(n),
+ esc:v=>String(v)
+};
+const approvalRender=role=>vm.runInNewContext(approvalRenderBody+";kroApprovalPanelMarkup()",{
+ ...sampleApprovalData,currentRole:role
+});
+const adminApprovalHtml=approvalRender('admin');
+assert(adminApprovalHtml.includes('id="kroAdminApprovalPanel"')&&
+ !adminApprovalHtml.includes('is-readonly')&&
+ adminApprovalHtml.includes('aria-disabled="false"')&&
+ /id="kroApproveAll"\s*>/.test(adminApprovalHtml)&&
+ /data-kro-approve="T1"\s*>/.test(adminApprovalHtml)&&
+ /data-kro-reject="T1"\s*>/.test(adminApprovalHtml),
+ "Mode Admin harus menampilkan panel berwarna normal dengan tindakan aktif");
+for(const role of ['ketua','kepala','pegawai']){
+ const readonlyHtml=approvalRender(role);
+ assert(readonlyHtml.includes('id="kroAdminApprovalPanel"')&&
+  readonlyHtml.includes('is-readonly')&&
+  readonlyHtml.includes('aria-disabled="true"')&&
+  readonlyHtml.includes('TAHAP PERSETUJUAN KRO')&&
+  readonlyHtml.includes('Mode Baca Saja')&&
+  /id="kroApproveAll"\s+disabled/.test(readonlyHtml)&&
+  /data-kro-approve="T1"\s+disabled/.test(readonlyHtml)&&
+  /data-kro-reject="T1"\s+disabled/.test(readonlyHtml),
+  "Mode "+role+" harus melihat panel abu-abu dengan seluruh tombol persetujuan nonaktif");
+}
+
+
+
+
+// Two-tier access: Google BPS Blora stays signed in, with VIEW as default.
+// Real Admin/Ketua roles require server-verified username/password, not a
+// free role picker. Backend is intentionally off for the public preview.
+const previewSource=fs.readFileSync("src/publicPreview.js","utf8");
+assert(!html.includes('id="btnImport"')&&!html.includes('id="btnReset"')&&
+ !html.includes('id="importFile"')&&
+ !inline.includes("$('btnImport').onclick")&&!inline.includes("$('btnReset').onclick"),
+ "Header tidak boleh menyediakan impor backup maupun reset uji coba");
+assert(!html.includes('id="btnExport"')&&!html.includes('id="historyExport"')&&
+ !inline.includes("$('btnExport').onclick=exportJson")&&
+ !inline.includes("$('historyExport').onclick=exportJson"),
+ "Ekspor Perubahan tidak boleh memenuhi header ataupun Riwayat");
+for(const token of [
+ 'id="mpRoleMenu"','id="mpCurrentRole"','id="mpRoleDialog"',
+ 'id="mpRoleLoginForm"','id="mpRoleUsername"','id="mpRolePassword"',
+ 'id="mpRoleApply"','id="mpRoleLogout"','id="mpSignOut"',
+ "Login Peran","Mode Lihat","Google BPS Blora · Mode Lihat",
+ 'autocomplete="username"','autocomplete="current-password"',
+ "roleLoginReady?","VITE_ROLE_AUTH_READY","VITE_ACCESS_ADMIN_READY",
+ "function bindAuthenticatedSession(frame){",
+ "function verifiedRoleContext(data){",
+ "async function verifyRoleSession(){",
+ 'await roleSignIn({username:typedUser,password:typedPassword})',
+ "await signInWithCustomToken(roleAuth,response.data.token)",
+ "const profile=await verifyRoleSession()",
+ "preview?.__mpPreviewSwitchRole?.(profile.role,profile.teamId)",
+ 'preview?.__mpPreviewSwitchRole?.("pegawai")',
+ "signOut(auth)",
+ "frame.onload=()=>bindAuthenticatedSession(frame);"
+])assert(previewSource.includes(token),"Login Google + role username/password belum lengkap: "+token);
+for(const forbidden of ['id="mpRoleSelect"','id="mpRoleTeam"','Akses: Penguji'])
+ assert(!previewSource.includes(forbidden),"Pilih peran bebas/lama tidak boleh ada: "+forbidden);
+const firstRoleStart=inline.indexOf("function setupRoles(){");
+const firstRoleEnd=inline.indexOf("function previewSessionState(){",firstRoleStart);
+const initRoles=inline.slice(firstRoleStart,firstRoleEnd);
+assert(firstRoleStart>=0&&firstRoleEnd>firstRoleStart&&
+ initRoles.includes("$('btnLoginEdit').onclick=()=>toast(")&&
+ initRoles.includes("enterView();")&&
+ !initRoles.includes("enterPrototypeEdit();"),
+ "Tanpa login peran harus otomatis Mode Lihat, bukan Admin");
+const checkRoleFrom=previewSource.indexOf("function verifiedRoleContext(data){");
+const checkRoleTo=previewSource.indexOf("async function verifyRoleSession(){",checkRoleFrom);
+assert(checkRoleFrom>=0&&checkRoleTo>checkRoleFrom,"Verifikasi peran tidak tersedia");
+const roleParser=previewSource.slice(checkRoleFrom,checkRoleTo);
+const evalRole=data=>vm.runInNewContext(roleParser+";verifiedRoleContext(input)",{input:data});
+assert.equal(evalRole({mode:"role",active:true,role:"admin",username:"admin"}).role,"admin");
+assert.equal(evalRole({mode:"role",active:true,role:"ketua_tim",teamIds:["T001"],username:"katim"}).teamId,"T001");
+assert.equal(evalRole({mode:"role",active:true,role:"kepala",username:"kepala"}).role,"kepala");
+assert.equal(evalRole({mode:"viewer",active:true,role:"admin"}),null);
+assert.equal(evalRole({mode:"role",active:false,role:"admin"}),null);
+assert.equal(evalRole({mode:"role",active:true,role:"ketua_tim",teamIds:[]}),null);
+assert.equal(Array.from(evalRole({mode:"role",active:true,role:"ketua_tim",teamIds:["T001","T002"]}).teamIds).length,2,
+ "Ketua Tim yang diberi dua tim oleh Admin harus dapat login dan berpindah tim");
+assert.equal(evalRole({mode:"role",active:true,role:"ketua_tim",teamIds:["T1"]}),null,
+ "Kode tim yang tidak sesuai schema backend tidak boleh dianggap terverifikasi");
+// Account creation is Admin-only and uses a verified ROLE Firebase session.
+// Public Google auth alone must never be allowed to call createAccessAccount.
+const adminSource=fs.readFileSync("src/adminAccess.js","utf8");
+const shellCss=fs.readFileSync("src/adminAccess.css","utf8");
+const mainSource=fs.readFileSync("src/main.js","utf8");
+const matrixSource=fs.readFileSync("src/liveMatrix.js","utf8");
+for(const token of [
+ 'import {createAccessAdminView} from "./adminAccess.js";',
+ 'id="mpManageAccounts"',
+ 'id="mpAccountsDialog"',
+ 'id="mpAccountsContent"',
+ 'profile?.role!=="admin"',
+ 'if(!accountsReady||liveRole?.role!=="admin")return;',
+ 'createAccessAdminView(teams,{functionsClient:roleFunctions})',
+ 'accountButton.hidden=profile?.role!=="admin";',
+ 'closeAccounts();',
+ 'const roleLoginReady=sparkRoleReady||legacyRoleReady;',
+ 'const accountsReady=sparkRoleReady||(legacyRoleReady&&import.meta.env.VITE_ACCESS_ADMIN_READY==="true");',
+ 'assignedTeam.addEventListener("change",()=>{',
+ 'liveRole.teamIds?.includes(tid)',
+ 'accountButton.disabled=profile?.role!=="admin"||!accountsReady;'
+])assert(previewSource.includes(token),"Kelola Akun Admin tidak terhubung dengan sesi terverifikasi: "+token);
+for(const token of [
+ 'export function createAccessAdminView(teams = [], options = {}) {',
+ 'const roleFunctions=options.functionsClient||functions;',
+ 'httpsCallable(roleFunctions,name,',
+ 'api("createAccessAccount")',
+ 'api("updateAccessAccount")',
+ 'api("resetAccessPassword")',
+ 'api("setAccessAccountStatus")',
+ 'api("listAccessAccounts")',
+ 'const teamGroup=E("div");teamGroup.className="account-team-checks";',
+ 'check.type="checkbox"',
+ 'const passwordOk=value=>',
+ 'const selected=new Set(a.teamIds||[])',
+ 'if(values.role==="ketua_tim"&&values.teamIds.length===0)'
+])assert(adminSource.includes(token),"Fungsi pembuatan akun Admin tidak lengkap: "+token);
+assert(!adminSource.includes("Ctrl+klik"),
+ "Pemilihan tim harus menggunakan checkbox, bukan Ctrl klik");
+for(const token of [
+ '.admin-access .account-team-checks{',
+ '.admin-access .account-team-option:has(input:checked){',
+ '.mp-accounts-dialog{',
+ '#mpAccountsClose{'
+])assert(shellCss.includes(token),"Tampilan Admin Kelola Akun belum siap: "+token);
+assert(mainSource.includes("const roleAuth = roleApp ? getAuth(roleApp) : null;")&&
+ mainSource.includes("sparkRoleReady?!sparkRoleAuth?.currentUser:!roleAuth?.currentUser||!getAccessContext")&&
+ mainSource.includes("createSparkAccessAdminView(ref.teams)")&&
+ mainSource.includes("await loginSparkRole(chosenUsername,enteredPassword)")&&
+ mainSource.includes("await logoutSparkRole()")&&
+ mainSource.includes("await signInWithCustomToken(roleAuth,response.data.token)")&&
+ !mainSource.includes("await signInWithCustomToken(auth,response.data.token)"),
+ "Aplikasi Firebase harus mempertahankan akun Google dan menggunakan sesi Spark terpisah");
+assert(matrixSource.includes("createLiveMatrixWorkspace(context,{functionsClient=functions}={})")&&
+ matrixSource.includes("httpsCallable(functionsClient,name,")&&
+ matrixSource.includes("createAccessAdminView(rows('teams'),{functionsClient})"),
+ "Data matriks dan akun harus memakai Firebase Functions dengan identitas peran");
+// Spark is the preferred path. No Cloud Functions or Blaze is needed for
+// initial account login and Firebase-Security-Rules-backed Admin assignment.
+// Password policy for every new Ketua Tim/role password in Firebase Spark:
+// >=6 ASCII alphanumeric characters, containing both letters and digits.
+const roleCode=fs.readFileSync("src/sparkRoleAuth.js","utf8");
+const uiCode=fs.readFileSync("src/sparkAccessAdmin.js","utf8");
+const pwdFn=roleCode.match(/function validPassword\(value\)\{[\s\S]*?\n\}/)?.[0];
+const pwdUiFn=uiCode.match(/function passwordLengthOk\(value\)\{[\s\S]*?\n\}/)?.[0];
+assert(pwdFn&&pwdUiFn,"Spark harus mempunyai validasi password di backend logic dan UI");
+const checkPassword=vm.runInNewContext(pwdFn+"\nvalidPassword");
+const validUi=vm.runInNewContext(pwdUiFn+"\npasswordLengthOk");
+for(const pw of ["abc123","Ab12CD","A1b2c3d4","abc12345".repeat(9)]){
+ assert.equal(checkPassword(pw),pw,"Password alfanumerik sah harus diterima: "+pw);
+ assert.equal(validUi(pw),true,"UI harus setara dengan validasi Spark: "+pw);
+}
+for(const pw of ["","abc12","123456","abcdef","abc!23","abc 123","ab_123","éabc12","abc123456".repeat(9)]){
+ assert.throws(()=>checkPassword(pw),"Password lemah/di luar spesifikasi tidak boleh diterima: "+pw);
+ assert.equal(validUi(pw),false,"UI harus menolak password yang sama: "+pw);
+}
+assert(uiCode.includes('i.minLength=6;i.maxLength=72;')&&
+ uiCode.includes('Minimal 6 karakter; huruf dan angka saja')&&
+ uiCode.includes('Firestore Rules masih membatasi penulisan'),
+ "Form Tambah Akun/Reset Password harus menunjukkan batas baru dan error izin Firestore secara jelas");
+
+const sparkRoleSource=fs.readFileSync("src/sparkRoleAuth.js","utf8");
+const sparkAdminSource=fs.readFileSync("src/sparkAccessAdmin.js","utf8");
+const sparkRules=fs.readFileSync("firestore.spark.rules","utf8");
+for(const token of [
+ 'throw Error("SPARK_PROFILE_MISSING:"+user.uid)',
+ 'throw Error("SPARK_PROFILE_INACTIVE:"+user.uid)',
+ 'throw Error("SPARK_PROFILE_ROLE_INVALID:"+user.uid)',
+ 'throw Error("SPARK_PROFILE_USERNAME_INVALID:"+user.uid+":"',
+ 'throw Error("SPARK_PROFILE_EMAIL_MISMATCH:"+user.uid)',
+ 'const profile=validProfile(data,user);',
+ 'if(profile)return profile;'
+])assert(sparkRoleSource.includes(token),
+ "Pesan diagnosis akun harus membedakan password dari profil Firestore: "+token);
+for(const token of [
+ 'if(message.startsWith("SPARK_PROFILE_")){',
+ 'const [reason,uid,fieldType,length,codepoints]=message.split(":");',
+ 'UID Authentication:',
+ 'Dokumen sparkRoleProfiles/{UID} tidak ditemukan.',
+ 'Password diterima Firebase.'
+])assert(previewSource.includes(token),
+ "Login Admin harus menampilkan UID Auth tanpa membocorkan password: "+token);
+
+assert(sparkRoleSource.includes('getDocFromServer(doc(roleDb,"sparkRoleProfiles",user.uid))'),
+ "Verifikasi peran harus membaca profil terkini dari server, bukan cache Firestore");
+assert(sparkRoleSource.includes('ch.codePointAt(0).toString(16).toUpperCase()'),
+ "Periksa karakter tersembunyi dalam username yang ditampilkan Firebase Console");
+assert(previewSource.includes('Nilai username yang benar-benar terbaca dari server berbeda')&&
+ previewSource.includes('Kode Unicode:')===false &&
+ previewSource.includes('kode Unicode:'),
+ "Pesan login harus menunjukkan diagnosis mismatch tanpa meminta password");
+
+const bootstrapLookup=sparkRoleSource.indexOf('if(name==="admin")return sparkLoginEmail(name);');
+const normalHandleLookup=sparkRoleSource.indexOf('const snap=await getDoc(doc(db,"sparkRoleHandles",name));');
+assert(bootstrapLookup>=0&&normalHandleLookup>bootstrapLookup,
+ "Login Admin pertama tidak boleh membaca direktori Firestore sebelum pemeriksaan Firebase Authentication");
+assert(previewSource.includes('sparkLoginErrorText(error,typedUser)')&&
+ previewSource.includes('code==="permission-denied"||code==="firestore/permission-denied"')&&
+ previewSource.includes('code==="auth/invalid-credential"'),
+ "Pop-up login harus membedakan password ditolak dari Firestore belum aktif");
+
+assert(sparkRules.includes("allow get: if (signedInPassword() && request.auth.uid == uid) || isAdmin();"),
+ "Profil Admin pertama harus bisa dibaca sendiri tanpa rekursi izin Admin");
+const sparkConfig=JSON.parse(fs.readFileSync("firebase.spark.json","utf8"));
+for(const token of [
+ 'import {createSparkAccessAdminView} from "./sparkAccessAdmin.js";',
+ 'if(sparkRoleReady){',
+ 'const spark=await loginSparkRole(typedUser,typedPassword);',
+ 'const spark=await restoreSparkRole();',
+ 'createSparkAccessAdminView(teams)',
+ 'await logoutSparkRole()',
+ 'const legacyRoleReady=!sparkRoleReady&&import.meta.env.VITE_ROLE_AUTH_READY==="true";'
+])assert(previewSource.includes(token),"Jalur login Spark belum lengkap: "+token);
+for(const token of [
+ 'signInWithEmailAndPassword(sparkRoleAuth,loginEmail,password)',
+ 'getDoc(doc(db,"sparkRoleHandles",name))',
+ 'getDocFromServer(doc(roleDb,"sparkRoleProfiles",user.uid))',
+ 'writeBatch(roleDb)',
+ 'batch.set(profileDoc(uid)',
+ 'batch.set(handleDoc(name)',
+ 'batch.update(target,{username:name,teamIds:[...teamIds],active,updatedAt:serverTimestamp()})',
+ 'batch.delete(handleDoc(old.username))',
+ 'batch.update(handleDoc(old.username),{uid:newUid,authEmail:mail,updatedAt:serverTimestamp()})',
+ 'batch.update(oldRef,{active:false,updatedAt:serverTimestamp()})',
+ 'createUserWithEmailAndPassword(creatorAuth,email,validPassword(password))',
+ 'await requireAdmin()',
+ 'await cleanupFailedIdentity(replacement)',
+ 'reauthenticateWithCredential(user,EmailAuthProvider.credential(user.email,currentPassword))',
+ 'updatePassword(user,newPassword)'
+])assert(sparkRoleSource.includes(token),"Spark Auth/Firestore untuk edit/reset akun belum lengkap: "+token);
+for(const token of [
+ 'createSparkRoleAccount({username:name,password:pw,role:role.value,teamIds})',
+ 'updateSparkAccount(account.uid,{',
+ 'resetSparkAccountPassword(account.uid,pw)',
+ 'changeSparkOwnPassword(current,next)',
+ 'check.type="checkbox"',
+ 'function openEdit(account){',
+ 'function openReset(account){',
+ 'const username=n("input");username.value=account.username;'
+])assert(sparkAdminSource.includes(token),"Admin harus bisa mengedit username dan mengganti password: "+token);
+// Kepala BPS must be created by Admin, have no assigned team, and retain
+// its role during password rotation. No direct matrix rights are granted.
+for(const token of [
+ 'if(role==="kepala"&&(!Array.isArray(teamIds)||teamIds.length))',
+ 'role:old.role',
+ '!snap.exists()||!["ketua_tim","kepala"].includes(snap.data().role)'
+])assert(sparkRoleSource.includes(token),"Kepala BPS tidak mengikuti pembatasan peran: "+token);
+for(const token of [
+ '["ketua_tim","Ketua Tim"],["kepala","Kepala BPS"]',
+ 'if(a.role==="ketua_tim"||a.role==="kepala")'
+])assert(sparkAdminSource.includes(token),"Menu Kepala BPS belum terhubung: "+token);
+for(const token of [
+ "function validAccountTeams(role,ids)",
+ "role == 'kepala' && ids is list && ids.size() == 0",
+ "validAccountTeams(resource.data.role,request.resource.data.teamIds)"
+])assert(sparkRules.includes(token),"Rules Kepala BPS belum aman: "+token);
+assert(sparkConfig.firestore.rules==="firestore.spark.rules");
+for(const token of [
+ "match /sparkRoleProfiles/{uid}",
+ "match /sparkRoleHandles/{username}",
+ "function isAdmin()",
+ "allow create: if isAdmin() && validRoleAccount()",
+ "allow update: if isAdmin()",
+ "getAfter(handlePath(username))",
+ "getAfter(profilePath(request.resource.data.uid))",
+ "batch",
+ "resource.data.role in ['ketua_tim','kepala']",
+ "allow delete: if false;",
+ "allow read, write: if false;"
+].filter(t=>t!=="batch"))assert(sparkRules.includes(token),"Spark Firestore Rules akun belum aman: "+token);
+assert(fs.readFileSync(".env.example","utf8").includes("VITE_SPARK_ROLE_AUTH_READY=true"),
+ "Build GitHub Pages harus menggunakan jalur Auth Spark");
+
+const adminWorkflow=fs.readFileSync(".github/workflows/deploy-admin-accounts-backend-dev.yml","utf8");
+for(const token of [
+ "workflow_dispatch:",
+ "vars.FIREBASE_ACCOUNT_ADMIN_DEV_APPROVED == 'true'",
+ "vars.MATRIX_ADMIN_BOOTSTRAP_DONE == 'true'",
+ "environment: firebase-account-dev-approved",
+ "functions:createAccessAccount,functions:updateAccessAccount,functions:resetAccessPassword,functions:setAccessAccountStatus",
+ "ACCESS_ADMIN_ENABLED=true",
+ "ALLOW_ELEVATED_ROLE_MANAGEMENT=false",
+ "MATRIX_BACKEND_ENABLED=false",
+ "allow read, write: if false;"
+])assert(adminWorkflow.includes(token),"Deployment akun DEV harus ditinjau dan terproteksi: "+token);
+assert(!/\n\s+push:/.test(adminWorkflow),"Kelola Akun backend tidak boleh otomatis di-deploy pada push");
+const exampleEnv=fs.readFileSync(".env.example","utf8");
+assert(exampleEnv.includes("VITE_ROLE_AUTH_READY=false")&&
+ exampleEnv.includes("VITE_ACCESS_ADMIN_READY=false")&&
+ exampleEnv.includes("VITE_MATRIX_BACKEND_READY=false"),
+ "Semua akses produksi tetap nonaktif sebelum aktivasi backend yang disetujui");
+
+// Role/Mode Lihat header styling: highlight is accessible, animated but
+// respects reduced-motion; chevron is drawn with CSS, not an uneven v glyph.
+assert(previewSource.includes('id="mpRoleMenu"')&&
+ previewSource.includes('aria-expanded="false"')&&
+ previewSource.includes('<span class="mp-role-caret" aria-hidden="true"></span>'),
+ "Tanda panah harus digambar rapi dengan CSS tanpa karakter teks v");
+assert(!previewSource.includes('class="mp-role-caret" aria-hidden="true">⌄'),
+ "Tanda panah teks lama harus dihapus");
+for(const token of [
+ ".mp-role-menu[aria-expanded=\"true\"] .mp-role-caret{",
+ "transform:translateY(4px) rotate(225deg)",
+ ".mp-role-menu.is-role-active #mpCurrentRole{",
+ "#mpCurrentRole::before{",
+ "animation:mpModeStatusPulse 2.9s ease-in-out infinite;",
+ "@keyframes mpModeStatusPulse{",
+ "@media(prefers-reduced-motion:reduce){",
+ "#mpCurrentRole::before{animation:none!important}",
+ "opener.setAttribute(\"aria-expanded\",\"true\")",
+ 'dialog.addEventListener("close",()=>opener.setAttribute("aria-expanded","false"))',
+ 'opener.classList.toggle("is-role-active",!!profile);'
+])assert(previewSource.includes(token),"Highlight atau animasi status belum lengkap: "+token);
+
+// Secondary role login must have a neutral title and stay disabled in the
+// public preview until a separately approved Firebase backend exists.
+assert(previewSource.includes('<small>AKSES PENGELOLA</small><h3 id="mpRoleDialogTitle">Login Sesuai Peran</h3>'),
+ "Judul pop-up harus Login Sesuai Peran, bukan Login Tahap Kedua");
+assert(!previewSource.includes("LOGIN TAHAP KEDUA"),
+ "Istilah Login Tahap Kedua tidak lagi digunakan pada pop-up");
+const authWorkflow=fs.readFileSync(".github/workflows/deploy-role-login-backend-dev.yml","utf8");
+for(const marker of [
+ "workflow_dispatch:",
+ "inputs.confirmation == 'APPROVE_DEV_ROLE_AUTH'",
+ "vars.FIREBASE_AUTH_DEV_APPROVED == 'true'",
+ "environment: firebase-auth-dev-approved",
+ "functions:usernameSignIn,functions:getAccessContext",
+ "AUTH_LOGIN_ENABLED=true",
+ "ACCESS_ADMIN_ENABLED=false",
+ "MATRIX_BACKEND_ENABLED=false",
+ "allow read, write: if false;"
+])assert(authWorkflow.includes(marker),"Deploy login DEV harus manual dan terproteksi: "+marker);
+assert(!/\n\s+push:/.test(authWorkflow),
+ "Deployment fungsi autentikasi tidak boleh otomatis pada setiap push");
+assert(fs.readFileSync(".env.example","utf8").includes("VITE_ROLE_AUTH_READY=false"),
+ "Website publik tidak boleh mengaktifkan login peran sebelum backend dan akun siap");
+
+const previewRoleStart=inline.indexOf("function previewSessionState(){");
+const previewRoleEnd=inline.indexOf("// Master acuan 2026 dari V25",previewRoleStart);
+assert(previewRoleStart>=0&&previewRoleEnd>previewRoleStart,
+ "Jembatan sesi peran dari prototipe belum tersedia");
+const prototypeRoleCode=inline.slice(previewRoleStart,previewRoleEnd);
+for(const token of [
+ "window.__mpPreviewSessionState=previewSessionState;",
+ "window.__mpPreviewSwitchRole=previewSwitchRole;",
+ "if(!['pegawai','admin','kepala','ketua'].includes(role))return null;",
+ "String(t.id)===String(teamId)&&t.active!==false",
+ "selectedTeam=team.id",
+ "renderKroOptions(teamKroCodes(team.id)[0]||NO_KRO)",
+ "syncTeamWorkspace();setPage('dashboard');syncWorkflowControls();renderYearUI();"
+])assert(prototypeRoleCode.includes(token),"Pemilihan sesi simulasi tidak mengubah konteks matriks: "+token);
+const previewRoleElements={teamSelect:{value:''},loginScreen:{classList:{add(){}}}};
+const previewRoleCtx=vm.createContext({
+ window:{},currentRole:'admin',roleTeamId:'T1',sessionUser:'',
+ selectedTeam:'T1',selectedGroup:'',selectedId:null,
+ demoTeams:[{id:'T1',name:'Tim Satu',active:true},{id:'T2',name:'Tim Dua',active:true}],
+ $:id=>previewRoleElements[id],
+ teamKroCodes:()=>['2897.BMA.004'],NO_KRO:'-',
+ renderKroOptions:()=>{},renderGroups:()=>{},syncTeamWorkspace:()=>{},
+ setPage:()=>{},syncWorkflowControls:()=>{},renderYearUI:()=>{},
+ enterView:()=>vm.runInContext("currentRole='pegawai';roleTeamId='';",previewRoleCtx),
+ enterPrototypeEdit:()=>vm.runInContext("currentRole='admin';roleTeamId='';",previewRoleCtx)
+});
+vm.runInContext(prototypeRoleCode,previewRoleCtx);
+assert.equal(vm.runInContext("window.__mpPreviewSessionState().label",previewRoleCtx),"Admin");
+assert.equal(vm.runInContext("window.__mpPreviewSwitchRole('ketua','T2').teamName",previewRoleCtx),"Tim Dua");
+assert.equal(vm.runInContext("window.__mpPreviewSessionState().role",previewRoleCtx),"ketua");
+assert.equal(previewRoleElements.teamSelect.value,"T2");
+assert.equal(vm.runInContext("window.__mpPreviewSwitchRole('ketua','INVALID')",previewRoleCtx),null,
+ "Tidak boleh memilih tim yang tidak tersedia");
+assert.equal(vm.runInContext("window.__mpPreviewSwitchRole('admin').label",previewRoleCtx),"Admin");
+assert.equal(vm.runInContext("window.__mpPreviewSwitchRole('kepala').label",previewRoleCtx),"Kepala BPS");
+assert.equal(vm.runInContext("window.__mpPreviewSwitchRole('pegawai').label",previewRoleCtx),"Pegawai");
+assert.equal(vm.runInContext("window.__mpPreviewSwitchRole('superuser')",previewRoleCtx),null,
+ "Pilihan sesi hanya meliputi peran yang dikenali");
+
+
+console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");

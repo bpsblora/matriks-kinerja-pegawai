@@ -1,0 +1,70 @@
+/* Matriks live role workspace - professional V25 visual language, scoped from login. */
+.container.live-expanded{width:min(96vw,1550px);max-width:1550px}
+.live-matrix{font-family:Inter,"Segoe UI",Arial,sans-serif;color:#18314d;line-height:1.5;margin:22px 0}
+.live-matrix *{box-sizing:border-box}
+.mx-header{display:flex;justify-content:space-between;gap:20px;align-items:center;margin:0 0 14px}
+.mx-header h2{font-size:22px;letter-spacing:-.6px;margin:0}
+.mx-muted{font-size:12px;color:#667f96;line-height:1.6;margin:4px 0}
+.mx-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.mx-year{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;color:#5e7490}
+.mx-year select,.mx-filter select,.mx-filter input,.mx-form input,.mx-form select,.mx-form textarea,.mx-steps select,.mx-allocation-form input,.mx-allocation-form select{background:#fff;min-height:38px;padding:8px 11px;color:#193f63;border:1px solid #cfdfed;border-radius:10px;max-width:100%;font-size:12px}
+.mx-header button,.mx-card button,.mx-dialog button{font-size:12px}
+.mx-nav{display:flex;flex-wrap:wrap;gap:5px;padding:8px;background:#ecf2fa;border:1px solid #d8e4f1;border-radius:13px;margin:10px 0 16px}
+.mx-nav button{font-size:12px;border-radius:9px;padding:10px 12px;border:0;background:transparent;color:#4b627d;font-weight:700}
+.mx-nav button:hover{background:#dae9fa;color:#1d568c}
+.mx-nav button.active{background:#fff;color:#1458a3;box-shadow:0 1px 6px #17477b19}
+.mx-notice{background:#eaf5fb;border:1px solid #c9e4f5;padding:10px 13px;border-radius:12px;font-size:12px;color:#28638c;min-height:38px;margin-bottom:12px}
+.mx-error{background:#fff0f0;border-color:#f1c7c7;color:#ad3737}
+.mx-body{display:grid;gap:14px;min-width:0}
+.mx-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:11px}
+.mx-stat{background:#fff;border:1px solid #e0e9f2;border-radius:13px;padding:13px;box-shadow:0 4px 12px #183d6a08;display:grid;gap:6px}
+.mx-stat small{font-size:10px;color:#6a8297}
+.mx-stat strong{font-size:24px;color:#173e68;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.mx-card{background:#fff;border:1px solid #dee8f2;border-radius:15px;padding:15px;box-shadow:0 4px 12px #14395b0a;min-width:0}
+.mx-cardhead{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.mx-cardhead h3,.mx-card h3{font-size:15px;margin:0}
+.mx-card h4{font-size:13px;margin:14px 0 8px}
+.mx-table-wrap{overflow:auto;max-height:530px;border:1px solid #e3ebf3;border-radius:11px}
+.mx-table{border-collapse:collapse;width:100%;text-align:left;font-size:12px}
+.mx-table th{position:sticky;top:0;z-index:1;padding:12px;background:#eff5fb;color:#55718c;font-size:10px;white-space:nowrap;border-bottom:1px solid #dce8f2}
+.mx-table td{padding:11px;vertical-align:top;border-bottom:1px solid #ebf0f6}
+.mx-table tbody tr:nth-child(even){background:#fafcff}
+.mx-table tbody tr:hover{background:#f3f8fe}
+.mx-link{background:#edf4ff!important;color:#205ba5!important;padding:7px 9px!important}
+.mx-primary{background:#1767ad;color:#fff}
+.mx-secondary{background:#eaf2fc;color:#205886}
+.mx-danger{background:#f9e8e8;color:#a23439}
+.mx-filter{display:grid;grid-template-columns:220px minmax(150px,1fr);gap:9px}
+.mx-filter select,.mx-filter input{width:100%}
+.mx-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:10px 0}
+.mx-steps select{width:100%;font-size:12px}
+.mx-split{display:grid;grid-template-columns:minmax(260px,38%) minmax(0,1fr);gap:14px;align-items:start}
+.mx-activitylist{display:grid;gap:6px;overflow:auto;max-height:480px}
+.mx-item{display:grid;gap:5px;text-align:left;border:1px solid #e1e9f3;background:#fff;color:#2e4a66;line-height:1.5;border-radius:9px;padding:10px;font-size:12px}
+.mx-item:hover,.mx-item.active{background:#eef5ff;border-color:#b6d1f4;color:#174f90}
+.mx-item small{font-size:10px;color:#7790a8}
+.mx-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:13px 0}
+.mx-meta>div{display:grid;gap:5px;background:#f4f8fc;border-radius:10px;padding:10px}
+.mx-meta small{font-size:10px;color:#667c94}
+.mx-meta strong{font-size:12px}
+.mx-allocation-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:15px 0}
+.mx-checkboxes{max-height:260px;overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;border:1px solid #dde8f2;border-radius:10px;padding:10px;margin-bottom:13px}
+.mx-checkboxes label{display:flex;gap:7px;align-items:center;font-size:11px;padding:7px;border-radius:7px;background:#f9fbfe}
+.mx-checkboxes input{accent-color:#1767ad;min-width:16px}
+.mx-field{display:grid;gap:5px;font-size:11px;color:#53708a;font-weight:700}
+.mx-field input,.mx-field select,.mx-field textarea{width:100%}
+.mx-form{display:grid;gap:10px;margin:15px 0}
+.mx-form>button{justify-self:start}
+.mx-dialog{width:min(620px,95vw);max-height:90vh;overflow:auto;padding:22px;background:#fff;border:1px solid #cee0ef;border-radius:16px;color:#183b60;box-shadow:0 18px 60px #0b305045}
+.mx-dialog::backdrop{background:#152f4b88}
+.mx-dialog h3{margin:0 0 12px;font-size:19px}
+.mx-empty,.mx-help,.mx-alert{padding:17px;border:1px dashed #d6e4f1;border-radius:12px;background:#fafcff;color:#617e95;font-size:12px}
+.mx-alert{background:#fff6e7;border-color:#f0daa8;color:#8e641f}
+.mx-final-status{padding:19px;background:#edf4ff;color:#215b95;font-weight:800;margin-bottom:15px;border-radius:10px}
+@media(max-width:1000px){.mx-stats{grid-template-columns:repeat(3,1fr)}.mx-split{grid-template-columns:1fr}}
+@media(max-width:640px){.mx-header{flex-direction:column;align-items:stretch}.mx-stats{grid-template-columns:repeat(2,1fr)}.mx-filter,.mx-steps{grid-template-columns:1fr}.mx-allocation-form{grid-template-columns:1fr}.mx-checkboxes{grid-template-columns:1fr}.mx-meta{grid-template-columns:1fr}}
+
+.mx-multi-choice{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-height:210px;overflow:auto;background:#f8fbff;border:1px solid #dbe6f1;border-radius:10px;padding:8px}
+.mx-multi-choice label{display:flex;align-items:center;gap:7px;background:#fff;border-radius:8px;padding:8px;font-size:11px;line-height:1.4}
+.mx-multi-choice input[type=checkbox]{accent-color:#1767ad}
+@media(max-width:520px){.mx-multi-choice{grid-template-columns:1fr}}

@@ -1,0 +1,335 @@
+nst hasValidTeam=!tid||yearTeamReady(tid),hasCodes=!!(selectedCodes&&[...selectedCodes].some(code=>POK_KROS.some(k=>k.code===code)));
+ const team=demoTeams.find(t=>t.id===tid),teamName=team?.name||'tim ini';
+ const preview=kroCoverageSnapshot(tid,mode==='final'?null:selectedCodes);
+ const needsAttention=preview.teamsMissing.length>0||preview.krosMissing.length>0;
+ if(!blocked&&!needsAttention){onSave?.();return false;}
+ document.getElementById('kroCoverageOverlay')?.remove();
+ const overlay=document.createElement('div');overlay.id='kroCoverageOverlay';overlay.className='kro-coverage-overlay';overlay.setAttribute('role','presentation');
+ const warningIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10.3 3.6-8.4 14.5A2 2 0 0 0 3.6 21h16.8a2 2 0 0 0 1.7-2.9L13.7 3.6a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+ const successIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m7 12 3.5 3.5L17 9"/></svg>';
+ const explanation=mode==='final'?'Seluruh KRO pada daftar induk harus mempunyai minimal satu tim sebelum matriks tahunan ditetapkan.':!hasValidTeam?'Susunan '+teamName+' belum ditetapkan. Lengkapi ketua dan anggota di Kelola Tim terlebih dahulu.':!hasCodes?'Belum ada KRO yang dipilih untuk '+teamName+'. Pilih minimal satu KRO sebelum menyimpan penetapan.':'Penetapan '+teamName+' dapat dilakukan bertahap, tetapi masih ada KRO atau tim yang belum mendapat pembagian.';
+ overlay.innerHTML=`<div class="kro-coverage-dialog" role="dialog" aria-modal="true" aria-labelledby="kroCoverageTitle" aria-describedby="kroCoverageSubtitle" tabindex="-1">
+  <div class="kro-coverage-header"><div class="kro-coverage-icon">${warningIcon}</div><div style="flex:1;min-width:0"><p class="kro-coverage-eyebrow">PEMERIKSAAN PEMBAGIAN KRO · ${activeYear}</p><h2 id="kroCoverageTitle">${!hasValidTeam?'Susunan tim belum ditetapkan':!hasCodes&&mode!=='final'?'Pilih KRO terlebih dahulu':mode==='final'?'Pembagian KRO belum lengkap':'Pembagian KRO belum lengkap'}</h2><p id="kroCoverageSubtitle" class="kro-coverage-subtitle">${esc(explanation)}</p></div><button type="button" class="kro-coverage-close" data-coverage-close aria-label="Tutup">×</button></div>
+  <div class="kro-coverage-content" id="kroCoverageContent"></div><div class="kro-coverage-footer" id="kroCoverageFooter"></div>
+ </div>`;
+ document.body.appendChild(overlay);
+ // Cegah toast lama bertumpuk dan menutupi dialog pemeriksaan.
+ const previousToast=document.getElementById('toast');if(previousToast)previousToast.classList.remove('visible');
+ const dialog=overlay.querySelector('.kro-coverage-dialog'),content=overlay.querySelector('#kroCoverageContent'),footer=overlay.querySelector('#kroCoverageFooter');
+ const listTeam=preview.teamsMissing.slice(0,7).map(t=>`<li><strong>${esc(t.name)}</strong><small>Belum mempunyai KRO yang ditetapkan</small></li>`).join('');
+ const listKro=preview.krosMissing.slice(0,7).map(k=>`<li><strong>${esc(k.code)}</strong>${esc(k.name)}</li>`).join('');
+ const moreTeam=preview.teamsMissing.length>7?`<li class="kro-coverage-more">+ ${preview.teamsMissing.length-7} Tim lainnya</li>`:'';
+ const moreKro=preview.krosMissing.length>7?`<li class="kro-coverage-more">+ ${preview.krosMissing.length-7} KRO lainnya</li>`:'';
+ const statMarkup=data=>`<div class="kro-coverage-stats"><div class="kro-coverage-stat"><strong>${data.teamsMissing.length}</strong><span>Tim belum memiliki KRO</span><small>Dari ${data.teamCount} Tim kerja</small></div><div class="kro-coverage-stat"><strong>${data.krosMissing.length}</strong><span>KRO belum memiliki tim</span><small>Dari ${data.kroCount} KRO dalam daftar induk</small></div></div>`;
+ content.innerHTML=statMarkup(preview)+`<p class="kro-coverage-alert">${blocked?(mode==='final'?'Penetapan matriks ditahan hingga seluruh KRO memiliki tim.':!hasValidTeam?'Tetapkan susunan tim terlebih dahulu.':'Belum ada KRO untuk '+esc(teamName)+'. Penetapan tidak dapat disimpan.'):preview.assignedTeamCount===1&&demoTeams.every(t=>!yearKroReady(t.id))?'Ini akan menjadi penetapan KRO pertama. Sisa pembagian masih dapat diselesaikan pada tim berikutnya.':'KRO tim ini dapat ditetapkan sekarang. Sisa pembagian harus diselesaikan sebelum finalisasi matriks.'}</p>
+ <div class="kro-coverage-details"><section class="kro-coverage-section"><h3>Tim yang perlu KRO</h3>${preview.teamsMissing.length?`<ul class="kro-coverage-list">${listTeam}${moreTeam}</ul>`:'<div class="kro-coverage-empty">✓ Seluruh tim sudah memperoleh KRO.</div>'}</section><section class="kro-coverage-section"><h3>KRO yang perlu tim pengampu</h3>${preview.krosMissing.length?`<ul class="kro-coverage-list">${listKro}${moreKro}</ul>`:'<div class="kro-coverage-empty">✓ Seluruh KRO sudah memperoleh tim.</div>'}</section></div>
+ <div class="kro-coverage-guidance"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7h.01"/></svg><span>Rekomendasi tahun 2026 tidak otomatis menjadi penetapan tahun ${activeYear}. Pembagian KRO dilakukan per tim, sedangkan kelengkapan seluruh KRO diperiksa saat finalisasi.</span></div>`;
+ footer.innerHTML=`<button type="button" class="btn soft kro-coverage-link" id="kroCoverageReview">Lihat Rincian KRO</button><button type="button" class="btn soft" data-coverage-close>${blocked?'Tutup':'Periksa Kembali'}</button>${blocked?(!hasValidTeam&&mode!=='final'?'<button type="button" class="btn primary" id="kroCoverageGoTeam">Buka Kelola Tim</button>':''):'<button type="button" class="btn primary" id="kroCoverageSave">✓ Tetapkan KRO Tim Ini</button>'}`;
+ let disposed=false;const previouslyFocused=document.activeElement;
+ const cleanup=()=>{if(disposed)return;disposed=true;document.removeEventListener('keydown',onKey,true);overlay.remove();if(previouslyFocused?.isConnected)previouslyFocused.focus({preventScroll:true})};
+ const onKey=e=>{if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();cleanup()}else if(e.key==='Tab'){const focusable=[...overlay.querySelectorAll('button:not([disabled])')];if(!focusable.length)return;const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}};
+ document.addEventListener('keydown',onKey,true);overlay.onclick=e=>{if(e.target===overlay)cleanup()};
+ overlay.querySelectorAll('[data-coverage-close]').forEach(btn=>btn.onclick=cleanup);
+ const goTeam=overlay.querySelector('#kroCoverageGoTeam');if(goTeam)goTeam.onclick=()=>{cleanup();setPage('teams')};
+ const review=overlay.querySelector('#kroCoverageReview');if(review)review.onclick=()=>{cleanup();if(activePage!=='kro')setPage('kro');renderKroAudit();const audit=document.getElementById('kroAuditPanel');if(audit){audit.querySelectorAll('details').forEach(x=>x.open=true);audit.scrollIntoView({behavior:'smooth',block:'start'})}};
+ const save=overlay.querySelector('#kroCoverageSave');if(save)save.onclick=()=>{
+  if(!onSave)return cleanup();
+  try{
+   onSave();
+   const updated=kroCoverageSnapshot();
+   dialog.classList.add('is-success');dialog.querySelector('.kro-coverage-icon').innerHTML=successIcon;
+   dialog.querySelector('.kro-coverage-eyebrow').textContent='PENETAPAN BERHASIL · '+activeYear;
+   dialog.querySelector('h2').textContent='KRO tim berhasil ditetapkan';
+   dialog.querySelector('.kro-coverage-subtitle').textContent=teamName+' telah memperoleh '+[...selectedCodes].length+' KRO. '+(updated.krosMissing.length?'Lanjutkan pembagian untuk KRO lainnya.':'Seluruh KRO telah memiliki tim pengampu.');
+   content.innerHTML=statMarkup(updated)+`<div class="kro-coverage-guidance"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7h.01"/></svg><span>${updated.krosMissing.length?'Masih ada '+updated.krosMissing.length+' KRO yang perlu ditetapkan pada tim.':'Semua KRO dalam daftar induk sudah ditangani minimal satu tim.'} Periksa menu Pembagian KRO sebelum finalisasi.</span></div>`;
+   footer.innerHTML='<button type="button" class="btn primary" id="kroCoverageDone">Selesai</button>';
+   footer.querySelector('#kroCoverageDone').onclick=cleanup;
+   dialog.querySelector('#kroCoverageDone')?.focus();
+  }catch(error){console.error('Gagal menyimpan penetapan KRO:',error);const alert=content.querySelector('.kro-coverage-alert');if(alert)alert.textContent='Penyimpanan gagal: '+(error?.message||'Kesalahan tidak diketahui')}
+ };
+ requestAnimationFrame(()=>dialog.querySelector('#kroCoverageSave, #kroCoverageGoTeam, #kroCoverageReview')?.focus());
+ return true;
+}
+
+function openKroAssignmentPopup(){
+ // Manage assigned KRO directly on the page; never open an assignment modal.
+ const card=$('kroAssignmentSection');
+ if(!card){if(activePage!=='kro'&&setPage('kro'))return openKroAssignmentPopup();return;}
+ card.scrollIntoView({behavior:'smooth',block:'start'});
+ const heading=$('kroAssignmentHeading');
+ if(heading)heading.focus({preventScroll:true});
+}
+
+/* KRO and activity groups have independent identities. The following mapping
+   is scoped to the active year; a new year's KRO codes are not inherited. */
+let kroActivityMapTeam='';
+function ensureKroActivityMapDialog(){
+ let dialog=$('kroActivityMapDialog');
+ if(dialog)return dialog;
+ dialog=document.createElement('dialog');
+ dialog.id='kroActivityMapDialog';
+ dialog.className='kro-activity-map-dialog';
+ dialog.setAttribute('aria-label','Pemetaan KRO dan Kegiatan Tahun Berjalan');
+ document.body.appendChild(dialog);
+ dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close()});
+ return dialog;
+}
+function showKroActivityMap(){
+ const dialog=ensureKroActivityMapDialog();
+ const allowedTeams=BASE.teams.filter(t=>currentRole!=='ketua'||t.id===roleTeamId);
+ const tid=currentRole==='ketua'?roleTeamId:(kroActivityMapTeam||selectedTeam||allowedTeams[0]?.id);
+ if(!allowedTeams.some(t=>t.id===tid))return;
+ kroActivityMapTeam=tid;
+ const groups=groupList(tid,false),availableCodes=teamKroCodes(tid);
+ const editable=!isBaseYear&&yearKroReady(tid)&&roleCanManageTeam(tid)&&yearInfo().status!=='closed';
+ const missing=groups.filter(([group])=>resolveGroupKro(tid,group)===NO_KRO).length;
+ dialog.innerHTML=`<div class="kro-activity-map-head">
+  <div><span class="kro-activity-map-eyebrow">HUBUNGAN KRO–KEGIATAN · TAHUN ${activeYear}</span>
+   <h2>Pemetaan KRO dan Kegiatan</h2>
+   <p>Setiap Kegiatan memiliki satu KRO acuan pada tahun berjalan. Kode KRO bisa berubah antar tahun dan tidak menjadi identitas permanen kegiatan.</p>
+  </div><button type="button" id="kroActivityMapClose" class="kro-activity-map-close" aria-label="Tutup Pemetaan">×</button>
+ </div>
+ <div class="kro-activity-map-toolbar"><label>Tim Pemilik Kegiatan
+  <select id="kroActivityMapTeam" ${currentRole==='ketua'?'disabled':''}>${allowedTeams.map(t=>`<option value="${esc(t.id)}" ${t.id===tid?'selected':''}>${esc(t.name)}</option>`).join('')}</select>
+ </label><div class="kro-activity-map-stats"><strong>${nf(groups.length)} Kegiatan</strong><span>${nf(missing)} Belum Dipetakan · ${nf(availableCodes.length)} KRO Tim</span></div></div>
+ <div class="kro-activity-map-scroll" role="region" aria-label="Daftar Kegiatan dan KRO Tahun Ini" tabindex="0">
+ ${groups.length?groups.map(([name,items],i)=>{
+  const code=resolveGroupKro(tid,name);
+  return `<div class="kro-activity-map-row ${code===NO_KRO?'needs-map':''}">
+   <div class="kro-activity-map-name"><strong>${esc(name)}</strong><small>${nf(items.filter(a=>a.status==='aktif').length)} Uraian · ${esc(teamMap.get(tid)?.name||'')}</small></div>
+   <label class="kro-activity-map-pick">KRO Tahun ${activeYear}
+    <select data-kro-activity-index="${i}" ${editable?'':'disabled'}>
+     <option value="${esc(NO_KRO)}">Belum Dipetakan</option>
+     ${availableCodes.map(value=>{const k=POK_KROS.find(row=>row.code===value);return `<option value="${esc(value)}" ${value===code?'selected':''}>${esc(value+' — '+(k?.name||'KRO'))}</option>`}).join('')}
+    </select>
+   </label>
+  </div>`;
+ }).join(''):'<div class="empty">Belum ada Kegiatan aktif pada Tim ini.</div>'}
+ </div>
+ <div class="kro-activity-map-footer"><p>Hubungan ini berlaku pada ${activeYear} saja. Perubahan KRO tidak mengubah volume, Jam-Orang, maupun riwayat tahun lainnya. ${editable?'Pilih pemetaan kemudian simpan.':isBaseYear?'Tahun 2026 ditampilkan sebagai referensi historis.':'Tetapkan susunan tim dan KRO tahun ini sebelum memetakan kegiatan.'}</p>
+  <button type="button" id="kroActivityMapSave" class="btn primary" ${!editable||!groups.length?'disabled':''}>Simpan Pemetaan ${activeYear}</button>
+ </div>`;
+ dialog.querySelector('#kroActivityMapClose').onclick=()=>dialog.close();
+ dialog.querySelector('#kroActivityMapTeam').onchange=e=>{kroActivityMapTeam=e.target.value;showKroActivityMap()};
+ dialog.querySelector('#kroActivityMapSave').onclick=()=>{
+  if(!editable)return;
+  const updates=[];
+  for(const select of dialog.querySelectorAll('[data-kro-activity-index]')){
+   const row=groups[Number(select.dataset.kroActivityIndex)];
+   if(!row)continue;
+   const code=select.value;
+   if(code!==NO_KRO&&!availableCodes.includes(code))return toast('KRO tidak ditetapkan pada tim ini.');
+   const key=groupKroKey(tid,row[0]);
+   if(resolveGroupKro(tid,row[0])!==code)updates.push({key,code,name:row[0]});
+  }
+  if(!updates.length){dialog.close();return toast('Tidak ada perubahan pemetaan.')}
+  for(const x of updates)state.groupKroOverrides[x.key]=x.code;
+  logChange('Pemetaan KRO Kegiatan '+activeYear,(teamMap.get(tid)?.name||tid)+' · '+updates.length+' Kegiatan diperbarui');
+  if(!persist())return;
+  dialog.close();
+  renderKroBoard();renderKroAudit();
+  if(selectedTeam===tid&&$('groupSelect'))renderGroups(selectedGroup);
+  toast(nf(updates.length)+' Pemetaan KRO–Kegiatan '+activeYear+' tersimpan.');
+ };
+ if(!dialog.open)dialog.showModal();
+}
+
+/* Keep the editor scrolled in place when checkbox selections change.
+   Checked rows are first, then natural KRO-code order in each segment. */
+function syncKroBoardDraftRows(){
+ const list=$('kroBoardList');
+ if(!list)return;
+ const currentFocus=document.activeElement;
+ const rows=[...list.querySelectorAll('[data-board-kro]')].map(box=>({
+  box,code:box.dataset.boardKro,row:box.closest('.combined-kro-row')
+ })).filter(x=>x.row);
+ rows.sort((a,b)=>{
+  const aChosen=kroBoardDraft.has(a.code),bChosen=kroBoardDraft.has(b.code);
+  return aChosen===bChosen?compareKroCodes(a.code,b.code):aChosen?-1:1;
+ });
+ for(const {box,code,row} of rows){
+  box.checked=kroBoardDraft.has(code);
+  row.classList.toggle('is-draft-selected',box.checked);
+  list.appendChild(row);
+ }
+ const state=$('kroAssignmentSection')?.querySelector('.kro-assignment-inline-state>strong');
+ if(state)state.textContent=nf(kroBoardDraft.size)+' KRO Dipilih';
+ if(currentFocus?.matches?.('[data-board-kro]')&&currentFocus.isConnected){
+  currentFocus.focus({preventScroll:true});
+ }
+}
+
+/* Admin alone may approve team KRO submissions. Other roles can only propose. */
+function kroApprovalPanelMarkup(){
+ const adminMode=currentRole==='admin';
+ const teams=demoTeams.filter(t=>t.active!==false).slice().sort((a,b)=>a.name.localeCompare(b.name,'id'));
+ const allEntries=teams.map(team=>({team,request:kroApprovalRequest(team.id),status:kroApprovalStatus(team.id)}));
+ const entries=allEntries.filter(x=>!!x.request);
+ const waiting=entries.filter(x=>x.status==='pending'),approved=entries.filter(x=>x.status==='approved');
+ const unsubmitted=allEntries.length-entries.length;
+ const actionable=waiting.filter(x=>isBaseYear||yearTeamReady(x.team.id));
+ const names={pending:'Menunggu Persetujuan',approved:'Disetujui Admin',rejected:'Perlu Perbaikan',reference:'Referensi 2026',draft:'Belum Diajukan'};
+ return '<section id="kroAdminApprovalPanel" class="panel kro-approval-admin'+(adminMode?'':' is-readonly')+'" aria-label="Persetujuan Pembagian KRO" aria-disabled="'+(!adminMode)+'">'+
+ '<div class="kro-approval-heading"><div><span>TAHAP PERSETUJUAN KRO · TAHUN '+activeYear+'</span><h3>Persetujuan Pembagian KRO</h3><p>'+(adminMode?'Periksa pengajuan dari Ketua Tim. KRO baru ditetapkan setelah Admin menyetujui.':'Pengajuan KRO dapat dipantau di sini. Persetujuan hanya dapat dilakukan melalui Mode Admin.')+'</p></div>'+
+ '<div class="kro-approval-summary"><b>'+nf(waiting.length)+' Menunggu</b><b>'+nf(approved.length)+' Disetujui</b><b>'+nf(unsubmitted)+' Belum Mengajukan</b></div></div>'+
+ '<div class="kro-approval-actions"><button type="button" class="btn primary" id="kroApproveAll" '+(!adminMode||!actionable.length?'disabled':'')+'>✓ Setujui '+nf(actionable.length)+' Pengajuan</button><small>'+(adminMode?'Persetujuan massal hanya untuk pengajuan masuk dan lengkap; tidak termasuk tim yang belum mengajukan.':'🔒 Mode Baca Saja · Masuk sebagai Admin untuk menyetujui atau meminta perbaikan.')+'</small></div>'+
+ '<div class="kro-approval-list">'+entries.map(({team,request,status})=>{
+  const codes=request?.codes||team.kroCodes||[];
+  const canApprove=status==='pending'&&(isBaseYear||yearTeamReady(team.id));
+  const cls=status==='pending'?'is-pending':status==='approved'?'is-approved':status==='rejected'?'is-rejected':'is-neutral';
+  return '<article class="kro-approval-row '+cls+'"><div class="kro-approval-row-info"><strong>'+esc(team.name)+'</strong><small>'+nf(codes.length)+' KRO · '+esc(request?.submittedBy||'Belum mengajukan')+'</small>'+
+   '<div class="kro-approval-code-list">'+(codes.length?codes.map(code=>'<span>'+esc(code)+'</span>').join(''):'<span>Belum dipilih</span>')+'</div>'+
+   (status==='rejected'&&request?.note?'<small class="kro-approval-reason">Catatan Admin: '+esc(request.note)+'</small>':'')+
+   '</div><div class="kro-approval-row-controls"><span class="kro-approval-status '+cls+'">'+(names[status]||'Belum Diajukan')+'</span>'+
+   (status==='pending'?'<button type="button" class="btn tiny primary" data-kro-approve="'+esc(team.id)+'" '+(!adminMode||!canApprove?'disabled title="Persetujuan hanya tersedia pada Mode Admin atau setelah susunan tim lengkap"':'')+'>✓ Setujui</button><button type="button" class="btn tiny soft" data-kro-reject="'+esc(team.id)+'" '+(!adminMode?'disabled title="Hanya Mode Admin dapat meminta perbaikan"':'')+'>Minta Perbaikan</button>':'')+
+   '</div></article>';
+ }).join('')+(entries.length?'':'<p class="kro-approval-empty">Belum ada pengajuan KRO dari Ketua Tim. Status akan muncul di sini setelah diajukan.</p>')+'</div></section>';
+}
+function bindKroApprovalPanel(){
+ const panel=$('kroAdminApprovalPanel');
+ if(!panel||currentRole!=='admin')return;
+ const refresh=()=>{renderKroBoard();renderKroAudit();renderYearUI();};
+ panel.querySelectorAll('[data-kro-approve]').forEach(button=>button.onclick=async()=>{
+  const tid=button.dataset.kroApprove,team=demoTeams.find(t=>t.id===tid);
+  if(!team||kroApprovalStatus(tid)!=='pending')return;
+  if(!await uiConfirm('Setujui pengajuan KRO dari Tim '+team.name+'?'))return;
+  if(!decideKroProposal(tid,true))return toast('Pengajuan belum memenuhi syarat persetujuan.');
+  refresh();toast('KRO Tim '+team.name+' disetujui Admin.');
+ });
+ panel.querySelectorAll('[data-kro-reject]').forEach(button=>button.onclick=async()=>{
+  const tid=button.dataset.kroReject,team=demoTeams.find(t=>t.id===tid);
+  if(!team||kroApprovalStatus(tid)!=='pending')return;
+  const note=await uiPrompt('Catatan perbaikan untuk Tim '+team.name+':','Periksa kembali kesesuaian KRO dengan kegiatan.');
+  if(note===null||note===undefined)return;
+  if(!String(note).trim())return toast('Catatan perbaikan wajib diisi.');
+  if(!decideKroProposal(tid,false,note))return toast('Pengajuan gagal dikembalikan.');
+  refresh();toast('Pengajuan KRO dikembalikan ke Ketua Tim.');
+ });
+ const all=$('kroApproveAll');
+ if(all)all.onclick=async()=>{
+  const pending=demoTeams.filter(t=>t.active!==false&&kroApprovalStatus(t.id)==='pending'&&(isBaseYear||yearTeamReady(t.id)));
+  if(!pending.length)return;
+  if(!await uiConfirm('Setujui '+pending.length+' pengajuan KRO yang sudah lengkap?'))return;
+  let count=0;for(const t of pending)if(decideKroProposal(t.id,true))count++;
+  refresh();toast(nf(count)+' Pengajuan KRO disetujui.');
+ };
+}
+
+function renderKroBoard(){
+ const el=$('kroBoardMain');if(!el)return;
+ // Keep the audit card section alive while the KRO dashboard rerenders.
+ const auditPanel=$('kroAuditPanel');
+ const canCentral=currentRole==='admin'||currentRole==='kepala';
+ const oldTeam=el.dataset.team||'';
+ const tid=currentRole==='ketua'?roleTeamId:($('kroBoardTeam')?.value||selectedTeam);
+ const selected=demoTeams.find(t=>t.id===tid);
+ const teamList=BASE.teams.filter(t=>currentRole!=='ketua'||t.id===roleTeamId);
+ const query=($('kroBoardSearch')?.value||'').trim().toLocaleLowerCase('id');
+ if(!el.querySelector('#kroBoardList')||oldTeam!==tid){kroBoardDraft=new Set(selected?.kroCodes||[]);el.dataset.team=tid;kroBoardEditTeam=''}
+ const approvalStatus=kroApprovalStatus(tid),request=kroApprovalRequest(tid);
+ const locked=approvalStatus==='approved'||approvalStatus==='reference',editing=kroBoardEditTeam===tid;
+ // 2026 remains a read-only seed, but authorized users may store an audited
+ // override for the team's KRO selection without modifying the source dataset.
+ const writable=roleCanManageTeam(tid)&&approvalStatus!=='pending'&&(!locked||editing)&&yearInfo().status!=='closed';
+ const suggestions=POK_KROS.map(k=>({k,s:kroRecommendation(k,tid)})).filter(x=>!!x.s);
+ const selectedCodes=new Set(selected?.kroCodes||[]);
+ // Only this team's assignment editor prioritizes checked KRO codes.
+ // Within checked / unchecked sections, retain ascending natural code order.
+ const arr=POK_KROS.filter(k=>(k.code+' '+k.name).toLocaleLowerCase('id').includes(query))
+  .sort((a,b)=>{
+   const checkedA=kroBoardDraft.has(a.code),checkedB=kroBoardDraft.has(b.code);
+   return checkedA===checkedB?compareKroCodes(a.code,b.code):checkedA?-1:1;
+  });
+ const teamTitle=selected?.name||'Tim';
+ const recSummary=suggestions.length?`<span class="kro-board-reco-count">${suggestions.length} KRO terkait ditemukan</span><span class="kro-reco-detail">Rekomendasi berdasarkan kesesuaian Nama Kegiatan, Nama KRO, atau acuan historis. Semua pilihan perlu dikonfirmasi untuk tahun berjalan.</span>`:`<span class="kro-reco-detail">Belum ditemukan kesesuaian nama yang cukup kuat. Periksa daftar KRO ${activeYear} dan tetapkan secara manual sesuai pekerjaan tim.</span>`;
+ const canUse=roleCanManageTeam(tid)&&yearInfo().status!=='closed';
+ const canEditMaster=isKroMasterAdmin();
+ const masterFilter=kroMasterQuery.trim().toLocaleLowerCase('id');
+ const masterRows=POK_KROS.filter(k=>(k.code+' '+k.name).toLocaleLowerCase('id').includes(masterFilter))
+  .sort((a,b)=>compareKroCodes(a.code,b.code));
+ const masterWasOpen=!!el.querySelector('#kroMasterPopup')?.open;
+ const masterScroll=el.querySelector('#kroMasterPopup[open] .kro-hub-dialog-body')?.scrollTop||0;
+ el.innerHTML=`<section class="monitor-hero kro-hub-heading"><div><h2>Pembagian KRO ${activeYear}</h2><p>Periksa status penetapan melalui kartu pemantauan, lalu buka menu pengelolaan yang dibutuhkan.</p></div></section>
+ <div id="kroAuditSlot" class="kro-audit-slot"></div>
+ <div class="kro-hub-grid" aria-label="Menu pembagian KRO">
+  <button type="button" class="kro-hub-card" id="kroHubMaster"><span class="kro-hub-icon">▤</span><span class="kro-hub-card-content"><strong>Daftar Induk KRO</strong><small>Tambah, ubah, hapus, dan cari KRO tahun ${activeYear}.</small><span class="kro-hub-card-meta">${POK_KROS.length} KRO terdaftar</span></span><span class="kro-hub-arrow">↗</span></button>
+  <button type="button" class="kro-hub-card" id="kroHubMap"><span class="kro-hub-icon">◫</span><span class="kro-hub-card-content"><strong>Peta KRO – Tim</strong><small>Lihat peta penugasan dan atur KRO untuk setiap tim.</small><span class="kro-hub-card-meta">${demoTeams.length} Tim kerja · ${POK_KROS.length} KRO</span></span><span class="kro-hub-arrow">↗</span></button>
+  <button type="button" class="kro-hub-card" id="kroHubActivity"><span class="kro-hub-icon">▦</span><span class="kro-hub-card-content"><strong>Pemetaan KRO–Kegiatan</strong><small>Pilih KRO yang berlaku untuk setiap kegiatan pada tahun ${activeYear}.</small><span class="kro-hub-card-meta">Pemetaan terpisah untuk tiap tahun</span></span><span class="kro-hub-arrow">↗</span></button>
+ </div>
+ <dialog id="kroMasterPopup" class="kro-hub-dialog" aria-labelledby="kroMasterModalTitle"><div class="kro-hub-dialog-head"><div><span class="kro-modal-eyebrow">PEMBAGIAN KRO</span><h2 id="kroMasterModalTitle">Daftar Induk KRO ${activeYear}</h2><p>Perbarui daftar KRO pada tahun matriks aktif.</p></div><button type="button" class="kro-hub-close" data-close-kro-master aria-label="Tutup Daftar Induk KRO">✕</button></div><div class="kro-hub-dialog-body"><section class="panel kro-master-panel"><div class="section-top"><div><h3>Daftar Induk KRO ${activeYear}</h3><p>Tambah, ubah, atau hapus KRO yang belum digunakan. Penetapan ke tim tersedia melalui Peta KRO.</p></div><div class="kro-master-heading"><span class="badge">${POK_KROS.length} KRO</span>${canEditMaster?'<button id="kroMasterAdd" class="btn primary" type="button">＋ Tambah KRO</button>':''}</div></div>
+ <div class="kro-master-tools"><label for="kroMasterSearch">Cari KRO<input type="search" id="kroMasterSearch" placeholder="Cari kode atau nama KRO..." value="${esc(kroMasterQuery)}"></label><span>${canEditMaster?'Hak akses: Admin/Kepala':'Daftar induk hanya dapat diubah oleh Admin/Kepala.'}</span></div>
+ <div class="kro-master-list">${masterRows.map(k=>{const used=kroCodeHasUsage(k.code);return `<div class="kro-master-row"><span class="kro-master-name"><b>${esc(k.code)}</b><span>${esc(k.name)}</span>${used.linked.length?`<small class="kro-master-usage"><span>Digunakan oleh ${used.linked.length} Tim:</span><span class="kro-master-team-list">${used.linked.slice().sort((a,b)=>a.name.localeCompare(b.name,'id')).map(t=>`<span class="kro-master-team-name">${esc(t.name)}</span>`).join('')}</span></small>`:''}</span>${canEditMaster?`<span class="kro-master-actions"><button type="button" class="btn tiny soft" data-master-edit="${esc(k.code)}">Edit</button><button type="button" class="btn tiny soft" data-master-delete="${esc(k.code)}" ${used.linked.length||used.overrides?'disabled title="KRO masih digunakan"':''}>Hapus</button></span>`:''}</div>`}).join('')||'<div class="empty">KRO tidak ditemukan.</div>'}</div></section></div></dialog>
+ ${kroApprovalPanelMarkup()}
+ <section id="kroAssignmentSection" class="panel kro-assignment-inline" aria-labelledby="kroAssignmentHeading">
+  <div class="kro-assignment-inline-title"><div><span class="kro-assignment-inline-eyebrow">PENGELOLAAN KRO · TAHUN ${activeYear}</span><h3 id="kroAssignmentHeading" tabindex="-1">Kelola KRO Ditetapkan</h3><p>Pilih tim dan periksa KRO yang ditetapkan. Edit pilihan serta simpan penetapan ulang langsung dari kartu ini.</p></div><div class="kro-assignment-inline-state"><strong>${nf(kroBoardDraft.size)} KRO Dipilih</strong><span class="${approvalStatus==='pending'?'is-pending':approvalStatus==='approved'?'is-approved':''}">${approvalStatus==='pending'?'Menunggu Persetujuan Admin':approvalStatus==='approved'?'Disetujui Admin':approvalStatus==='rejected'?'Perlu Perbaikan':approvalStatus==='reference'?'Referensi 2026':'Belum Diajukan'}</span></div></div>
+  <div class="kro-assignment-inline-content">
+ <div class="combined-kro-controls"><label>Tim <select id="kroBoardTeam" ${canCentral?'':'disabled'}>${teamList.map(t=>`<option value="${esc(t.id)}" ${t.id===tid?'selected':''}>${esc(t.name)}</option>`).join('')}</select></label><label>Pencarian <input type="search" id="kroBoardSearch" placeholder="Kode atau nama KRO" value="${esc(query)}"></label>
+ <div class="combined-kro-actions"><button class="btn soft" type="button" id="kroBoardRecommended" ${!writable||!suggestions.length?'disabled':''}>+ Centang ${suggestions.length} Rekomendasi</button>
+ ${approvalStatus==='pending'?'<button type="button" class="btn soft" disabled>⏳ Menunggu Persetujuan Admin</button>':locked&&!editing?`<button class="btn primary" type="button" id="kroBoardEdit" ${!canUse?'disabled':''}>✎ Edit Ketetapan KRO</button>`:`<button class="btn primary" type="button" id="kroBoardConfirm" ${!canUse?'disabled':''}>✓ ${editing?'Kirim Ulang Pengajuan':'Ajukan Persetujuan KRO'}</button>`}
+ ${editing?'<button class="btn soft" type="button" id="kroBoardCancel">Batal Perubahan</button>':''}</div></div>
+ <div class="kro-board-recommendation">${recSummary}${approvalStatus==='pending'?'<span class="kro-approval-wait-note">Pengajuan telah dikirim oleh '+esc(request?.submittedBy||'Ketua Tim')+'. Tunggu persetujuan Admin.</span>':approvalStatus==='rejected'?'<span class="kro-approval-rejected-note">Perlu perbaikan: '+esc(request?.note||'Periksa kembali pilihan KRO')+'. Kirim ulang setelah diperbaiki.</span>':isBaseYear?'<span class="kro-reference-note">Penyesuaian KRO 2026 disimpan terpisah dari sumber asli.</span>':''}</div>
+ <div id="kroBoardList" class="combined-kro-list">${arr.map(k=>{const r=kroRecommendation(k,tid),assigned=locked&&selectedCodes.has(k.code);return `<label class="combined-kro-row ${assigned?'is-assigned ':''}${kroBoardDraft.has(k.code)?'is-draft-selected ':''}${r?'kro-suggested-'+r.kind:''}"><input type="checkbox" data-board-kro="${esc(k.code)}" ${kroBoardDraft.has(k.code)?'checked':''} ${!writable?'disabled':''}><span><b>${esc(k.code)}</b><small>${esc(k.name)}</small>${assigned?'<small class="kro-assignment-confirmed">✓ KRO Ditetapkan untuk Tim Ini</small>':''}${r?`<small class="kro-suggestion-reason">${esc(r.reason)}</small>`:''}</span>${r?`<em class="kro-hint-kind ${r.kind}">${esc(r.label)}</em>`:''}</label>`}).join('')||'<p class="combined-context">Tidak ada KRO sesuai pencarian.</p>'}</div></div></section>`;
+ if(auditPanel)el.querySelector('#kroAuditSlot')?.appendChild(auditPanel);
+ bindKroApprovalPanel();
+ const showBoardDialog=(id)=>{const d=$(id);if(!d)return;if(!d.open)d.showModal();d.querySelector('.kro-hub-dialog-body').scrollTop=masterScroll;};
+ if(masterWasOpen)showBoardDialog('kroMasterPopup');
+ $('kroHubMaster').onclick=()=>showBoardDialog('kroMasterPopup');
+ $('kroHubActivity').onclick=()=>showKroActivityMap();
+ $('kroHubMap').onclick=()=>{renderKroMap();const d=$('kroMapPopup');if(d&&!d.open)d.showModal();};
+ el.querySelectorAll('[data-close-kro-master]').forEach(b=>b.onclick=()=>$('kroMasterPopup').close());
+ {const d=$('kroMasterPopup');d.onclick=e=>{if(e.target===d)d.close()};}
+ if($('kroMapPopup')){$('kroMapPopup').querySelector('[data-close-kro-map]').onclick=()=>$('kroMapPopup').close();$('kroMapPopup').onclick=e=>{if(e.target===$('kroMapPopup'))$('kroMapPopup').close();};}
+ if($('kroMapManage'))$('kroMapManage').onclick=()=>{$('kroMapPopup').close();openKroAssignmentPopup();};
+ if($('kroMapBack'))$('kroMapBack').onclick=()=>{const d=$('kroMapPopup');if(d&&!d.open)d.showModal();};
+ $('kroBoardTeam').onchange=()=>{
+  const nextId=$('kroBoardTeam').value;
+  if($('teamAdminSelect'))$('teamAdminSelect').value=nextId;
+  selectedTeam=nextId;el.dataset.team='';kroBoardEditTeam='';renderTeamAdminPage();renderKroBoard();
+ };
+ $('kroBoardSearch').oninput=()=>{const cursor=$('kroBoardSearch').selectionStart;renderKroBoard();const node=$('kroBoardSearch');node.focus();try{node.setSelectionRange(cursor,cursor)}catch(e){}};
+ el.querySelectorAll('[data-board-kro]').forEach(box=>box.onchange=()=>{
+  if(!writable)return;
+  if(box.checked)kroBoardDraft.add(box.dataset.boardKro);
+  else kroBoardDraft.delete(box.dataset.boardKro);
+  syncKroBoardDraftRows();
+ });
+ $('kroBoardRecommended').onclick=()=>{
+  if(!writable)return;
+  for(const {k} of suggestions)kroBoardDraft.add(k.code);
+  syncKroBoardDraftRows();
+  toast('Rekomendasi dicentang sebagai draf. Periksa pilihan sebelum menyimpan.');
+ };
+ if($('kroBoardEdit'))$('kroBoardEdit').onclick=()=>{if(!canUse)return;kroBoardEditTeam=tid;renderKroBoard();toast('Periksa pilihan KRO lalu ajukan kembali untuk persetujuan Admin.')};
+ if($('kroBoardCancel'))$('kroBoardCancel').onclick=()=>{kroBoardEditTeam='';kroBoardDraft=new Set(selectedCodes);renderKroBoard();toast('Perubahan draf dibatalkan. Penetapan sebelumnya tetap berlaku.')};
+ if($('kroBoardConfirm'))$('kroBoardConfirm').onclick=async()=>{
+  if(!canUse||kroApprovalStatus(tid)==='pending')return;
+  const chosen=new Set(kroBoardDraft);
+  if(!chosen.size||(!isBaseYear&&!yearTeamReady(tid)))return toast('Tetapkan susunan tim dan pilih minimal satu KRO sebelum mengajukan.');
+  if(!await uiConfirm('Ajukan '+chosen.size+' pilihan KRO dari Tim '+teamTitle+' untuk persetujuan Admin? Ketua Tim harus menunggu keputusan Admin.'))return;
+  if(!submitKroProposal(tid,chosen))return toast('Pengajuan KRO tidak dapat disimpan.');
+  kroBoardEditTeam='';annualEditingKroId=null;
+  renderTeamAdminPage();renderKroBoard();renderKroAudit();
+  toast('Pengajuan KRO Tim '+teamTitle+' dikirim. Menunggu Persetujuan Admin.');
+ };
+ $('kroMasterSearch').oninput=()=>{const cursor=$('kroMasterSearch').selectionStart;kroMasterQuery=$('kroMasterSearch').value;renderKroBoard();const node=$('kroMasterSearch');node.focus();try{node.setSelectionRange(cursor,cursor)}catch(e){}};
+ if($('kroMasterAdd'))$('kroMasterAdd').onclick=()=>openKroEditor();
+ el.querySelectorAll('[data-master-edit]').forEach(btn=>btn.onclick=()=>openKroEditor(btn.dataset.masterEdit));
+ el.querySelectorAll('[data-master-delete]').forEach(btn=>btn.onclick=async()=>{if($('kroMasterPopup')?.open)$('kroMasterPopup').close();await removeKroCatalog(btn.dataset.masterDelete);const d=$('kroMasterPopup');if(d&&!d.open)d.showModal();});
+}
+function renderFinalBoard(){const el=$('pageFinal');if(!el)return;const info=yearInfo(),teamProgress=annualTeamCompletion(),used=[...new Set(activities.filter(a=>a.status==='aktif').map(a=>a.team_id))],ready=used.filter(tid=>yearKroReady(tid)).length;
+ const flags=isBaseYear?[]:used.filter(tid=>!yearKroReady(tid)).map(tid=>teamMap.get(tid)?.name||tid);
+ const pendingTeamLabels=teamProgress.pending.map(t=>t.name+' — '+t.reason).concat(teamProgress.awaiting.map(t=>t.name+' — Menunggu Persetujuan Kepala BPS'));
+ const rows=[['Daftar pegawai',isBaseYear?'Referensi 2026':staffReady()?'Ditetapkan':'Belum ditetapkan'],['Susunan Tim Aktif',isBaseYear?'Acuan 2026':teamProgress.ready+' / '+teamProgress.total+' Tim'],['KRO Tim Berkegiatan',isBaseYear?'Acuan 2026':ready+' / '+used.length+' Tim'],['Uraian kegiatan aktif',nf(activities.filter(a=>a.status==='aktif').length)],['Alokasi bulanan tercatat',nf(countMonthlyAssignments())],['Status tahunan',isBaseYear?'Referensi':info.status==='approved'?'Ditetapkan':info.status==='draft'?'Draf':'Belum disiapkan']];
+ el.innerHTML=`<section class="monitor-hero"><div><h2>Finalisasi Matriks ${activeYear}</h2><p>Periksa kelengkapan sebelum menetapkan dokumen rencana kerja.</p></div></section><section class="panel"><div class="section-top"><h3>Status Persiapan</h3><span class="badge">${esc(info.status==='approved'?'Ditetapkan':info.status==='draft'?'Draf':'Belum disiapkan')}</span></div><div class="combined-final-grid">${rows.map(([key,value])=>`<div><span>${esc(key)}</span><strong>${esc(value)}</strong></div>`).join('')}</div><div class="final-team-readiness">${pendingTeamLabels.length?'<strong>Menunggu Penetapan '+pendingTeamLabels.length+' Tim Aktif</strong><div>'+pendingTeamLabels.map(name=>'<span>'+esc(name)+'</span>').join('')+'</div>':'✓ Seluruh '+teamProgress.total+' Tim Aktif telah menetapkan Ketua dan Anggota.'}</div><p class="combined-context">${flags.length?'Perlu penetapan: '+flags.slice(0,5).map(esc).join(', ')+(flags.length>5?' dan '+(flags.length-5)+' tim lain.':''):isBaseYear?'Data sumber 2026 menjadi acuan pembagian pekerjaan tahun berikutnya.':'Gunakan Rekonsiliasi untuk meneliti ketepatan beban kerja dan jadwal.'}</p><div class="combined-final-actions"><button type="button" class="btn soft" id="finalManage">Kelola Tim & Pegawai</button><button type="button" class="btn soft" id="finalRecon">Buka Rekonsiliasi</button><button type="button" class="btn primary" id="finalApprove" ${isBaseYear||info.status!=='draft'||!['admin','kepala'].includes(currentRole)||!teamProgress.total||teamProgress.pending.length||teamProgress.awaiting.length||!publishedAllocationCount()?'disabled':''} title="${esc(teamProgress.pending.length?'Menunggu '+teamProgress.pending.length+' Tim Aktif melengkapi susunan':teamProgress.awaiting.length?'Menunggu '+teamProgress.awaiting.length+' Persetujuan Susunan oleh Kepala BPS':'Setujui Matriks tahunan setelah seluruh pemeriksaan selesai')}">✓ Setujui Matriks</button></div></section>`;
+ $('finalManage').onclick=()=>setPage('teams');$('finalRecon').onclick=()=>setPage('recon');$('finalApprove').onclick=async()=>{await approveAnnual();renderFinalBoard()};
+}
+
+init();
+setupV5();
+setupDateCalendar();
+setupWorkflow();
+setupYearSelector();
+setupYearStages();
+})();
+
+</script><footer class="copyright-matriks">Copyright © 2026 by Muhammad Alfa Risxi</footer></body></html>

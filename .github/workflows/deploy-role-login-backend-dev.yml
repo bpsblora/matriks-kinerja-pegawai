@@ -1,0 +1,82 @@
+name: Deploy Role Login Backend — Firebase DEV (manual approval)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type APPROVE_DEV_ROLE_AUTH to deploy authentication functions in the anonymous DEV project"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: firebase-dev-role-auth
+  cancel-in-progress: false
+
+jobs:
+  deploy-auth-dev:
+    # Never runs on push. A project administrator must explicitly configure
+    # this variable after TI/billing/security review. No production access.
+    if: ${{ inputs.confirmation == 'APPROVE_DEV_ROLE_AUTH' && vars.FIREBASE_AUTH_DEV_APPROVED == 'true' }}
+    runs-on: ubuntu-latest
+    environment: firebase-auth-dev-approved
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Preflight project, role security, and deploy credentials
+        env:
+          WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          VIEWER_GOOGLE_UID: ${{ vars.VIEWER_GOOGLE_UID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$WIF_PROVIDER" || { echo "::error::WIF provider belum disiapkan"; exit 1; }
+          test -n "$SERVICE_ACCOUNT" || { echo "::error::Service account belum disiapkan"; exit 1; }
+          [[ "$VIEWER_GOOGLE_UID" =~ ^[A-Za-z0-9_-]{15,128}$ ]] || { echo "::error::UID viewer belum dikonfigurasi"; exit 1; }
+          grep -q 'allow read, write: if false;' firestore.rules || { echo "::error::Firestore client rules must remain deny-all"; exit 1; }
+          test "${{ github.ref_name }}" = "setup/firebase-foundation" || { echo "::error::Only approved DEV branch may deploy"; exit 1; }
+
+      - name: Validate code and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix functions --ignore-scripts --no-audit --no-fund
+          npm run check --prefix functions
+          npm test --prefix functions
+          node scripts/verify-prototype.mjs
+
+      - name: Prepare DEV-only runtime flags (no passwords)
+        env:
+          VIEWER_GOOGLE_UID: ${{ vars.VIEWER_GOOGLE_UID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Firebase CLI loads project-scoped functions/.env.<project-id> during deployment.
+          # Only server auth is enabled; matrix data and account administration stay OFF.
+          printf 'AUTH_LOGIN_ENABLED=true\nVIEWER_GOOGLE_UID=%s\nMATRIX_FUNCTION_REGION=us-central1\nACCESS_ADMIN_ENABLED=false\nMATRIX_BACKEND_ENABLED=false\n' "$VIEWER_GOOGLE_UID" > functions/.env.mkp-bps-blora
+          chmod 600 functions/.env.mkp-bps-blora
+
+      - name: Authenticate to approved DEV project via OIDC
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Deploy only role-login functions (not matrix data/rules)
+        shell: bash
+        run: |
+          npm install --global firebase-tools
+          firebase deploy --project mkp-bps-blora --only functions:usernameSignIn,functions:getAccessContext --non-interactive
+
+      - name: Report activation scope
+        run: |
+          echo "Auth functions deployed to DEV only. Firestore rules remain deny-all."
+          echo "Role login still requires an interactive bootstrap of the first Admin account."
+          echo "The public GitHub Pages preview remains View-only until a separate approved frontend build."

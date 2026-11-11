@@ -1,0 +1,73 @@
+name: Deploy Admin Account Management — Firebase DEV (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type APPROVE_DEV_ADMIN_ACCOUNTS to deploy Admin account functions to DEV"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: firebase-dev-admin-accounts
+  cancel-in-progress: false
+
+jobs:
+  deploy-admin-accounts:
+    # This workflow cannot deploy on git push and requires an approved DEV
+    # environment plus an existing, independently bootstrapped first Admin.
+    if: ${{ inputs.confirmation == 'APPROVE_DEV_ADMIN_ACCOUNTS' && vars.FIREBASE_ACCOUNT_ADMIN_DEV_APPROVED == 'true' && vars.MATRIX_ADMIN_BOOTSTRAP_DONE == 'true' }}
+    environment: firebase-account-dev-approved
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Guard project and verified deployment identity
+        shell: bash
+        env:
+          WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          DEPLOY_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          VIEWER_GOOGLE_UID: ${{ vars.VIEWER_GOOGLE_UID }}
+        run: |
+          set -euo pipefail
+          test "${{ github.ref_name }}" = "setup/firebase-foundation" || { echo "::error::Only DEV foundation branch is permitted"; exit 1; }
+          test -n "$WIF_PROVIDER" && test -n "$DEPLOY_ACCOUNT" || { echo "::error::Workload Identity configuration is missing"; exit 1; }
+          [[ "$VIEWER_GOOGLE_UID" =~ ^[A-Za-z0-9_-]{15,128}$ ]] || { echo "::error::Approved Google viewer UID missing"; exit 1; }
+          grep -q 'allow read, write: if false;' firestore.rules || { echo "::error::Firestore client rules must remain deny-all"; exit 1; }
+      - name: Validate account, matrix and password security
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix functions --ignore-scripts --no-audit --no-fund
+          npm run check --prefix functions
+          npm test --prefix functions
+          node scripts/verify-prototype.mjs
+      - name: Stage only DEV server flags
+        shell: bash
+        env:
+          VIEWER_GOOGLE_UID: ${{ vars.VIEWER_GOOGLE_UID }}
+        run: |
+          set -euo pipefail
+          printf 'AUTH_LOGIN_ENABLED=true\nVIEWER_GOOGLE_UID=%s\nMATRIX_FUNCTION_REGION=us-central1\nACCESS_ADMIN_ENABLED=true\nALLOW_ELEVATED_ROLE_MANAGEMENT=false\nMATRIX_BACKEND_ENABLED=false\n' "$VIEWER_GOOGLE_UID" > functions/.env.mkp-bps-blora
+          chmod 600 functions/.env.mkp-bps-blora
+      - name: Authenticate via workload identity
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - name: Deploy only Admin account API; no data import or Firestore rules
+        shell: bash
+        run: |
+          npm install --global firebase-tools
+          firebase deploy --project mkp-bps-blora --only functions:listAccessAccounts,functions:createAccessAccount,functions:updateAccessAccount,functions:resetAccessPassword,functions:setAccessAccountStatus --non-interactive
+      - name: Report scope
+        run: |
+          echo "DEV account management functions deployed; client database rules remain deny-all."
+          echo "Login frontend remains disabled until its own approved VITE_ROLE_AUTH_READY and VITE_ACCESS_ADMIN_READY build."
+          echo "No production project, private employee data or matrix data was changed."
