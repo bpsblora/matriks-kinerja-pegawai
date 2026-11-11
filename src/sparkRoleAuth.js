@@ -188,11 +188,13 @@ async function cleanupFailedIdentity(result){
  if(result?.user)await deleteUser(result.user).catch(()=>{});
  await signOut(creatorAuth).catch(()=>{});
 }
-export async function createSparkKetuaAccount({username,password,teamIds}){
+export async function createSparkRoleAccount({username,password,teamIds=[],role="ketua_tim"}){
  const actor=await requireAdmin();
  const name=normalizeSparkUsername(username);
  if(name==="admin")throw Error("Username admin dicadangkan.");
- if(!checkTeams(teamIds))throw Error("Pilih minimal satu tim yang valid.");
+ if(!["ketua_tim","kepala"].includes(role))throw Error("Peran tidak valid.");
+ if(role==="ketua_tim"&&!checkTeams(teamIds))throw Error("Pilih minimal satu tim yang valid.");
+ if(role==="kepala"&&(!Array.isArray(teamIds)||teamIds.length))throw Error("Kepala BPS tidak dibatasi tim.");
  validPassword(password);
  if((await getDoc(handleDoc(name))).exists())throw Error("Username sudah digunakan.");
  let registered=null;
@@ -201,7 +203,7 @@ export async function createSparkKetuaAccount({username,password,teamIds}){
   const uid=registered.user.uid,mail=registered.user.email;
   const batch=writeBatch(roleDb);
   batch.set(profileDoc(uid),{
-   username:name,loginEmail:mail,role:"ketua_tim",teamIds:[...teamIds],
+   username:name,loginEmail:mail,role,teamIds:[...teamIds],
    active:true,createdBy:actor.uid,createdAt:serverTimestamp(),updatedAt:serverTimestamp()
   });
   batch.set(handleDoc(name),handleRecord(uid,mail,actor.uid));
@@ -212,15 +214,16 @@ export async function createSparkKetuaAccount({username,password,teamIds}){
   throw e;
  }finally{await signOut(creatorAuth).catch(()=>{});}
 }
+export async function createSparkKetuaAccount(args){return createSparkRoleAccount({...args,role:"ketua_tim"});}
 export async function updateSparkAccount(uid,{username,teamIds,active}){
  const actor=await requireAdmin();
  if(!uid||uid===actor.uid)throw Error("Admin tidak dapat mengubah dirinya melalui menu ini.");
  const target=profileDoc(uid);
  const snap=await getDoc(target);
- if(!snap.exists()||snap.data().role!=="ketua_tim")throw Error("Hanya akun Ketua Tim yang dapat diubah.");
+ if(!snap.exists()||!["ketua_tim","kepala"].includes(snap.data().role))throw Error("Hanya akun Ketua Tim atau Kepala BPS yang dapat diubah.");
  const old=snap.data();
  const name=normalizeSparkUsername(username??old.username);
- if(!checkTeams(teamIds)||typeof active!=="boolean")throw Error("Tim atau status tidak valid.");
+ if(typeof active!=="boolean"||(old.role==="ketua_tim"&&!checkTeams(teamIds))||(old.role==="kepala"&&(!Array.isArray(teamIds)||teamIds.length)))throw Error("Tim atau status tidak valid.");
  const batch=writeBatch(roleDb);
  if(name!==old.username){
   if(name==="admin"||(await getDoc(handleDoc(name))).exists())throw Error("Username baru sudah digunakan.");
@@ -237,7 +240,7 @@ export async function resetSparkAccountPassword(uid,newPassword){
  const actor=await requireAdmin();
  if(!uid||uid===actor.uid)throw Error("Admin tidak dapat mereset akunnya sendiri melalui menu ini.");
  const oldRef=profileDoc(uid),oldSnap=await getDoc(oldRef);
- if(!oldSnap.exists()||oldSnap.data().role!=="ketua_tim")throw Error("Hanya akun Ketua Tim yang dapat direset.");
+ if(!oldSnap.exists()||!["ketua_tim","kepala"].includes(oldSnap.data().role))throw Error("Hanya akun Ketua Tim atau Kepala BPS yang dapat direset.");
  const old=oldSnap.data();
  if(old.active!==true)throw Error("Aktifkan akun dahulu sebelum mereset password.");
  const current=await getDoc(handleDoc(old.username));
@@ -249,7 +252,7 @@ export async function resetSparkAccountPassword(uid,newPassword){
   const newUid=replacement.user.uid,mail=replacement.user.email;
   const batch=writeBatch(roleDb);
   batch.set(profileDoc(newUid),{
-   username:old.username,loginEmail:mail,role:"ketua_tim",
+   username:old.username,loginEmail:mail,role:old.role,
    teamIds:[...old.teamIds],active:old.active===true,
    createdBy:actor.uid,createdAt:serverTimestamp(),updatedAt:serverTimestamp()
   });
