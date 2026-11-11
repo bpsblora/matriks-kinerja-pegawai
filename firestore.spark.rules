@@ -83,7 +83,9 @@ service cloud.firestore {
 
   match /sparkRoleProfiles/{uid} {
    // Each role can see its own profile; Admin can query account directory.
-   allow get: if isAdmin() || (signedInPassword() && request.auth.uid == uid);
+   // Read one's own profile without first recursing into isAdmin().
+   // Other profiles remain visible only to a verified active Admin.
+   allow get: if (signedInPassword() && request.auth.uid == uid) || isAdmin();
    allow list: if isAdmin();
    // A role cannot create its own profile. All Admin writes must accompany
    // the corresponding username mapping in the SAME atomic Firestore batch.
