@@ -1332,7 +1332,7 @@ assert(pickerStatusFrom>=0&&pickerStatusTo>pickerStatusFrom,"Daftar Tim tidak di
 const pickerStatusCode=inline.slice(pickerStatusFrom,pickerStatusTo);
 for(const token of [
  "const teamIssue=inactive?'':teamEstablishmentIssue(t.id);",
- "teamIssue?'Belum Ditetapkan':'Sudah Ditetapkan'",
+ "const stateLabel=inactive?'Nonaktif':teamReviewLabel(t.id);",
  "const activityLabel=hasActivities?'Memiliki Kegiatan':'Belum Ada Kegiatan';",
  "esc(stateLabel)+' · '+esc(activityLabel)",
  "is-pending",
