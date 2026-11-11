@@ -1853,7 +1853,7 @@ for(const token of [
 for(const token of [
  'if(role==="kepala"&&(!Array.isArray(teamIds)||teamIds.length))',
  'role:old.role',
- 'if(!["ketua_tim","kepala"].includes(snap.data().role))'
+ '!snap.exists()||!["ketua_tim","kepala"].includes(snap.data().role)'
 ])assert(sparkRoleSource.includes(token),"Kepala BPS tidak mengikuti pembatasan peran: "+token);
 for(const token of [
  '["ketua_tim","Ketua Tim"],["kepala","Kepala BPS"]',
