@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import vm from "node:vm";
 import assert from "node:assert/strict";
+import {simulationMarkup,simulationSeed,simulationKroSeed,simulationOverlay,SIM_PREFIX,clearSimulationData} from "../src/simulationFixture.js";
 const paths=Array.from({length:17},(_,i)=>"assets/v26/part-"+String(i+1).padStart(3,"0")+".txt");
 for(const path of paths)assert(fs.existsSync(path),"File V25 belum lengkap: "+path);
 const html=paths.map(path=>fs.readFileSync(path,"utf8")).join("");
@@ -13,6 +14,28 @@ const inline=html.slice(scriptStart+"<script>".length,scriptEnd);
 new vm.Script(inline,{filename:"prototipe-v26-inline.js"});
 
 assert(!html.includes("demo2026"),"Password demo lama tidak boleh ikut");
+const simHtml=simulationMarkup(html);
+const simNeedle='<script id="seed" type="application/json">';
+const simStart=simHtml.indexOf(simNeedle)+simNeedle.length;
+const simEnd=simHtml.indexOf("</script>",simStart);
+assert(simStart>simNeedle.length&&simEnd>simStart,"Seed simulasi harus tersedia di iframe");
+const simSeedLoaded=JSON.parse(simHtml.slice(simStart,simEnd));
+assert.equal(simSeedLoaded.teams.length,3,"Simulasi wajib tepat tiga tim");
+assert.equal(simSeedLoaded.employees.length,10,"Simulasi wajib tepat sepuluh pegawai");
+assert.equal(simSeedLoaded.activities.length,8,"Simulasi wajib tepat delapan kegiatan");
+assert.equal(simulationKroSeed.kros.length,6,"Simulasi wajib enam KRO");
+assert(simulationSeed.employees.every(e=>e.id.startsWith("E9")),"Pegawai simulasi harus terisolasi");
+assert.equal(simulationOverlay.dailyHours,8,"Kapasitas harian simulasi 8 jam");
+assert(simHtml.includes(SIM_PREFIX),"Penyimpanan simulasi wajib berbeda dengan operasional");
+assert(!html.includes(SIM_PREFIX),"Referensi normal tidak boleh memakai key simulasi");
+const shimStart=simHtml.indexOf("<script>\n (function(){");
+assert(shimStart>=0,"Bootstrap simulasi belum termuat sebelum prototipe");
+const shimEnd=simHtml.indexOf("</script>",shimStart);
+new vm.Script(simHtml.slice(shimStart+8,shimEnd),{filename:"simulation-storage-isolation.js"});
+const stub=new Map([["other-key","keep"],[SIM_PREFIX+"temp","remove"]]);
+const mockStorage={get length(){return stub.size},key:i=>[...stub.keys()][i],removeItem:k=>stub.delete(k)};
+assert.equal(clearSimulationData(mockStorage),1);
+assert.equal(stub.get("other-key"),"keep","Pembersihan simulasi tidak boleh menghapus data lain");
 const extract=id=>{
   const needle='<script id="'+id+'" type="application/json">';
   const from=html.indexOf(needle);
