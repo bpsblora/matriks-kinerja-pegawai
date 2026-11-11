@@ -1056,6 +1056,14 @@ const readyCase=establishCase({setup:{staff:{confirmed:true,ids:['E1','E2','E3']
  T1:{leaderId:'E1',members:['E1','E2']},T2:{leaderId:'E3',members:['E3']}}}});
 assert.equal(readyCase.ready,2,"Seluruh Tim lengkap harus lolos pemeriksaan");
 assert.equal(readyCase.pending.length,0,"Tidak boleh ada Tim menghambat persetujuan bila semua lengkap");
+assert.equal(readyCase.awaiting.length,2,
+ "Susunan tim yang lengkap masih menunggu persetujuan Kepala BPS, bukan otomatis disahkan");
+const approvedCase=establishCase({setup:{staff:{confirmed:true,ids:['E1','E2','E3']},teams:{
+ T1:{leaderId:'E1',members:['E1','E2'],reviewStatus:'approved'},
+ T2:{leaderId:'E3',members:['E3'],reviewStatus:'approved'}}}});
+assert.equal(approvedCase.awaiting.length,0,
+ "Hanya seluruh tim yang sudah disetujui Kepala BPS dapat melewati validasi");
+
 const mismatch=establishCase({roster:{T1:{leaderId:'E1',members:['E2']},T2:{leaderId:'E3',members:['E3']}}});
 assert.equal(mismatch.ready,0,"Ketua yang tidak dicentang sebagai Anggota tidak boleh dianggap ditetapkan");
 const inactiveCase=establishCase({teams:[{id:'T1',name:'Satu',active:true},{id:'T2',name:'Dua',active:false}]});
@@ -1071,9 +1079,29 @@ assert(inline.includes("const teamProgress=annualTeamCompletion();")&&
  "Tombol persetujuan di dashboard harus terkunci bila ada tim belum ditetapkan");
 assert(inline.includes("const pendingTeamLabels=teamProgress.pending.map("),
  "Finalisasi harus menunjukkan daftar tim penghambat persetujuan");
-assert(inline.includes("teamProgress.pending.length||!publishedAllocationCount()?"),
+assert(inline.includes("teamProgress.pending.length||teamProgress.awaiting.length||!publishedAllocationCount()?"),
  "Tombol Finalisasi harus memvalidasi semua Tim Aktif serta alokasi");
 
+
+// Ketua's team submission is a proposal, not approval.
+for(const token of [
+ "function teamReviewStatus(tid){",
+ "function decideTeamProposal(tid,approved,note=''){",
+ "if(currentRole!=='kepala'||yearInfo().status==='closed')return false;",
+ "reviewStatus:'pending'",
+ "Menunggu Peninjauan dan Persetujuan Kepala BPS.",
+ "const awaiting=all.filter(",
+ "teamProgress.awaiting.length",
+ "teamReviewStatus(tid)==='approved'"
+])assert(inline.includes(token),"Alur peninjauan susunan tim oleh Kepala BPS belum lengkap: "+token);
+assert(!inline.includes("Pilih tim lain untuk melanjutkan penetapan."),
+ "Setelah Ketua mengajukan tim, jangan meminta menetapkan tim lain");
+for(const token of ["teamReviewBanner","team-review-banner is-","team-review-actions","Setujui Susunan","Kembalikan"])
+ assert(inline.includes(token),"Status persetujuan dan tindakan Kepala BPS belum tampil: "+token);
+assert(html.includes("#pageTeams .team-review-banner")&&
+ html.includes("#pageTeams .team-roster-head-tools")&&
+ html.includes("grid-template-columns:1fr!important"),
+ "Tampilan pilihan tim, anggota dan status peninjauan perlu rapi dan responsif");
 
 // Team status summary is a compact card; full lists open in a native modal.
 const teamSummaryStart=inline.indexOf("let establishedTeamFilter='ready';");
@@ -1154,7 +1182,7 @@ const popupBody=teamSummaryCode.slice(teamSummaryCode.indexOf("function renderEs
  teamSummaryCode.indexOf("function openEstablishedTeamDialog("));
 assert(popupBody.includes("team-summary-ready")&&popupBody.includes("team-summary-pending-list"),
  "Pop-up wajib memuat daftar Tim Ditetapkan dan Tim Belum Lengkap");
-assert(popupBody.includes("Seluruh tim aktif sudah ditetapkan"),
+assert(popupBody.includes("Seluruh susunan tim aktif sudah terkumpul"),
  "Status kosong tetap harus bisa dibuka dan menunjukkan keterangan");
 for(const rule of [
  "#pageTeams #annualTeamStage .annual-stage-head>#establishedTeamSummary.team-summary-inline{",
@@ -1611,8 +1639,10 @@ assert(!html.includes('id="btnImport"')&&!html.includes('id="btnReset"')&&
  !html.includes('id="importFile"')&&
  !inline.includes("$('btnImport').onclick")&&!inline.includes("$('btnReset').onclick"),
  "Header tidak boleh menyediakan impor backup maupun reset uji coba");
-assert(html.includes('id="btnExport"')&&inline.includes("$('btnExport').onclick=exportJson"),
- "Ekspor Perubahan lokal masih diperlukan sebelum migrasi database bersama");
+assert(!html.includes('id="btnExport"')&&!html.includes('id="historyExport"')&&
+ !inline.includes("$('btnExport').onclick=exportJson")&&
+ !inline.includes("$('historyExport').onclick=exportJson"),
+ "Ekspor Perubahan tidak boleh memenuhi header ataupun Riwayat");
 for(const token of [
  'id="mpRoleMenu"','id="mpCurrentRole"','id="mpRoleDialog"',
  'id="mpRoleLoginForm"','id="mpRoleUsername"','id="mpRolePassword"',
