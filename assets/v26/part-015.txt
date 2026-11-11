@@ -705,7 +705,8 @@ function teamReviewStatus(tid){
  if(saved.reviewStatus==='approved')return 'approved';
  if(saved.reviewStatus==='returned')return 'returned';
  if(saved.reviewStatus==='pending')return 'pending';
- return isBaseYear?'reference':'pending'; // legacy local records are not Head approvals
+ // Legacy locally submitted rosters have no Kepala approval; treat them as pending.
+ return 'pending';
 }
 function teamReviewLabel(tid){
  const status=teamReviewStatus(tid);
