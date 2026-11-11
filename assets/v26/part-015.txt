@@ -739,7 +739,7 @@ function teamEstablishmentIssue(tid){
 function annualTeamCompletion(){
  const all=demoTeams.filter(t=>t.active!==false);
  const pending=all.map(t=>({id:t.id,name:t.name,reason:teamEstablishmentIssue(t.id)})).filter(x=>x.reason);
- const awaiting=all.filter(t=>teamEstablishmentIssue(t.id)===''&&teamReviewStatus(t.id)!=='approved');
+ const awaiting=all.filter(t=>teamEstablishmentIssue(t.id)===''&&yearSetup.teams?.[t.id]?.reviewStatus!=='approved');
  return {total:all.length,ready:all.length-pending.length,pending,awaiting};
 }
 /* Ketua Tim proposes their KRO allocation; only Admin can approve it.
