@@ -34,7 +34,13 @@ jobs:
       - name: Run isolated Firestore Emulator authorization tests
         run: |
           firebase emulators:exec --project demo-matriks-spark --config firebase.spark.json --only firestore "node scripts/spark-rules.test.mjs"
+          echo "### Hasil Pengujian Firestore Spark" >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ Berhasil: Admin membuat akun, mengubah username, rotasi password, pencabutan izin akun lama." >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ Ditolak: Google biasa mengelola akun, Ketua Tim menaikkan peran sendiri, Admin mengubah perannya sendiri, akses data matriks." >> "$GITHUB_STEP_SUMMARY"
+          echo "🔒 Pengujian dilakukan di emulator terpisah, **tidak men-deploy** Firebase produksi." >> "$GITHUB_STEP_SUMMARY"
       - name: Confirm live Firestore rules remain closed by default
         run: |
           grep -q "allow read, write: if false;" firestore.rules
+          grep -q "allow read, write: if false;" firestore.spark.rules
+          grep -q "allow get: if" firestore.bootstrap-readonly.rules
           echo "No production database, Cloud Functions, service credentials, or billing used."
