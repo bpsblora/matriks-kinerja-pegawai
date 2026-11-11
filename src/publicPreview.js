@@ -74,7 +74,7 @@ function sparkLoginErrorText(error,username){
  const code=String(error?.code||"");
  const message=String(error?.message||"");
  if(message.startsWith("SPARK_PROFILE_")){
-  const [reason,uid]=message.split(":");
+  const [reason,uid,fieldType,length,codepoints]=message.split(":");
   const ref="UID Authentication: "+(uid||"tidak diketahui")+". ";
   if(reason==="SPARK_PROFILE_MISSING")
    return "Password diterima Firebase. "+ref+"Dokumen sparkRoleProfiles/{UID} tidak ditemukan. Cocokkan Document ID Firestore dengan UID ini persis, termasuk huruf besar/kecil dan karakter I/l/1.";
@@ -83,7 +83,12 @@ function sparkLoginErrorText(error,username){
   if(reason==="SPARK_PROFILE_ROLE_INVALID")
    return "Password diterima Firebase. "+ref+"Field role tidak valid. Untuk Admin, gunakan string admin.";
   if(reason==="SPARK_PROFILE_USERNAME_INVALID")
-   return "Password diterima Firebase. "+ref+"Field username harus berupa string admin.";
+   return "Password sudah diterima Firebase. "+ref+
+    "Nilai username yang benar-benar terbaca dari server berbeda dengan admin. "+
+    "Tipe: "+(fieldType||"tidak diketahui")+", jumlah karakter: "+(length||"?")+
+    (codepoints?", kode Unicode: "+codepoints.replace(/,/g," "):"")+
+    ". Username admin harus persis 5 karakter: a d m i n. "+
+    "Tidak perlu mengganti password atau membuat akun baru.";
   if(reason==="SPARK_PROFILE_EMAIL_MISMATCH")
    return "Password diterima Firebase. "+ref+"Email internal di profil tidak sesuai dengan akun Authentication. Periksa konfigurasi loginEmail bila ada.";
   return "Password diterima Firebase. "+ref+"Profil peran tidak sesuai format. Periksa tipe dan isi field-nya.";
