@@ -24,6 +24,16 @@ pada database Firebase yang sebenarnya. \`firestore.rules\` yang berlaku pada
 fondasi awal masih *deny-all*. Aktivasi akun sungguhan tetap membutuhkan
 pengaturan Firebase Console yang dilakukan pengelola berwenang.
 
+## Status 11 November 2026 — siap dipublikasikan melalui Console
+
+- **Pengujian Firestore Emulator: SUCCESS** [GitHub Actions #42998903492](https://github.com/bpsblora/matriks-kinerja-pegawai/actions/runs/42998903492). Kasus: Admin membuat akun Ketua Tim, mengganti username, reset password, menonaktifkan profil lama; pengguna lain tidak bisa menaikkan peran atau membaca matriks.
+- **Deployment otomatis ke Firebase: belum berhasil**, karena service account GitHub khusus preview tidak mempunyai izin Firebase Rules (`HTTP 403`). Tidak ada perubahan pada aturan Firebase aktif saat percobaan tersebut.
+- **Solusi paling sederhana (tetap Spark):** buka [firestore.spark.rules](https://github.com/bpsblora/matriks-kinerja-pegawai/blob/setup/firebase-foundation/firestore.spark.rules), klik **Raw**, salin seluruh isinya, masuk ke [Firestore → Rules](https://console.firebase.google.com/project/mkp-bps-blora/firestore/databases/-default-/rules), ganti seluruh aturan lama, lalu klik **Publish** menggunakan akun pengelola Firebase.
+- Aturan baru hanya membuka dua koleksi untuk manajemen akun: `sparkRoleProfiles` dan `sparkRoleHandles`, dengan pengecekan Admin aktif. **Seluruh koleksi matriks tetap ditolak**.
+- Jika sesudah Publish ada masalah akses, kembalikan aturan semula dari file [firestore.bootstrap-readonly.rules](https://github.com/bpsblora/matriks-kinerja-pegawai/blob/setup/firebase-foundation/firestore.bootstrap-readonly.rules) melalui tab Rules. Jangan ubah menjadi `allow read, write: if true;`.
+
+**Setelah Publish**: muat ulang website Matriks (Ctrl+Shift+R), Login Peran `admin`, buka **Kelola Akun Akses**, kemudian buat akun uji `katim_harga` dan pilih tim Statistik Harga. Password baru harus terdiri dari **6–72 karakter huruf/angka**, memuat minimal satu huruf dan satu angka. Jangan membagikan password melalui chat.
+
 ## Aktivasi di Firebase Console (tanpa pembayaran)
 
 1. Buka <https://console.firebase.google.com/project/mkp-bps-blora/overview>.
