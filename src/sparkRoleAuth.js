@@ -66,7 +66,22 @@ export async function getSparkRoleProfile(){
  if(!sparkRoleReady||!sparkRoleAuth?.currentUser)return null;
  const user=sparkRoleAuth.currentUser;
  const snap=await getDoc(doc(roleDb,"sparkRoleProfiles",user.uid));
- return snap.exists()?validProfile(snap.data(),user):null;
+ // Authentication and Firestore documents are independent. A successful
+ // password sign-in must never be reported as an incorrect password merely
+ // because the Firestore document ID differs by one character.
+ if(!snap.exists())throw Error("SPARK_PROFILE_MISSING:"+user.uid);
+ const data=snap.data();
+ const profile=validProfile(data,user);
+ if(profile)return profile;
+ if(data.active!==true)throw Error("SPARK_PROFILE_INACTIVE:"+user.uid);
+ if(data.role!=="admin"&&data.role!=="ketua_tim"&&data.role!=="kepala")
+  throw Error("SPARK_PROFILE_ROLE_INVALID:"+user.uid);
+ if(data.username!=="admin"&&user.email===sparkLoginEmail("admin"))
+  throw Error("SPARK_PROFILE_USERNAME_INVALID:"+user.uid);
+ const expectedEmail=data.loginEmail||sparkLoginEmail(data.username);
+ if(expectedEmail.toLowerCase()!==user.email?.toLowerCase())
+  throw Error("SPARK_PROFILE_EMAIL_MISMATCH:"+user.uid);
+ throw Error("SPARK_PROFILE_INVALID:"+user.uid);
 }
 async function lookupRoleEmail(username){
  // The office Google viewer may resolve a login alias. No password is exposed.
