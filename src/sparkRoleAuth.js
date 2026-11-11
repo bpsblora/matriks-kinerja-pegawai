@@ -75,6 +75,11 @@ async function lookupRoleEmail(username){
  const name=normalizeSparkUsername(username);
  const office=auth.currentUser;
  if(!office)throw Error("Masuk dengan Google BPS Blora terlebih dahulu.");
+ // The very first Admin is bootstrapped in Firebase Console and deliberately
+ // has no sparkRoleHandles mapping. Check the fixed Admin alias BEFORE making
+ // any Firestore lookup; deny-all Rules would otherwise block valid credentials.
+ // Role privileges are granted only after reading the server-protected profile.
+ if(name==="admin")return sparkLoginEmail(name);
  const snap=await getDoc(doc(db,"sparkRoleHandles",name));
  if(snap.exists()){
   const loginEmail=snap.data().authEmail;
@@ -82,7 +87,6 @@ async function lookupRoleEmail(username){
    throw Error("Akun belum valid.");
   return loginEmail;
  }
- if(name==="admin")return sparkLoginEmail(name);
  throw Error("Username tidak ditemukan. Hubungi Admin.");
 }
 export async function loginSparkRole(username,password){
