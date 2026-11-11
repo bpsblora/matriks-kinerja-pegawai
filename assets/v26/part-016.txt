@@ -1586,9 +1586,9 @@ function renderYearUI(){
  $('yearPrepare').classList.toggle('hidden',!(status==='closed'&&!isBaseYear&&canPrepareAnnual()));
  $('yearHow').classList.toggle('hidden',!yearWelcomeNeeded());
  $('yearApprove').classList.toggle('hidden',!(status==='draft'&&!isBaseYear&&['kepala','admin'].includes(currentRole)));
- const canApproveTeams=teamProgress.total>0&&teamProgress.pending.length===0;
+ const canApproveTeams=teamProgress.total>0&&teamProgress.pending.length===0&&teamProgress.awaiting.length===0;
  $('yearApprove').disabled=!canApproveTeams||!staffReady()||!publishedAllocationCount()||!activities.some(a=>a.status==='aktif');
- $('yearApprove').title=!canApproveTeams?'Menunggu penetapan '+teamProgress.pending.length+' dari '+teamProgress.total+' tim aktif. '+teamBlock:
+ $('yearApprove').title=!canApproveTeams?'Menunggu '+teamProgress.pending.length+' Tim Belum Lengkap dan '+teamProgress.awaiting.length+' Susunan Tim Belum Disetujui Kepala BPS. '+teamBlock:
   !publishedAllocationCount()?'Tetapkan minimal satu alokasi kegiatan terlebih dahulu.':'Setujui matriks setelah seluruh pemeriksaan tahunan selesai.';
  const pretty=info.approvedAt?new Date(info.approvedAt).toLocaleString('id-ID'):'';
  $('yearStateTitle').textContent=isBaseYear?'2026 · Referensi Matriks Asli':status==='approved'?activeYear+' · Matriks Ditetapkan':status==='draft'?activeYear+' · Draf Penyusunan':activeYear+' · Belum Disiapkan';
@@ -1613,6 +1613,7 @@ async function approveAnnual(){
   toast('Persetujuan ditunda: '+teams.pending.length+' dari '+teams.total+' Tim Aktif belum ditetapkan. '+names+(teams.pending.length>5?' dan tim lainnya.':'.'));
   setPage('teams');return;
  }
+ if(teams.awaiting.length){toast('Menunggu persetujuan Kepala BPS untuk '+teams.awaiting.length+' Susunan Tim. Pengajuan bukan persetujuan akhir.');setPage('teams');return;}
  if(!publishedAllocationCount())return toast('Tetapkan alokasi kegiatan pada Input Alokasi terlebih dahulu.');if(activeYear>2027)return toast('POK resmi '+activeYear+' belum tersedia; perbarui katalog sebelum menetapkan matriks.');if(!predecessorHasData()||!staffReady())return toast('Data tahun sebelumnya dan daftar pegawai belum lengkap.');const inUse=[...new Set(activities.filter(a=>a.status==='aktif').map(a=>a.team_id))];if(inUse.some(tid=>!yearKroReady(tid)))return toast('Masih ada tim dengan kegiatan aktif yang belum menetapkan anggota dan KRO.');if(activities.some(a=>a.status==='aktif'&&resolveGroupKro(a.team_id,groupName(a))===NO_KRO))return toast('Ada kegiatan aktif yang belum dipetakan pada KRO.');const coverage=kroCoverageSnapshot();if(coverage.krosMissing.length||coverage.assignedTeamCount===0)return showKroCoverageDialog({mode:'final'});
  const activeCount=activities.filter(a=>a.status==='aktif').length;
  if(!activeCount){toast('Tambahkan setidaknya satu uraian kegiatan sebelum menetapkan tahun.');return}
@@ -1620,6 +1621,7 @@ async function approveAnnual(){
  const delegation=currentRole==='admin'?await uiPrompt('Tuliskan dasar delegasi penetapan dari Kepala BPS (disampaikan secara offline):',''):'';if(currentRole==='admin'&&!delegation?.trim())return toast('Dasar delegasi wajib diisi.');
  if(!await uiConfirm('Setujui Matriks '+activeYear+' setelah '+teams.ready+' dari '+teams.total+' Tim Aktif ditetapkan?\n\n'+activeCount+' uraian tersedia, '+established+' penetapan alokasi. Draf alokasi yang belum ditetapkan tidak masuk monitoring.'))return;
  if(annualTeamCompletion().pending.length)return toast('Ada perubahan penetapan tim sebelum persetujuan. Periksa kembali seluruh tim.');
+ if(annualTeamCompletion().awaiting.length)return toast('Masih ada susunan tim yang belum disetujui Kepala BPS.');
  yearCatalog[String(activeYear)]={...yearInfo(),status:'approved',approvedAt:new Date().toISOString(),approvedBy:roleActor(),delegation:delegation||'',taskCount:activeCount};saveYearCatalog();logChange('Tetapkan rencana tahunan',activeYear+' · '+activeCount+' uraian · '+established+' alokasi ditetapkan');persist();renderYearUI();toast('Rencana '+activeYear+' ditetapkan '+(currentRole==='admin'?'Admin atas delegasi':'Kepala BPS')+' (simulasi lokal).');
 }
 
