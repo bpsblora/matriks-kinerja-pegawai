@@ -5,6 +5,7 @@ import { auth, functions } from "./firebase/client.js";
 import sitePolishCss from "./sitePolish.css?raw";
 import {createAccessAdminView} from "./adminAccess.js";
 import {createSparkAccessAdminView} from "./sparkAccessAdmin.js";
+import {simulationMarkup,clearSimulationData} from "./simulationFixture.js";
 import {
  sparkRoleReady,sparkRoleAuth,loginSparkRole,restoreSparkRole,logoutSparkRole,
  watchSparkRoleRevocation
@@ -30,6 +31,7 @@ const approvedUid=import.meta.env.VITE_VIEWER_GOOGLE_UID||"";
 const allowedDomains=(import.meta.env.VITE_ALLOWED_GOOGLE_DOMAINS||"bps.go.id").split(",").map(v=>v.trim().toLowerCase()).filter(Boolean);
 const reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 let runId=0,protoCache=null,loading=null,initial=true;
+let simulationMode=sessionStorage.getItem("mkp-simulation-mode")==="1";
 const safe=value=>String(value||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 root.innerHTML=`
 <section class="mp-entry" id="mpEntry">
@@ -49,11 +51,31 @@ root.innerHTML=`
 <section class="mp-frame-wrap" id="mpView" hidden><iframe id="mpFrame" title="Matriks Kinerja Pegawai BPS Blora" referrerpolicy="no-referrer"></iframe></section>
 <dialog id="mpAccountsDialog" class="mp-accounts-dialog" aria-labelledby="mpAccountsTitle">
   <div class="mp-accounts-shell">
-    <header class="mp-accounts-header"><div><span>KHUSUS ADMIN</span><h2 id="mpAccountsTitle">Kelola Akun Akses</h2><p>Buat akun Ketua Tim dan kelola kewenangannya melalui server.</p></div>
+    <header class="mp-accounts-header"><div><span>KHUSUS ADMIN</span><h2 id="mpAccountsTitle">Kelola Akun Akses</h2><p>Buat akun Ketua Tim atau Kepala BPS dan kelola kewenangannya.</p></div>
     <button id="mpAccountsClose" type="button" aria-label="Tutup Kelola Akun">×</button></header>
     <div id="mpAccountsContent" class="mp-accounts-content"></div>
   </div>
-</dialog>`;
+</dialog>
+<dialog id="mpSimDialog" class="mp-sim-dialog" aria-labelledby="mpSimTitle">
+ <h2 id="mpSimTitle">Data Simulasi Matriks Pegawai</h2>
+ <p>Uji dengan <b>3 tim, 10 pegawai, 6 KRO, dan 8 kegiatan fiktif</b>. Semua perubahan hanya disimpan di browser ini, terpisah dari data biasa dan tidak dikirim ke Firestore.</p>
+ <p class="mp-sim-note">Muat ulang akan mengulang pengujian dari awal. Hapus membersihkan data uji browser dan kembali ke tampilan normal.</p>
+ <label class="mp-sim-check"><input id="mpSimConfirm" type="checkbox"> Saya setuju perubahan data uji sebelumnya dihapus.</label>
+ <div class="mp-sim-actions">
+  <button type="button" id="mpSimCancel">Batal</button>
+  <button type="button" id="mpSimClear" disabled>Hapus Data Simulasi</button>
+  <button type="button" id="mpSimLoad" disabled>Muat Data Simulasi</button>
+ </div>
+</dialog>
+<style>
+.mp-sim-dialog{width:min(510px,calc(100vw - 24px));border:1px solid #b9d4e8;border-radius:17px;padding:23px;background:#fff;color:#153e60;box-shadow:0 25px 80px #14365844;font:600 13px/1.65 Nunito,sans-serif}
+.mp-sim-dialog::backdrop{background:#0a294d9c}.mp-sim-dialog h2{margin:0 0 12px;font:900 20px Nunito,sans-serif;color:#175d95}
+.mp-sim-dialog p{margin:0 0 12px}.mp-sim-note{background:#eef7ff;border:1px solid #d1e7f6;border-radius:10px;padding:12px}
+.mp-sim-check{display:flex;align-items:flex-start;gap:10px;padding:9px 0;font-weight:800}.mp-sim-check input{margin-top:5px}
+.mp-sim-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px}
+.mp-sim-actions button{padding:9px 14px;border-radius:9px;border:1px solid #bfdaed;color:#175f97;background:#f4f9ff;font-weight:900}
+#mpSimLoad{background:#146ca9;color:#fff}#mpSimClear{color:#a52d45;background:#fff4f5;border-color:#edb6c2}
+</style>`;
 const $=id=>document.getElementById(id);
 function revealWelcome(){
  $("mpSplash").classList.add("is-done");
@@ -145,12 +167,14 @@ function addAuthenticatedHeader(html,user){
      <span class="mp-role-menu-label">Login Peran</span><strong id="mpCurrentRole">Mode Lihat</strong><span class="mp-role-caret" aria-hidden="true"></span>
    </button>
    <label id="mpAssignedTeamLabel" class="mp-assigned-team" hidden>Tim Aktif <select id="mpAssignedTeam" aria-label="Tim yang dikelola"></select></label>
-   <button id="mpManageAccounts" class="mp-accounts-trigger" type="button" hidden title="Kelola username, password dan tim Ketua Tim">Kelola Akun Akses</button>
+   <span class="mp-sim-tag" ${simulationMode?"":"hidden"}>DATA UJI · FIKTIF</span>
+   <button id="mpManageSimulation" class="mp-accounts-trigger" type="button" hidden>Data Simulasi</button>
+   <button id="mpManageAccounts" class="mp-accounts-trigger" type="button" hidden title="Kelola username, password dan peran">Kelola Akun Akses</button>
    <button id="mpRoleLogout" type="button" hidden title="Keluar dari sesi peran, kembali ke Mode Lihat">Keluar Peran</button>
    <button id="mpSignOut" type="button" title="Keluar dari akun Google BPS Blora">Keluar Google</button>
  </div>
  <dialog id="mpRoleDialog" class="mp-role-dialog" aria-labelledby="mpRoleDialogTitle">
-   <div class="mp-role-dialog-head"><div><small>AKSES PENGELOLA</small><h3 id="mpRoleDialogTitle">Login Sesuai Peran</h3><p>Masukkan username dan password Admin atau Ketua Tim sesuai kewenangan.</p></div><button type="button" id="mpRoleDismiss" class="mp-role-dismiss" aria-label="Tutup pilihan peran">×</button></div>
+   <div class="mp-role-dialog-head"><div><small>AKSES PENGELOLA</small><h3 id="mpRoleDialogTitle">Login Sesuai Peran</h3><p>Masukkan username dan password Admin, Ketua Tim, atau Kepala BPS sesuai kewenangan.</p></div><button type="button" id="mpRoleDismiss" class="mp-role-dismiss" aria-label="Tutup pilihan peran">×</button></div>
    <form id="mpRoleLoginForm">
      <div class="mp-role-dialog-body">
        <div class="mp-role-connected"><strong>Google BPS Blora · Mode Lihat</strong><small>Akses pengelolaan hanya terbuka setelah login peran berhasil diverifikasi.</small></div>
@@ -158,7 +182,7 @@ function addAuthenticatedHeader(html,user){
        <input id="mpRoleUsername" name="username" autocomplete="username" minlength="3" maxlength="32" required placeholder="Admin atau username Ketua Tim">
        <label for="mpRolePassword">Password Peran</label>
        <input id="mpRolePassword" name="password" type="password" autocomplete="current-password" required placeholder="Masukkan password peran">
-       <p class="mp-role-warning">${sparkRoleReady?'Login melalui Firebase Authentication paket Spark. Hak akses Admin dan Ketua Tim diperiksa oleh Firestore Security Rules.':'Layanan autentikasi peran belum aktif. Mode Lihat tetap tersedia.'}</p>
+       <p class="mp-role-warning">${sparkRoleReady?'Login melalui Firebase Authentication paket Spark. Hak akses Admin, Ketua Tim, dan Kepala BPS diperiksa oleh Firestore Security Rules.':'Layanan autentikasi peran belum aktif. Mode Lihat tetap tersedia.'}</p>
        <p id="mpRoleError" class="mp-role-error" role="alert"></p>
      </div>
      <div class="mp-role-dialog-foot"><button type="button" id="mpRoleCancel">Batal</button><button type="submit" id="mpRoleApply" ${roleLoginReady?'':'disabled'}>Masuk Peran</button></div>
@@ -283,6 +307,8 @@ function addAuthenticatedHeader(html,user){
    #mpCurrentRole::before{animation:none!important}
  }
 
+ .mp-sim-tag{padding:7px 10px;border-radius:9px;background:#fff2d9;border:1px solid #e9ca8d;color:#855500;font:900 10px Nunito,sans-serif;letter-spacing:.05em}
+ .mp-sim-tag[hidden]{display:none!important}
  .mp-accounts-trigger{
    display:inline-flex;align-items:center;justify-content:center;
    min-height:38px;padding:8px 12px;
