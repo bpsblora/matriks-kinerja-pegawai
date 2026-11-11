@@ -1715,6 +1715,28 @@ assert(matrixSource.includes("createLiveMatrixWorkspace(context,{functionsClient
  "Data matriks dan akun harus memakai Firebase Functions dengan identitas peran");
 // Spark is the preferred path. No Cloud Functions or Blaze is needed for
 // initial account login and Firebase-Security-Rules-backed Admin assignment.
+// Password policy for every new Ketua Tim/role password in Firebase Spark:
+// >=6 ASCII alphanumeric characters, containing both letters and digits.
+const roleCode=fs.readFileSync("src/sparkRoleAuth.js","utf8");
+const uiCode=fs.readFileSync("src/sparkAccessAdmin.js","utf8");
+const pwdFn=roleCode.match(/function validPassword\(value\)\{[\s\S]*?\n\}/)?.[0];
+const pwdUiFn=uiCode.match(/function passwordLengthOk\(value\)\{[\s\S]*?\n\}/)?.[0];
+assert(pwdFn&&pwdUiFn,"Spark harus mempunyai validasi password di backend logic dan UI");
+const checkPassword=vm.runInNewContext(pwdFn+"\nvalidPassword");
+const validUi=vm.runInNewContext(pwdUiFn+"\npasswordLengthOk");
+for(const pw of ["abc123","Ab12CD","A1b2c3d4","abc12345".repeat(9)]){
+ assert.equal(checkPassword(pw),pw,"Password alfanumerik sah harus diterima: "+pw);
+ assert.equal(validUi(pw),true,"UI harus setara dengan validasi Spark: "+pw);
+}
+for(const pw of ["","abc12","123456","abcdef","abc!23","abc 123","ab_123","éabc12","abc123456".repeat(9)]){
+ assert.throws(()=>checkPassword(pw),"Password lemah/di luar spesifikasi tidak boleh diterima: "+pw);
+ assert.equal(validUi(pw),false,"UI harus menolak password yang sama: "+pw);
+}
+assert(uiCode.includes('i.minLength=6;i.maxLength=72;')&&
+ uiCode.includes('Minimal 6 karakter; huruf dan angka saja')&&
+ uiCode.includes('Firestore Rules masih membatasi penulisan'),
+ "Form Tambah Akun/Reset Password harus menunjukkan batas baru dan error izin Firestore secara jelas");
+
 const sparkRoleSource=fs.readFileSync("src/sparkRoleAuth.js","utf8");
 const sparkAdminSource=fs.readFileSync("src/sparkAccessAdmin.js","utf8");
 const sparkRules=fs.readFileSync("firestore.spark.rules","utf8");
