@@ -275,6 +275,22 @@ function renderEstablishedTeams(){
  if(!el)return;
  el.classList.toggle('hidden',isBaseYear&&!yearSetup.staff?.confirmed);
  const {list,ready,missing}=establishedTeamSnapshot();
+ if(currentRole==='ketua'){
+  // Team leaders should see their OWN approval state, not a demand to
+  // establish the other 24 teams for the entire office.
+  const team=demoTeams.find(t=>String(t.id)===String(roleTeamId));
+  const status=teamReviewStatus(roleTeamId);
+  el.classList.add('own-status');
+  el.removeAttribute('tabindex');
+  el.removeAttribute('aria-label');
+  el.onclick=null;el.onkeydown=null;
+  el.innerHTML='<div class="team-summary-heading"><div><strong>Status Pengajuan Tim '+esc(team?.name||'Terpilih')+
+   '</strong><small>Pengajuan susunan tim akan ditinjau Kepala BPS.</small></div></div>'+
+   '<div class="team-status-count"><span class="team-review-status-badge '+esc(status)+'">'+
+    esc(teamReviewLabel(roleTeamId))+'</span></div>';
+  return;
+ }
+ el.classList.remove('own-status');
  el.setAttribute('aria-label','Buka Rincian Penetapan Tim '+activeYear);
  el.setAttribute('tabindex','0');
  el.innerHTML=`<div class="team-summary-heading">
