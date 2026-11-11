@@ -1722,7 +1722,7 @@ for(const token of [
  'throw Error("SPARK_PROFILE_MISSING:"+user.uid)',
  'throw Error("SPARK_PROFILE_INACTIVE:"+user.uid)',
  'throw Error("SPARK_PROFILE_ROLE_INVALID:"+user.uid)',
- 'throw Error("SPARK_PROFILE_USERNAME_INVALID:"+user.uid)',
+ 'throw Error("SPARK_PROFILE_USERNAME_INVALID:"+user.uid+":"',
  'throw Error("SPARK_PROFILE_EMAIL_MISMATCH:"+user.uid)',
  'const profile=validProfile(data,user);',
  'if(profile)return profile;'
@@ -1736,6 +1736,15 @@ for(const token of [
  'Password diterima Firebase.'
 ])assert(previewSource.includes(token),
  "Login Admin harus menampilkan UID Auth tanpa membocorkan password: "+token);
+
+assert(sparkRoleSource.includes('getDocFromServer(doc(roleDb,"sparkRoleProfiles",user.uid))'),
+ "Verifikasi peran harus membaca profil terkini dari server, bukan cache Firestore");
+assert(sparkRoleSource.includes('ch.codePointAt(0).toString(16).toUpperCase()'),
+ "Periksa karakter tersembunyi dalam username yang ditampilkan Firebase Console");
+assert(previewSource.includes('Nilai username yang benar-benar terbaca dari server berbeda')&&
+ previewSource.includes('Kode Unicode:')===false &&
+ previewSource.includes('kode Unicode:'),
+ "Pesan login harus menunjukkan diagnosis mismatch tanpa meminta password");
 
 const bootstrapLookup=sparkRoleSource.indexOf('if(name==="admin")return sparkLoginEmail(name);');
 const normalHandleLookup=sparkRoleSource.indexOf('const snap=await getDoc(doc(db,"sparkRoleHandles",name));');
