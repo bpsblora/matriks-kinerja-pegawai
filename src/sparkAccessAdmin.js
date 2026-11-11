@@ -68,7 +68,12 @@ export function createSparkAccessAdminView(teams=[]){
    status.textContent=success;
   }catch(error){
    busy=false;
-   say("Tidak berhasil: "+(error?.message||"Cek koneksi, akun Admin dan Firestore Rules."));
+   const code=String(error?.code||"");
+   const denied=code==="permission-denied"||code==="firestore/permission-denied"||
+    String(error?.message||"").includes("Missing or insufficient permissions");
+   say(denied?
+    "Belum dapat menyimpan akun: Firestore Rules masih membatasi penulisan. Login Admin sudah aktif, tetapi aturan khusus Kelola Akun belum diterapkan. Uji dan aktifkan firestore.spark.rules terlebih dahulu.":
+    "Tidak berhasil: "+(error?.message||"Cek koneksi dan izin akun Admin."));
   }
  }
  function validatePw(a,b){
@@ -140,6 +145,8 @@ export function createSparkAccessAdminView(teams=[]){
  function openMyPassword(){
   const body=n("div");body.className="account-fields";
   const old=passwordInput("Password saat ini");old.autocomplete="current-password";
+  // Password Admin lama boleh saja dibuat sebelum aturan minimum baru berlaku.
+  old.removeAttribute("minlength");old.removeAttribute("pattern");
   body.append(labelled("Password Saat Ini",old));
   const getPassword=newPasswordFields(body);
   body.append(button("Ubah Password Saya",()=>{
