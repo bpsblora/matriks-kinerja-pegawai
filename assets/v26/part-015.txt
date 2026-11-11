@@ -698,7 +698,26 @@ function refreshStageNav(){
 
 function yearRosterRecord(tid){return demoRoster[tid]||{leaderId:'',members:[]}}
 function equalIds(a,b){return [...new Set(a||[])].sort().join('|')===[...new Set(b||[])].sort().join('|')}
-function yearTeamReady(tid){if(isBaseYear)return true;return teamEstablishmentIssue(tid)===''}
+// A saved roster is a PROPOSAL, not approval by Kepala BPS.
+function teamReviewStatus(tid){
+ const saved=yearSetup.teams?.[tid];
+ if(!saved||teamEstablishmentIssue(tid)!=='')return 'incomplete';
+ if(saved.reviewStatus==='approved')return 'approved';
+ if(saved.reviewStatus==='returned')return 'returned';
+ if(saved.reviewStatus==='pending')return 'pending';
+ return isBaseYear?'reference':'pending'; // legacy local records are not Head approvals
+}
+function teamReviewLabel(tid){
+ const status=teamReviewStatus(tid);
+ return status==='approved'?'Disetujui Kepala BPS':
+  status==='pending'?'Menunggu Persetujuan Kepala BPS':
+  status==='returned'?'Dikembalikan Kepala BPS':
+  status==='reference'?'Susunan Tersimpan (Referensi)':'Belum Diajukan';
+}
+function yearTeamReady(tid){
+ if(isBaseYear)return true; // historical reference stays visible
+ return teamEstablishmentIssue(tid)===''&&teamReviewStatus(tid)==='approved';
+}
 /* Persetujuan tahunan mencakup SELURUH tim aktif, bukan hanya tim
    berkegiatan. Ketua wajib merupakan anggota dan semua identitas yang
    ditetapkan harus berasal dari Daftar Pegawai tahun berjalan. */
@@ -720,7 +739,8 @@ function teamEstablishmentIssue(tid){
 function annualTeamCompletion(){
  const all=demoTeams.filter(t=>t.active!==false);
  const pending=all.map(t=>({id:t.id,name:t.name,reason:teamEstablishmentIssue(t.id)})).filter(x=>x.reason);
- return {total:all.length,ready:all.length-pending.length,pending};
+ const awaiting=all.filter(t=>teamEstablishmentIssue(t.id)===''&&teamReviewStatus(t.id)!=='approved');
+ return {total:all.length,ready:all.length-pending.length,pending,awaiting};
 }
 /* Ketua Tim proposes their KRO allocation; only Admin can approve it.
    Request state belongs to the active-year workspace. 2026 historical
@@ -802,6 +822,8 @@ function renderYearSetup(){
  const allReady=isBaseYear?!!(yearSetup.staff?.confirmed&&yearSetup.staff.ids?.length):staffReady();
  const roNow=yearRosterRecord(tid),stageTeam=yearSetup.teams[tid];
  const teamOk=allReady&&teamEstablishmentIssue(tid)==='';
+ const headReview=teamReviewStatus(tid);
+ const headApproved=teamOk&&headReview==='approved';
  const kroOk=yearKroReady(tid),staffEditing=annualEditingStaff,teamEditing=annualEditingTeamId===tid,kroEditing=annualEditingKroId===tid;
  const prevReady=predecessorHasData(),canCentral=currentRole==='admin'||currentRole==='kepala',canTeam=roleCanManageTeam(tid),writable=yearInfo().status!=='closed';
  $('annualSetupTitle').textContent='Penetapan Pegawai dan Tim '+activeYear;
@@ -811,7 +833,8 @@ function renderYearSetup(){
  $('annualPreviousInfo').className='annual-source '+(prevReady?'':'annual-warning');
  $('annualStaffState').textContent=allReady&&!staffEditing?'✓ Ditetapkan · '+yearSetup.staff.ids.length+' pegawai':'1. Perlu penetapan';
  const progress=annualTeamCompletion();
- $('annualTeamState').textContent=progress.ready+' / '+progress.total+' Tim Ditetapkan';
+ $('annualTeamState').textContent=currentRole==='ketua'&&teamOk?
+  teamReviewLabel(tid):progress.ready+' / '+progress.total+' Tim Sudah Mengajukan';
  $('annualKroState').textContent=kroOk&&!kroEditing?'✓ Disetujui Admin':kroApprovalStatus(tid)==='pending'?'Menunggu Persetujuan Admin':'3. Perlu pengajuan';
  const steps=panel.querySelectorAll('.annual-step');
  steps.forEach((step,i)=>{const done=[allReady&&!staffEditing,teamOk&&!teamEditing,kroOk&&!kroEditing][i];const current=i===0?!done:(i===1?allReady&&!staffEditing&&!done:teamOk&&!teamEditing&&!done);const locked=(i===1&&!allReady)||(i===2&&!teamOk);step.classList.toggle('is-done',done);step.classList.toggle('is-current',current);step.classList.toggle('is-locked',locked)});
@@ -844,14 +867,21 @@ function renderYearSetup(){
  teamStage.classList.toggle('is-confirmed',progress.total>0&&progress.pending.length===0);
  $('teamAdminGrid')?.querySelector('.team-roster-heading')?.classList.toggle('is-confirmed',teamComplete);
  $('teamAdminGrid')?.querySelector('.team-roster-heading')?.classList.toggle('is-editing',teamEditing);
- $('annualTeamStatusNote').textContent=!allReady?'Tetapkan Daftar Pegawai terlebih dahulu.':progress.ready+' dari '+progress.total+' Tim Aktif sudah ditetapkan. Pilih tim di bawah untuk memeriksa atau mengubah susunannya.';
+ $('annualTeamStatusNote').textContent=!allReady?'Tetapkan Daftar Pegawai terlebih dahulu.':
+  currentRole==='ketua'&&teamOk?
+   (headReview==='pending'?'Susunan Tim '+(demoTeams.find(t=>t.id===tid)?.name||'ini')+' telah diajukan. Menunggu peninjauan dan persetujuan Kepala BPS.':headReview==='approved'?'Susunan tim telah disetujui Kepala BPS.':headReview==='returned'?'Susunan tim dikembalikan Kepala BPS. Perbaiki dan ajukan ulang.':'Susunan tim telah disimpan sebagai referensi '+activeYear+'.'):
+  currentRole==='ketua'?'Lengkapi susunan tim Anda, kemudian ajukan untuk ditinjau Kepala BPS.':
+  progress.ready+' dari '+progress.total+' Tim Aktif sudah memiliki susunan. Pengesahan akhir menunggu Kepala BPS.';
  $('teamAdminSelectedName')?.setAttribute('aria-label','Tim terpilih: '+(demoTeams.find(t=>t.id===tid)?.name||'Tim'));
- $('annualTeamSummary').textContent=teamComplete?'✓ Ditetapkan · '+(ro.members||[]).length+' Anggota':teamEditing?'Sedang Mengubah':'Belum Ditetapkan';
- $('annualTeamSummary').classList.toggle('is-pending',!teamComplete&&!teamEditing);
+ $('annualTeamSummary').textContent=teamComplete?
+  (headReview==='pending'?'◷ Menunggu Kepala BPS · ':headReview==='approved'?'✓ Disetujui Kepala BPS · ':headReview==='returned'?'↻ Perlu Perbaikan · ':'✓ Susunan Tersimpan · ')+(ro.members||[]).length+' Anggota':
+  teamEditing?'Sedang Mengubah':'Belum Diajukan';
+ $('annualTeamSummary').classList.toggle('is-pending',headReview==='pending'||headReview==='returned'||!teamComplete&&!teamEditing);
  $('annualCopyRoster').classList.toggle('hidden',teamComplete||isBaseYear);
  // The lower action slot only contains the optional copy action now.
  // Hide the entire slot when it is unavailable to avoid a blank spacer.
  $('teamRosterActionSlot')?.classList.toggle('hidden',teamComplete||isBaseYear);
+ $('annualConfirmTeam').textContent=currentRole==='ketua'?'↗ Ajukan Susunan Tim':'↗ Kirim Susunan untuk Persetujuan Kepala BPS';
  $('annualConfirmTeam').classList.toggle('hidden',teamComplete);
  $('annualConfirmTeam').disabled=!allReady||!canTeam||!writable;
  $('annualEditTeam').classList.toggle('hidden',!teamComplete||!canTeam||!writable);
@@ -861,15 +891,16 @@ function renderYearSetup(){
  $('teamAdminMemberSearch').disabled=rosterLocked;
  $('teamAdminMembers').querySelectorAll('input[data-team-member]').forEach(input=>{input.disabled=rosterLocked||input.dataset.inactive==='true';});
  // Pengelolaan tim dan KRO adalah dua langkah berbeda. KRO tidak boleh tampil sebelum susunan tim selesai.
- const kroStage=$('annualKroStage');kroStage.classList.toggle('is-locked',!teamOk||teamEditing||staffEditing);
- kroStage.classList.toggle('hidden',!teamOk||teamEditing||staffEditing);
+ const canProceedKro=teamOk&&(isBaseYear||headApproved);
+ const kroStage=$('annualKroStage');kroStage.classList.toggle('is-locked',!canProceedKro||teamEditing||staffEditing);
+ kroStage.classList.toggle('hidden',!canProceedKro||teamEditing||staffEditing);
  const kroComplete=kroOk&&!kroEditing;
  kroStage.classList.toggle('is-complete',kroComplete);
  $('annualKroPanelSlot').classList.toggle('is-complete',kroComplete);
  $('annualKroSummary').classList.toggle('hidden',!kroComplete);
  $('annualKroSummary').textContent=kroComplete?'✓ '+nf((yearSetup.kros[tid]||teamKroCodes(tid)).length)+' KRO disetujui untuk tim ini.':kroApprovalStatus(tid)==='pending'?'Pengajuan KRO sedang menunggu persetujuan Admin.':'';
  $('annualConfirmKro').classList.toggle('hidden',kroComplete);
- $('annualConfirmKro').disabled=!teamOk||!canTeam||!writable||kroApprovalStatus(tid)==='pending';
+ $('annualConfirmKro').disabled=!canProceedKro||!canTeam||!writable||kroApprovalStatus(tid)==='pending';
  $('annualEditKro').classList.toggle('hidden',!kroComplete||!canTeam||!writable);
  $('annualGoInput').classList.toggle('hidden',!kroComplete);
  $('annualKroNote').textContent=kroApprovalStatus(tid)==='pending'?'Pengajuan telah dikirim. Tunggu persetujuan Admin sebelum melanjutkan Input Alokasi.':activeYear>2027?'Periksa kode POK '+activeYear+' sebelum mengajukan.':'Pilih KRO berdasarkan POK tahun berjalan; Admin menyetujui pengajuan Ketua Tim.';
@@ -914,14 +945,35 @@ function confirmTeamYear(){
  if(saveTeamAdmin()!==true)return;
  const ro=yearRosterRecord(tid);
  if(!ro.leaderId||!(ro.members||[]).length)return;
- yearSetup.teams[tid]={leaderId:ro.leaderId,members:[...ro.members].sort(),at:new Date().toISOString(),by:roleActor()};
+ // Ketua Tim submits a proposal; only a separate Kepala BPS action can approve.
+ yearSetup.teams[tid]={leaderId:ro.leaderId,members:[...ro.members].sort(),at:new Date().toISOString(),by:roleActor(),
+  reviewStatus:'pending',submittedAt:new Date().toISOString(),submittedBy:roleActor(),reviewedAt:'',reviewedBy:'',reviewNote:''};
  // Perubahan keanggotaan tidak membatalkan KRO yang dimiliki tim.
- annualEditingTeamId=null;storeYearSetup();logChange('Tetapkan susunan tim '+activeYear,teamMap.get(tid)?.name||tid);persist();renderTeamAdminPage();
- toast(isBaseYear?'Susunan tim 2026 ditetapkan. Pilih tim lain untuk melanjutkan penetapan.':'Susunan tim ditetapkan. Berikutnya pilih KRO di menu Pembagian KRO.');
- if(isBaseYear)return;
- selectedTeam=tid;const main=$('kroBoardMain');if(main)main.dataset.team='';setPage('kro');
+ annualEditingTeamId=null;storeYearSetup();
+ logChange('Ajukan Susunan Tim '+activeYear,(teamMap.get(tid)?.name||tid)+' · Menunggu Persetujuan Kepala BPS');
+ persist();renderTeamAdminPage();
+ toast('Susunan Tim '+(teamMap.get(tid)?.name||tid)+' berhasil diajukan. Menunggu Peninjauan dan Persetujuan Kepala BPS.');
+ // Do not send the Ketua to another team or to KRO before Head approval.
+ return;
 }
-async function confirmKroYear(){
+async /* Head approval is intentionally separate from Admin and Ketua submissions.
+   This only models local prototype review until the shared Matrix database
+   and Kepala BPS role account are connected. */
+function decideTeamProposal(tid,approved,note=''){
+ if(currentRole!=='kepala'||yearInfo().status==='closed')return false;
+ const rec=yearSetup.teams?.[tid];
+ if(!rec||teamReviewStatus(tid)!=='pending'||teamEstablishmentIssue(tid)!=='')return false;
+ rec.reviewStatus=approved?'approved':'returned';
+ rec.reviewedAt=new Date().toISOString();
+ rec.reviewedBy=roleActor();
+ rec.reviewNote=String(note||'').trim();
+ storeYearSetup();
+ logChange((approved?'Setujui':'Kembalikan')+' Susunan Tim '+activeYear,teamMap.get(tid)?.name||tid);
+ persist();
+ renderTeamAdminPage();
+ return true;
+}
+function confirmKroYear(){
  const tid=currentRole==='ketua'?roleTeamId:$('teamAdminSelect').value;
  if(!roleCanManageTeam(tid)||yearInfo().status==='closed')return;
  if(kroApprovalStatus(tid)==='pending')return toast('Pengajuan KRO sedang menunggu persetujuan Admin.');
