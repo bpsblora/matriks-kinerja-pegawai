@@ -1839,7 +1839,7 @@ for(const token of [
  'updatePassword(user,newPassword)'
 ])assert(sparkRoleSource.includes(token),"Spark Auth/Firestore untuk edit/reset akun belum lengkap: "+token);
 for(const token of [
- 'createSparkKetuaAccount({username:name,password:pw,teamIds:tids})',
+ 'createSparkRoleAccount({username:name,password:pw,role:role.value,teamIds})',
  'updateSparkAccount(account.uid,{',
  'resetSparkAccountPassword(account.uid,pw)',
  'changeSparkOwnPassword(current,next)',
@@ -1848,17 +1848,33 @@ for(const token of [
  'function openReset(account){',
  'const username=n("input");username.value=account.username;'
 ])assert(sparkAdminSource.includes(token),"Admin harus bisa mengedit username dan mengganti password: "+token);
+// Kepala BPS must be created by Admin, have no assigned team, and retain
+// its role during password rotation. No direct matrix rights are granted.
+for(const token of [
+ 'if(role==="kepala"&&(!Array.isArray(teamIds)||teamIds.length))',
+ 'role:old.role',
+ 'if(!["ketua_tim","kepala"].includes(snap.data().role))'
+])assert(sparkRoleSource.includes(token),"Kepala BPS tidak mengikuti pembatasan peran: "+token);
+for(const token of [
+ '["ketua_tim","Ketua Tim"],["kepala","Kepala BPS"]',
+ 'if(a.role==="ketua_tim"||a.role==="kepala")'
+])assert(sparkAdminSource.includes(token),"Menu Kepala BPS belum terhubung: "+token);
+for(const token of [
+ "function validAccountTeams(role,ids)",
+ "role == 'kepala' && ids is list && ids.size() == 0",
+ "validAccountTeams(resource.data.role,request.resource.data.teamIds)"
+])assert(sparkRules.includes(token),"Rules Kepala BPS belum aman: "+token);
 assert(sparkConfig.firestore.rules==="firestore.spark.rules");
 for(const token of [
  "match /sparkRoleProfiles/{uid}",
  "match /sparkRoleHandles/{username}",
  "function isAdmin()",
- "allow create: if isAdmin() && validKetuaAccount()",
+ "allow create: if isAdmin() && validRoleAccount()",
  "allow update: if isAdmin()",
  "getAfter(handlePath(username))",
  "getAfter(profilePath(request.resource.data.uid))",
  "batch",
- "resource.data.role == 'ketua_tim'",
+ "resource.data.role in ['ketua_tim','kepala']",
  "allow delete: if false;",
  "allow read, write: if false;"
 ].filter(t=>t!=="batch"))assert(sparkRules.includes(token),"Spark Firestore Rules akun belum aman: "+token);
