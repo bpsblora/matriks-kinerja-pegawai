@@ -1770,7 +1770,7 @@ for(const token of [
 for(const token of [
  'signInWithEmailAndPassword(sparkRoleAuth,loginEmail,password)',
  'getDoc(doc(db,"sparkRoleHandles",name))',
- 'getDoc(doc(roleDb,"sparkRoleProfiles",user.uid))',
+ 'getDocFromServer(doc(roleDb,"sparkRoleProfiles",user.uid))',
  'writeBatch(roleDb)',
  'batch.set(profileDoc(uid)',
  'batch.set(handleDoc(name)',
