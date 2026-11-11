@@ -73,6 +73,21 @@ window.setTimeout(()=>{
 function sparkLoginErrorText(error,username){
  const code=String(error?.code||"");
  const message=String(error?.message||"");
+ if(message.startsWith("SPARK_PROFILE_")){
+  const [reason,uid]=message.split(":");
+  const ref="UID Authentication: "+(uid||"tidak diketahui")+". ";
+  if(reason==="SPARK_PROFILE_MISSING")
+   return "Password diterima Firebase. "+ref+"Dokumen sparkRoleProfiles/{UID} tidak ditemukan. Cocokkan Document ID Firestore dengan UID ini persis, termasuk huruf besar/kecil dan karakter I/l/1.";
+  if(reason==="SPARK_PROFILE_INACTIVE")
+   return "Password diterima Firebase. "+ref+"Field active pada profil harus bertipe Boolean true.";
+  if(reason==="SPARK_PROFILE_ROLE_INVALID")
+   return "Password diterima Firebase. "+ref+"Field role tidak valid. Untuk Admin, gunakan string admin.";
+  if(reason==="SPARK_PROFILE_USERNAME_INVALID")
+   return "Password diterima Firebase. "+ref+"Field username harus berupa string admin.";
+  if(reason==="SPARK_PROFILE_EMAIL_MISMATCH")
+   return "Password diterima Firebase. "+ref+"Email internal di profil tidak sesuai dengan akun Authentication. Periksa konfigurasi loginEmail bila ada.";
+  return "Password diterima Firebase. "+ref+"Profil peran tidak sesuai format. Periksa tipe dan isi field-nya.";
+ }
  if(code==="permission-denied"||code==="firestore/permission-denied"){
   return "Login belum selesai: Firestore menolak pembacaan profil. Aturan firestore.spark.rules belum diterapkan atau akun tidak memiliki izin. Jangan ubah password dahulu.";
  }
