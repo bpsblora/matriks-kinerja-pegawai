@@ -187,7 +187,7 @@ function establishedTeamSnapshot(){
   // Finalisasi; avoid 25/25 here while annual approval says 4/25.
   const reason=teamEstablishmentIssue(t.id);
   const complete=reason==='';
-  return {t,ro,ids,complete,reason};
+  return {t,ro,ids,complete,reason,review:teamReviewStatus(t.id)};
  });
  return {list,ready:list.filter(x=>x.complete),missing:list.filter(x=>!x.complete),employeeName};
 }
@@ -216,11 +216,11 @@ function renderEstablishedTeamDialog(){
   '<button type="button" class="btn tiny soft" data-team-summary-edit="'+esc(String(x.t.id))+'">'+label+'</button>':'';
  const listMarkup=showingReady?
   (ready.length?
-   '<div class="team-summary-ready">'+ready.map(x=>'<article class="team-summary-item"><div class="team-summary-item-top"><div><strong>'+esc(x.t.name)+'</strong><span class="team-summary-state ready">Sudah Ditetapkan</span></div>'+action(x,'Lihat / Edit Tim')+'</div><p>Ketua: <b>'+esc(employeeName(x.ro.leaderId))+'</b> · '+x.ids.length+' Anggota</p><details><summary>Lihat Anggota ('+x.ids.length+')</summary><div class="team-summary-members">'+x.ids.map(employeeName).map(esc).join(', ')+'</div></details></article>').join('')+'</div>':
+   '<div class="team-summary-ready">'+ready.map(x=>'<article class="team-summary-item"><div class="team-summary-item-top"><div><strong>'+esc(x.t.name)+'</strong><span class="team-summary-state ready">${esc(x.review==='pending'?'Menunggu Kepala BPS':x.review==='approved'?'Disetujui Kepala BPS':x.review==='returned'?'Perlu Perbaikan':'Susunan Tersimpan')}</span></div>'+action(x,'Lihat / Ubah Susunan')+'</div><p>Ketua: <b>'+esc(employeeName(x.ro.leaderId))+'</b> · '+x.ids.length+' Anggota</p><details><summary>Lihat Anggota ('+x.ids.length+')</summary><div class="team-summary-members">'+x.ids.map(employeeName).map(esc).join(', ')+'</div></details></article>').join('')+'</div>':
    '<p class="team-summary-empty">Belum ada tim yang selesai ditetapkan.</p>'):
   (missing.length?
    '<div class="team-summary-pending-list">'+missing.map(x=>'<article class="team-summary-pending-row"><div><strong>'+esc(x.t.name)+'</strong><small>'+esc(x.reason||'Susunan tim belum ditetapkan lengkap')+'</small></div>'+action(x,'Lengkapi Tim')+'</article>').join('')+'</div>':
-   '<p class="team-summary-complete">✓ Seluruh tim aktif sudah ditetapkan. Tidak ada tim yang perlu dilengkapi.</p>');
+   '<p class="team-summary-complete">✓ Seluruh susunan tim aktif sudah terkumpul. Peninjauan Kepala BPS dilakukan terpisah.</p>');
  dialog.innerHTML=`<div class="team-establishment-shell">
   <header class="team-establishment-head">
    <div><span class="team-establishment-eyebrow">PENETAPAN SUSUNAN TIM</span>
@@ -232,15 +232,15 @@ function renderEstablishedTeamDialog(){
   <div class="team-establishment-toolbar">
    <span class="team-establishment-total">${list.length} Tim Aktif</span>
    <div class="team-status-count" role="group" aria-label="Filter status penetapan tim">
-    <button type="button" class="team-status-filter ${showingReady?'is-active':''}" data-team-summary-dialog-filter="ready" aria-pressed="${showingReady}">✓ ${ready.length} Tim Ditetapkan</button>
+    <button type="button" class="team-status-filter ${showingReady?'is-active':''}" data-team-summary-dialog-filter="ready" aria-pressed="${showingReady}">✓ ${ready.length} Tim Disusun</button>
     <button type="button" class="team-status-filter ${showingReady?'':'is-active'}" data-team-summary-dialog-filter="pending" aria-pressed="${!showingReady}">◷ ${missing.length} Tim Belum Lengkap</button>
    </div>
   </div>
   <div class="team-establishment-scroll" id="teamSummaryDialogList" role="region" aria-label="Daftar status penetapan tim" tabindex="0">
-   <div class="team-summary-subheading">${showingReady?'Tim yang Sudah Ditetapkan · '+ready.length:'Tim yang Perlu Dilengkapi · '+missing.length}</div>
+   <div class="team-summary-subheading">${showingReady?'Tim yang Sudah Disusun · '+ready.length:'Tim yang Perlu Dilengkapi · '+missing.length}</div>
    ${listMarkup}
   </div>
-  <footer class="team-establishment-foot">Tim nonaktif tidak termasuk hitungan persetujuan akhir. Perubahan anggota harus ditetapkan ulang.</footer>
+  <footer class="team-establishment-foot">Tim nonaktif tidak termasuk hitungan. Pengajuan susunan tim belum berarti sudah disetujui Kepala BPS.</footer>
  </div>`;
  $('establishedTeamDialogClose').onclick=()=>dialog.close();
  dialog.querySelectorAll('[data-team-summary-dialog-filter]').forEach(btn=>btn.onclick=()=>{
@@ -278,11 +278,11 @@ function renderEstablishedTeams(){
  el.setAttribute('aria-label','Buka Rincian Penetapan Tim '+activeYear);
  el.setAttribute('tabindex','0');
  el.innerHTML=`<div class="team-summary-heading">
-   <div><strong>Ringkasan Seluruh Tim</strong><small>Klik status untuk melihat rincian penetapan.</small></div>
+   <div><strong>Ringkasan Seluruh Tim</strong><small>Klik status untuk memeriksa susunan tim dan proses persetujuan.</small></div>
    <button type="button" class="team-summary-open-hint" data-team-summary-open aria-haspopup="dialog" aria-controls="establishedTeamDialog">Lihat Rincian <span aria-hidden="true">↗</span></button>
   </div>
   <div class="team-status-count" role="group" aria-label="Buka rincian berdasarkan status">
-   <button type="button" class="team-status-filter" data-team-summary-filter="ready" aria-haspopup="dialog" aria-controls="establishedTeamDialog">✓ ${ready.length} Tim Ditetapkan</button>
+   <button type="button" class="team-status-filter" data-team-summary-filter="ready" aria-haspopup="dialog" aria-controls="establishedTeamDialog">✓ ${ready.length} Tim Disusun</button>
    <button type="button" class="team-status-filter" data-team-summary-filter="pending" aria-haspopup="dialog" aria-controls="establishedTeamDialog">◷ ${missing.length} Tim Belum Lengkap</button>
   </div>`;
  el.querySelector('[data-team-summary-open]').onclick=event=>{
@@ -360,7 +360,7 @@ function renderTeamPickerSummary(){
  const ro=demoRoster[tid]||{members:[]};
  $('teamPickerCurrentName').textContent=team?.name||'Belum Ada Tim Dipilih';
  const memberCount=(ro.members||[]).length;
- const status=team?.active===false?'Nonaktif':teamEstablishmentIssue(tid)===''?'Sudah Ditetapkan':'Belum Ditetapkan';
+ const status=team?.active===false?'Nonaktif':teamReviewLabel(tid);
  $('teamPickerCurrentMeta').textContent=team?
   nf(memberCount)+' Anggota · '+status+' · Tahun '+activeYear:
   'Pilih tim aktif melalui tombol di bawah.';
@@ -396,7 +396,7 @@ function renderTeamDirectory(){
    hasActivities=activities.some(a=>String(a.team_id)===String(t.id)),
    inactive=t.active===false,editing=editingTeamNameId===String(t.id);
   const teamIssue=inactive?'':teamEstablishmentIssue(t.id);
-  const stateLabel=inactive?'Nonaktif':teamIssue?'Belum Ditetapkan':'Sudah Ditetapkan';
+  const stateLabel=inactive?'Nonaktif':teamReviewLabel(t.id);
   const activityLabel=hasActivities?'Memiliki Kegiatan':'Belum Ada Kegiatan';
   const actionLabel=inactive?'Aktifkan':reason?'Nonaktifkan':'Hapus';
   const blocked=!!(yearInfo().status==='closed'||(!inactive&&activeTeamList().length<=1));
@@ -568,6 +568,7 @@ function renderTeamWorkflow(){
  const confirmed=!!(stage&&teamEstablishmentIssue(tid)==='');
  const editing=annualEditingTeamId===tid;
  const draftChanged=!equalIds([...selectedMembers],roster.members||[])||(($('teamAdminLeader')?.value||'')!==(roster.leaderId||''));
+ const review=teamReviewStatus(tid);
  const ready=confirmed&&staffReady()&&!editing&&!draftChanged;
  const leader=$('teamAdminLeader')?.value||'';
  const canWrite=(currentRole==='admin'||currentRole==='kepala'||currentRole==='ketua'&&roleTeamId===tid)&&yearInfo().status!=='closed';
@@ -578,7 +579,10 @@ function renderTeamWorkflow(){
   !staffReady()?'Tetapkan Daftar Pegawai di bagian atas sebelum menetapkan Susunan Tim.':
   currentRole==='ketua'&&!roster.leaderId?'Ketua belum ditunjuk. Hubungi Admin/Kepala BPS untuk menetapkan Ketua terlebih dahulu.':
   editing?'Mode Ubah Susunan Tim. Sesuaikan ketua/anggota, lalu klik Tetapkan Susunan Tim atau Batal Mengubah.':
-  ready?'Susunan tim sudah ditetapkan. Klik Ubah Susunan Tim untuk memperbarui anggota tanpa menghilangkan riwayat alokasi.':
+  ready&&review==='pending'?'Susunan Tim '+team.name+' sudah diajukan dan sedang menunggu peninjauan Kepala BPS.':
+  ready&&review==='approved'?'Susunan tim disetujui Kepala BPS. Klik Ubah Susunan Tim untuk mengajukan perubahan baru.':
+  ready&&review==='returned'?'Susunan tim dikembalikan Kepala BPS. Klik Ubah Susunan Tim untuk memperbaiki dan mengajukan ulang.':
+  ready?'Susunan tim sudah tersimpan sebagai referensi '+activeYear+'. Klik Ubah Susunan Tim jika perlu memperbarui anggota.':
   !leader||!selectedMembers.size?'Pilih Ketua Tim dan centang minimal satu Anggota, lalu klik Tetapkan Susunan Tim pada bagian atas panel ini.':
   'Ketua dan '+nf(selectedMembers.size)+' Anggota sudah dipilih. Gunakan Tetapkan Susunan Tim pada bagian atas untuk menyimpan.';
  $('teamOverviewCount').textContent=nf(groups.length)+' Kegiatan · '+nf(activeTasks.length)+' Uraian';
@@ -606,9 +610,11 @@ function renderTeamWorkflow(){
   goInput.textContent=issue?'Lihat Persyaratan Pengelolaan →':'Kelola Kegiatan dan Alokasi →';
   goInput.title=issue||'Buka Input Alokasi untuk Tim '+team.name;
  }
- $('teamNextHint').textContent=issue?
-  'Pengelolaan belum tersedia: '+issue:
-  'Penetapan lengkap. Kegiatan dapat dikelola melalui Input Alokasi; pegawai di luar tim tetap dapat ditugaskan.';
+ $('teamNextHint').textContent=review==='pending'?
+  'Susunan tim telah diajukan. Menunggu peninjauan dan persetujuan Kepala BPS.':
+  review==='returned'?'Perbaiki susunan tim dan ajukan ulang untuk persetujuan Kepala BPS.':
+  issue?'Pengelolaan belum tersedia: '+issue:
+  'Kegiatan dapat dikelola melalui Input Alokasi; pegawai di luar tim tetap dapat ditugaskan.';
  const heading=$('teamOverviewHeading');if(heading)heading.textContent=(isBaseYear?'03':'04')+' · Ringkasan Kegiatan Tim';
 }
 /* Two-way leader/member validation.
@@ -668,7 +674,7 @@ function renderTeamAdminPage(){
  $('teamAdminCount').textContent=nf(activeTeamList().length);$('teamAdminMemberCount').textContent=nf(adminMemberWorking.size);$('teamAdminKroCount').textContent=nf(selectedKroCodes.size);
  $('teamAdminDelete').disabled=!isCentral||activities.some(a=>a.team_id===tid);
  $('teamAdminAccess').textContent=isCentral?'Pilih satu tim, kemudian atur susunan anggotanya di panel sebelah.':'Pilih tim yang menjadi tanggung jawab Anda.';
- $('teamAdminScope').textContent=isCentral?'Ketua Tim menetapkan anggotanya per tim. Admin/Kepala memeriksa seluruh penetapan sebelum persetujuan akhir.':'Anda bertanggung jawab menetapkan anggota tim sendiri. Ketua yang ditunjuk harus ikut sebagai anggota.';
+ $('teamAdminScope').textContent=isCentral?'Periksa ketua dan anggota tim. Susunan yang diajukan menunggu persetujuan Kepala BPS.':'Tentukan anggota tim Anda, kemudian ajukan susunan untuk ditinjau Kepala BPS.';
  $('teamAdminKroNote').textContent=activeYear===2026?'Kegiatan tanpa KRO dapat ditata kembali di Input Alokasi.':'Setiap KRO yang dipilih wajib memiliki sedikitnya satu kegiatan aktif pada tahun ini.';
  $('teamAdminMeta').textContent=teamDeletionReason(tid)?'Tidak dapat dihapus: '+teamDeletionReason(tid)+'. Gunakan Nonaktifkan agar riwayat tetap tersimpan.':'Tim ini kosong, belum memiliki alokasi dan dapat dihapus. Pastikan penetapan tim sudah sesuai.';
  renderKroAudit();renderYearSetup();renderEstablishedTeams();renderTeamDirectory();renderTeamWorkflow();renderTeamPickerSummary();
@@ -824,8 +830,7 @@ function applyRolePermissions(){
  $('accessTitle').textContent=currentRole==='pegawai'?'Akses Lihat — seluruh pegawai dapat memantau':currentRole==='ketua'?'Akses Edit — Ketua Tim '+(teamMap.get(roleTeamId)?.name||''):'Akses Edit — '+(currentRole==='kepala'?'Kepala BPS':'Admin');
  $('accessDesc').textContent=currentRole==='pegawai'?'Monitoring dapat dilihat tanpa login. Masuk Edit untuk mengelola alokasi.':currentRole==='ketua'?'Edit hanya untuk tim yang ditugaskan. Monitoring seluruh pegawai tetap dapat dilihat.': 'Kelola seluruh tim. Perubahan disimpan di browser ini, belum tersinkronisasi.';
  document.body.classList.toggle('role-readonly',currentRole==='pegawai');
- $('btnExport').disabled=false;
- $('historyExport').disabled=false;
+
  $('btnLoginEdit').classList.toggle('hidden',currentRole!=='pegawai');
  $('btnLogout').classList.toggle('hidden',currentRole==='pegawai');
  $('btnRoster').classList.add('hidden');
