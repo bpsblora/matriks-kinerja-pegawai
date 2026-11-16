@@ -484,14 +484,78 @@ const recommendStart=inline.indexOf("const KRO_SIMILAR_STOP=");
 const recommendEnd=inline.indexOf("function suggestedKroForTeam(k,tid){",recommendStart);
 assert(recommendStart>=0&&recommendEnd>recommendStart,"Rekomendasi KRO berdasar nama tidak ditemukan");
 const recCtx={
- activeYear:2027,
- groupList:()=>[["Perencanaan Konsumsi Pangan",[]]],
- KRO_2026_REFERENCE:[],
- REKOMENDASI_KRO_LINTAS_TIM:{},
+ activeYear:2027,previousYear:2026,firstYear:2026,isBaseYear:false,
+ groupList:()=>[],groupName:a=>a.group,
+ previousActivities:[{team_id:'T1',group:'Perencanaan Konsumsi Pangan'}],
+ annualKroCatalog:()=>[],
+ previousSetup:null,previousTeams:null,REKOMENDASI_KRO_LINTAS_TIM:{},
 };
 const rec=vm.runInNewContext(inline.slice(recommendStart,recommendEnd)+";kroRecommendation({code:'2027.AAA.001',name:'Perencanaan Konsumsi Pangan'},'T1')",recCtx);
 assert.equal(rec.label,"Nama Kegiatan Sesuai","Saran KRO perlu mengikuti kesamaan Nama Kegiatan");
 assert(rec.reason.includes("POK 2027"),"Rekomendasi harus menegaskan penetapan berdasarkan POK tahun berjalan");
+
+const annualStart=inline.indexOf("const BASE=JSON.parse");
+const annualEnd=inline.indexOf("const STANDARDS=",annualStart);
+const catalogStart=inline.indexOf("const POK_2026=");
+const catalogEnd=inline.indexOf("function saveKroMaster()",catalogStart);
+const setupAnnualReferences=(year,saved={})=>vm.runInNewContext(
+ inline.slice(annualStart,annualEnd)+inline.slice(catalogStart,catalogEnd)+
+ inline.slice(recommendStart,recommendEnd)+
+ ";({activities:BASE.activities,previousActivities,POK_KROS,prior:previousYearKroReference('T1')})",
+ {
+  document:{getElementById:id=>({textContent:JSON.stringify({seed,kroSeed:kro,kro2027Seed:kro2027}[id])})},
+  localStorage:{getItem:key=>key==="bps-blora-matriks-selected-year-v14"?String(year):saved[key]&&JSON.stringify(saved[key])}
+ });
+const baseYear=setupAnnualReferences(2026);
+assert.equal(baseYear.activities.length,seed.activities.length);
+assert.equal(baseYear.POK_KROS.length,kro.kros.length);
+const fromExcel=setupAnnualReferences(2027);
+assert.equal(fromExcel.activities.length,0);
+assert.equal(fromExcel.previousActivities.length,seed.activities.filter(a=>a.status==='aktif').length);
+assert.equal(fromExcel.POK_KROS.length,kro2027.kros.length);
+const approved2027=kro2027.kros[0];
+const from2027=setupAnnualReferences(2028,{
+ "bps-blora-year-setup-v17-2027":{kros:{T1:[approved2027.code]},kroRequests:{T1:{status:"approved"}}},
+ "bps-blora-matriks-pegawai-annual-v14-2027":{
+  added:[{id:"A1",team_id:"T1",status:"aktif"},{id:"A2",team_id:"T1",status:"aktif"}],
+  activityEdits:{A1:{group:"Nama Terbaru"},A2:{status:"nonaktif"}}
+ }
+});
+assert.equal(from2027.POK_KROS.length,0,"POK 2027 tidak boleh menjadi daftar induk 2028");
+assert.equal(from2027.prior[0].code,approved2027.code,"Gunakan katalog bawaan 2027 jika daftar induk belum pernah diubah");
+assert.equal(from2027.previousActivities.length,1);
+assert.equal(from2027.previousActivities[0].group,"Nama Terbaru");
+const fromLegacy2028=setupAnnualReferences(2029,{
+ "bps-blora-year-setup-v17-2028":{kros:{T1:[approved2027.code]}},
+});
+assert.equal(fromLegacy2028.prior[0].code,approved2027.code,"Pertahankan penetapan tahunan lama pada katalog historis");
+assert.equal(fromLegacy2028.POK_KROS.length,0);
+const bulkStart=inline.indexOf("function buildPreviousTeamReuse(");
+const bulkEnd=inline.indexOf("function reusePreviousTeamActivities(",bulkStart);
+const sourceRows=[
+ {id:"OLD1",team_id:"T1",group:"Pelatihan",description:"Briefing",unit:"Kegiatan",standard_hours:2,annual_volume:5},
+ {id:"OLD2",team_id:"T1",group:"Pelatihan",description:"Demo",unit:"Kegiatan"},
+ {id:"OLD3",team_id:"T2",group:"Pendataan",description:"Kunjungan",unit:"Responden"},
+];
+const reuseContext={
+ previousActivities:sourceRows,previousEmptyGroups:[],previousYear:2026,
+ groupName:a=>a.group,groupIndex:new Map(),state:{activityGroups:[]},activities:[],
+};
+const reuse=(details)=>vm.runInNewContext(inline.slice(bulkStart,bulkEnd)+
+ `buildPreviousTeamReuse("T1",${details})`,reuseContext);
+const groupsOnly=reuse(false);
+assert.equal(groupsOnly.groups.length,1);
+assert.equal(groupsOnly.details.length,0);
+reuseContext.state.activityGroups=[{...groupsOnly.groups[0],name:"Pelatihan Baru"}];
+reuseContext.groupIndex.set("T1",new Map([["Pelatihan Baru",[]]]));
+const details=reuse(true).details;
+assert.equal(details.length,2);
+assert.equal(details[0].group,"Pelatihan Baru");
+assert.equal(details[0].standard_hours,2);
+assert.equal(details[0].annual_volume,undefined);
+reuseContext.activities=details.map(a=>({...a,description:"Sudah disunting"}));
+assert.equal(reuse(true).details.length,0,"Salin ulang tidak boleh menggandakan uraian yang sudah disunting");
+assert.equal(reuse(false).groups.length,0,"Salin ulang tidak boleh mengembalikan nama kegiatan sebelum disunting");
 
 const mapStart=inline.indexOf("function ensureKroActivityMapDialog(){");
 const mapEnd=inline.indexOf("function renderKroBoard(){",mapStart);
@@ -831,7 +895,7 @@ for(const token of [
  "renderEstablishedTeams();renderTeamDirectory();renderTeamWorkflow();",
  "const actions=page.querySelector('#annualTeamStage > .annual-team-actions');",
  "$('teamRosterActionSlot').appendChild(actions);",
- "for(const id of ['annualConfirmTeam','annualEditTeam','annualCancelTeam'])",
+ "for(const id of ['annualCopyRoster','annualConfirmTeam','annualEditTeam','annualCancelTeam'])",
  "headActions.appendChild(control);",
  "$('teamAdminLeader').onchange=onTeamLeaderChanged;", 
  "drawWorkingMembers();renderYearSetup();renderTeamWorkflow()", 
@@ -1236,7 +1300,7 @@ assert(headerMoveCode.includes("headActions.appendChild(control);"),
 const staffRenderStart=inline.indexOf("function renderYearSetup(){");
 const staffRenderEnd=inline.indexOf("function confirmStaffYear(){",staffRenderStart);
 const teamHeaderRender=inline.slice(staffRenderStart,staffRenderEnd);
-assert(teamHeaderRender.includes("$('teamRosterActionSlot')?.classList.toggle('hidden',teamComplete||isBaseYear);"),
+assert(teamHeaderRender.includes("$('teamRosterActionSlot')?.classList.add('hidden');"),
  "Area aksi bawah wajib hilang jika salin anggota tahun lalu tidak tersedia");
 for(const rule of [
  "#pageTeams #annualTeamHeadAction{",
