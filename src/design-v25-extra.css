@@ -1,0 +1,49 @@
+
+/* Preview-only layout accents. Base theme is the ORIGINAL V25 v2.6 stylesheet. */
+.v25-workarea{padding:2px 0 28px;display:grid;gap:16px}
+.v25-two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:15px}
+.v25-footer{border-top:1px solid var(--border);padding:20px 0 27px;color:var(--muted);font-size:11px;text-align:center}
+.v25-filterbar{display:grid;grid-template-columns:minmax(200px,310px) minmax(200px,1fr);gap:12px;margin:0 0 2px}
+.v25-filterbar .field{display:flex;flex-direction:column;gap:5px}
+.v25-filterbar .v25-filter-label{font-size:11px;letter-spacing:.2px;font-weight:800;color:#61758b}
+.v25-filterbar .field select,.v25-filterbar .field input,.v25-fields select{width:100%;min-height:43px;border:1px solid #d4e1ed;border-radius:10px;padding:10px 12px;background:white;color:var(--ink)}
+.v25-team-list{display:grid;gap:7px;max-height:525px;overflow-y:auto}
+.v25-team-row{width:100%;display:flex;align-items:center;gap:12px;padding:11px;border:1px solid #e0eaf4;border-radius:12px;background:white;color:var(--ink);text-align:left}
+.v25-team-row:hover{background:#f4f9ff;border-color:#bdcee9}
+.v25-team-monogram{display:grid;place-items:center;width:39px;height:39px;flex:none;border-radius:12px;background:#edf4ff;color:#2367bd;font-size:12px;font-weight:900}
+.v25-team-name{display:grid;gap:4px;min-width:0;flex:1}
+.v25-team-name strong{font-size:12px;white-space:normal}
+.v25-team-name small{font-size:10px;line-height:1.5;color:var(--muted)}
+.v25-team-chevron{color:#91a9c1;font-size:23px}
+.v25-table-wrap{overflow:auto;max-height:520px;border:1px solid #e3ebf3;border-radius:12px;background:#fff}
+.v25-table{width:100%;border-collapse:collapse;text-align:left;font-size:12px;line-height:1.48}
+.v25-table th{position:sticky;top:0;z-index:1;background:#f0f5fb;color:#4c6884;font-size:10px;letter-spacing:.15px;padding:12px;border-bottom:1px solid #dce7f1;white-space:nowrap}
+.v25-table td{padding:12px;border-bottom:1px solid #edf1f6;vertical-align:top}
+.v25-table tr:nth-child(even) td{background:#fcfdff}
+.v25-table tr:hover td{background:#f4f9ff}
+.v25-empty-row{text-align:center;padding:25px!important;color:var(--muted)}
+.v25-progress-items{display:grid;gap:20px;padding:5px 0 16px}
+.v25-progress-row{display:grid;gap:7px}
+.v25-progress-meta{display:flex;justify-content:space-between;gap:12px;font-size:12px}
+.v25-progress-meta strong{font-variant-numeric:tabular-nums}
+.v25-progress-track{height:10px;background:#edf2f8;border-radius:99px;overflow:hidden}
+.v25-progress-fill{height:100%;background:linear-gradient(90deg,#3683dc,#1673aa);border-radius:99px;min-width:2px}
+.v25-team-detail{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 17px}
+.v25-team-detail .detail-title{font-size:20px}
+.v25-team-detail p{font-size:11px;line-height:1.5}
+.v25-section-label{font-size:13px;margin:15px 0 9px}
+.v25-fields{display:grid;gap:14px;margin:4px 0 16px}
+.v25-input .panel{align-self:start}
+.v25-four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.v25-four .v{word-break:break-word}
+.v25-locked{text-align:center;padding:42px 24px;background:#f8fbff;border:1px dashed #cfdfef;border-radius:13px}
+.v25-locked h3{margin:8px 0;color:var(--ink)}
+.v25-locked p{margin:8px auto 14px;max-width:560px;color:var(--muted);font-size:12px;line-height:1.7}
+.v25-locked-icon{font-size:27px}
+.v25-locked .badge{margin:auto}
+.nav{max-width:100%;align-items:center}
+.navbutton{white-space:nowrap}
+.stats{margin-top:0}
+.stats .stat b{font-size:23px}
+@media(max-width:1000px){.v25-two-col{grid-template-columns:1fr}}
+@media(max-width:760px){.v25-filterbar,.v25-team-detail{grid-template-columns:1fr}.v25-four{grid-template-columns:1fr 1fr}.v25-workarea{gap:12px}.v25-table{min-width:600px}.topbar .rightbar{gap:5px}}

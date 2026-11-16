@@ -1,0 +1,1172 @@
+{
+  "meta": {
+    "year": 2026,
+    "source": "Matriks Pegawai 2026 V25 (referensi anonim)",
+    "originalActivityCount": 1412,
+    "originalAllocations": 3224,
+    "anonymized": true,
+    "limitations": "Kegiatan sampel (22) bukan seluruh 1412 kegiatan. Tanggal/penugasan belum diverifikasi dan data tidak boleh dianggap operasional."
+  },
+  "teams": [
+    {
+      "id": "T001",
+      "name": "SAKIP",
+      "leadId": "E023",
+      "memberIds": [
+        "E006",
+        "E026",
+        "E010",
+        "E002",
+        "E020",
+        "E015",
+        "E031",
+        "E021",
+        "E014",
+        "E028",
+        "E017",
+        "E018",
+        "E001"
+      ],
+      "summary": {
+        "activities": 19,
+        "annualAllocations": 169,
+        "assignedEmployees": 37,
+        "incomplete": 0
+      }
+    },
+    {
+      "id": "T002",
+      "name": "Administrasi Keuangan",
+      "leadId": "E002",
+      "memberIds": [
+        "E025",
+        "E008",
+        "E004",
+        "E035",
+        "E036"
+      ],
+      "summary": {
+        "activities": 167,
+        "annualAllocations": 256,
+        "assignedEmployees": 37,
+        "incomplete": 1
+      }
+    },
+    {
+      "id": "T003",
+      "name": "PPID",
+      "leadId": "E010",
+      "memberIds": [
+        "E025",
+        "E014",
+        "E006",
+        "E020",
+        "E002",
+        "E017",
+        "E015",
+        "E028",
+        "E027",
+        "E031",
+        "E007",
+        "E032",
+        "E030",
+        "E013"
+      ],
+      "summary": {
+        "activities": 2,
+        "annualAllocations": 5,
+        "assignedEmployees": 4,
+        "incomplete": 0
+      }
+    },
+    {
+      "id": "T004",
+      "name": "Pelaksana EPSS",
+      "leadId": "E010",
+      "memberIds": [
+        "E001",
+        "E018",
+        "E004"
+      ],
+      "summary": {
+        "activities": 1,
+        "annualAllocations": 4,
+        "assignedEmployees": 4,
+        "incomplete": 0
+      }
+    },
+    {
+      "id": "T005",
+      "name": "Penataan Lingkungan",
+      "leadId": "E028",
+      "memberIds": [
+        "E030",
+        "E035",
+        "E036",
+        "E037",
+        "E034"
+      ],
+      "summary": {
+        "activities": 1,
+        "annualAllocations": 5,
+        "assignedEmployees": 5,
+        "incomplete": 0
+      }
+    },
+    {
+      "id": "T006",
+      "name": "Kebugaran Pegawai",
+      "leadId": "E029",
+      "memberIds": [
+        "E005",
+        "E019",
+        "E011",
+        "E032",
+        "E026"
+      ],
+      "summary": {
+        "activities": 3,
+        "annualAllocations": 18,
+        "assignedEmployees": 6,
+        "incomplete": 0
+      }
+    },
+    {
+      "id": "T007",
+      "name": "Statistik Kesejahteraan",
+      "leadId": "E017",
+      "memberIds": [
+        "E033"
+      ],
+      "summary": {
+        "activities": 96,
+        "annualAllocations": 324,
+        "assignedEmployees": 29,
+        "incomplete": 3
+      }
+    },
+    {
+      "id": "T008",
+      "name": "Statistik Kependudukan",
+      "leadId": "E006",
+      "memberIds": [
+        "E026",
+        "E003"
+      ],
+      "summary": {
+        "activities": 140,
+        "annualAllocations": 344,
+        "assignedEmployees": 22,
+        "incomplete": 15
+      }
+    },
+    {
+      "id": "T009",
+      "name": "Statistik Pertanian",
+      "leadId": "E020",
+      "memberIds": [
+        "E009",
+        "E011"
+      ],
+      "summary": {
+        "activities": 104,
+        "annualAllocations": 299,
+        "assignedEmployees": 23,
+        "incomplete": 12
+      }
+    },
+    {
+      "id": "T010",
+      "name": "INPEK",
+      "leadId": "E021",
+      "memberIds": [
+        "E019",
+        "E039",
+        "E038"
+      ],
+      "summary": {
+        "activities": 244,
+        "annualAllocations": 322,
+        "assignedEmployees": 18,
+        "incomplete": 27
+      }
+    },
+    {
+      "id": "T011",
+      "name": "Statistik Distribusi & KTIP",
+      "leadId": "E028",
+      "memberIds": [
+        "E005"
+      ],
+      "summary": {
+        "activities": 190,
+        "annualAllocations": 143,
+        "assignedEmployees": 7,
+        "incomplete": 67
+      }
+    },
+    {
+      "id": "T012",
+      "name": "Statistik Harga",
+      "leadId": "E027",
+      "memberIds": [
+        "E022"
+      ],
+      "summary": {
+        "activities": 80,
+        "annualAllocations": 181,
+        "assignedEmployees": 14,
+        "incomplete": 0
+      }
+    },
+    {
+      "id": "T013",
+      "name": "Neraca dan Analisis",
+      "leadId": "E014",
+      "memberIds": [
+        "E029",
+        "E002",
+        "E020",
+        "E006",
+        "E021",
+        "E017",
+        "E016",
+        "E015",
+        "E012"
+      ],
+      "summary": {
+        "activities": 119,
+        "annualAllocations": 260,
+        "assignedEmployees": 30,
+        "incomplete": 0
+      }
+    },
+    {
+      "id": "T014",
+      "name": "Neraca Pengeluaran",
+      "leadId": "E015",
+      "memberIds": [
+        "E024",
+        "E016"
+      ],
+      "summary": {
+        "activities": 60,
+        "annualAllocations": 113,
+        "assignedEmployees": 27,
+        "incomplete": 0
+      }
+    },
+    {
+      "id": "T015",
+      "name": "Teknologi dan Informasi",
+      "leadId": "E032",
+      "memberIds": [
+        "E007",
+        "E035",
+        "E036"
+      ],
+      "summary": {
+        "activities": 16,
+        "annualAllocations": 57,
+        "assignedEmployees": 36,
+        "incomplete": 3
+      }
+    },
+    {
+      "id": "T016",
+      "name": "Diseminasi dan Pelayanan Statistik",
+      "leadId": "E031",
+      "memberIds": [
+        "E030",
+        "E013"
+      ],
+      "summary": {
+        "activities": 42,
+        "annualAllocations": 198,
+        "assignedEmployees": 33,
+        "incomplete": 0
+      }
+    },
+    {
+      "id": "T017",
+      "name": "Tim Pelaksana SE2026",
+      "leadId": "E017",
+      "memberIds": [
+        "E028",
+        "E020",
+        "E030",
+        "E015",
+        "E033",
+        "E011",
+        "E024",
+        "E022",
+        "E019",
+        "E003",
+        "E009",
+        "E010",
+        "E004",
+        "E002",
+        "E008",
+        "E021",
+        "E025",
+        "E001",
+        "E018",
+        "E031",
+        "E032",
+        "E007",
+        "E014",
+        "E006",
+        "E012"
+      ],
+      "summary": {
+        "activities": 19,
+        "annualAllocations": 125,
+        "assignedEmployees": 34,
+        "incomplete": 0
+      }
+    },
+    {
+      "id": "T018",
+      "name": "Garda SE2026",
+      "leadId": "E027",
+      "memberIds": [
+        "E005",
+        "E013",
+        "E026",
+        "E029",
+        "E016",
+        "E036",
+        "E035"
+      ],
+      "summary": {
+        "activities": 6,
+        "annualAllocations": 27,
+        "assignedEmployees": 8,
+        "incomplete": 0
+      }
+    },
+    {
+      "id": "T019",
+      "name": "Pembinaan Statistik Sektoral",
+      "leadId": "E023",
+      "memberIds": [
+        "E003",
+        "E020",
+        "E031",
+        "E029",
+        "E030",
+        "E017",
+        "E012",
+        "E013",
+        "E014",
+        "E032",
+        "E021",
+        "E006",
+        "E015",
+        "E028",
+        "E027",
+        "E009",
+        "E011",
+        "E005",
+        "E022",
+        "E007",
+        "E033",
+        "E016",
+        "E004",
+        "E024",
+        "E025",
+        "E001",
+        "E008",
+        "E010",
+        "E026",
+        "E002",
+        "E018",
+        "E019"
+      ],
+      "summary": {
+        "activities": 43,
+        "annualAllocations": 56,
+        "assignedEmployees": 27,
+        "incomplete": 0
+      }
+    },
+    {
+      "id": "T020",
+      "name": "Desa Cantik",
+      "leadId": "E032",
+      "memberIds": [
+        "E033",
+        "E019",
+        "E006",
+        "E003",
+        "E020",
+        "E010",
+        "E029",
+        "E005",
+        "E032",
+        "E009",
+        "E017",
+        "E025",
+        "E027",
+        "E018",
+        "E014",
+        "E024",
+        "E031",
+        "E008",
+        "E002",
+        "E011",
+        "E021",
+        "E016",
+        "E026",
+        "E013",
+        "E030",
+        "E001",
+        "E028",
+        "E007",
+        "E015",
+        "E012",
+        "E023",
+        "E022"
+      ],
+      "summary": {
+        "activities": 12,
+        "annualAllocations": 197,
+        "assignedEmployees": 32,
+        "incomplete": 3
+      }
+    },
+    {
+      "id": "T021",
+      "name": "Humas dan Media Sosial",
+      "leadId": "E031",
+      "memberIds": [
+        "E026",
+        "E020",
+        "E011",
+        "E013",
+        "E033",
+        "E036",
+        "E035",
+        "E032",
+        "E014",
+        "E030",
+        "E012",
+        "E027",
+        "E015",
+        "E017",
+        "E004"
+      ],
+      "summary": {
+        "activities": 14,
+        "annualAllocations": 34,
+        "assignedEmployees": 22,
+        "incomplete": 0
+      }
+    },
+    {
+      "id": "T022",
+      "name": "RB-ZI",
+      "leadId": "",
+      "memberIds": [
+        "E023",
+        "E006",
+        "E015",
+        "E016",
+        "E012",
+        "E033",
+        "E022",
+        "E011",
+        "E020",
+        "E027",
+        "E005",
+        "E003",
+        "E010",
+        "E008",
+        "E018",
+        "E001",
+        "E019",
+        "E002",
+        "E021",
+        "E025",
+        "E026",
+        "E017",
+        "E014",
+        "E028",
+        "E024",
+        "E009",
+        "E031",
+        "E032",
+        "E030",
+        "E029",
+        "E013",
+        "E007"
+      ],
+      "summary": {
+        "activities": 25,
+        "annualAllocations": 60,
+        "assignedEmployees": 24,
+        "incomplete": 3
+      }
+    },
+    {
+      "id": "T023",
+      "name": "Inovasi",
+      "leadId": "E023",
+      "memberIds": [
+        "E015",
+        "E032",
+        "E012",
+        "E014",
+        "E030",
+        "E027",
+        "E028",
+        "E016",
+        "E007"
+      ],
+      "summary": {
+        "activities": 3,
+        "annualAllocations": 10,
+        "assignedEmployees": 8,
+        "incomplete": 0
+      }
+    },
+    {
+      "id": "T024",
+      "name": "Manajemen Risiko",
+      "leadId": "E014",
+      "memberIds": [
+        "E015",
+        "E006",
+        "E010",
+        "E021",
+        "E031",
+        "E017",
+        "E020",
+        "E002",
+        "E027",
+        "E028",
+        "E023",
+        "E032"
+      ],
+      "summary": {
+        "activities": 6,
+        "annualAllocations": 17,
+        "assignedEmployees": 12,
+        "incomplete": 0
+      }
+    },
+    {
+      "id": "T025",
+      "name": "Tim Umum",
+      "leadId": "",
+      "memberIds": [],
+      "summary": {
+        "activities": 0,
+        "annualAllocations": 0,
+        "assignedEmployees": 0,
+        "incomplete": 0
+      }
+    }
+  ],
+  "employees": [
+    {
+      "id": "E001",
+      "label": "Pegawai 001"
+    },
+    {
+      "id": "E002",
+      "label": "Pegawai 002"
+    },
+    {
+      "id": "E003",
+      "label": "Pegawai 003"
+    },
+    {
+      "id": "E004",
+      "label": "Pegawai 004"
+    },
+    {
+      "id": "E005",
+      "label": "Pegawai 005"
+    },
+    {
+      "id": "E006",
+      "label": "Pegawai 006"
+    },
+    {
+      "id": "E007",
+      "label": "Pegawai 007"
+    },
+    {
+      "id": "E008",
+      "label": "Pegawai 008"
+    },
+    {
+      "id": "E009",
+      "label": "Pegawai 009"
+    },
+    {
+      "id": "E010",
+      "label": "Pegawai 010"
+    },
+    {
+      "id": "E011",
+      "label": "Pegawai 011"
+    },
+    {
+      "id": "E012",
+      "label": "Pegawai 012"
+    },
+    {
+      "id": "E013",
+      "label": "Pegawai 013"
+    },
+    {
+      "id": "E014",
+      "label": "Pegawai 014"
+    },
+    {
+      "id": "E015",
+      "label": "Pegawai 015"
+    },
+    {
+      "id": "E016",
+      "label": "Pegawai 016"
+    },
+    {
+      "id": "E017",
+      "label": "Pegawai 017"
+    },
+    {
+      "id": "E018",
+      "label": "Pegawai 018"
+    },
+    {
+      "id": "E019",
+      "label": "Pegawai 019"
+    },
+    {
+      "id": "E020",
+      "label": "Pegawai 020"
+    },
+    {
+      "id": "E021",
+      "label": "Pegawai 021"
+    },
+    {
+      "id": "E022",
+      "label": "Pegawai 022"
+    },
+    {
+      "id": "E023",
+      "label": "Pegawai 023"
+    },
+    {
+      "id": "E024",
+      "label": "Pegawai 024"
+    },
+    {
+      "id": "E025",
+      "label": "Pegawai 025"
+    },
+    {
+      "id": "E026",
+      "label": "Pegawai 026"
+    },
+    {
+      "id": "E027",
+      "label": "Pegawai 027"
+    },
+    {
+      "id": "E028",
+      "label": "Pegawai 028"
+    },
+    {
+      "id": "E029",
+      "label": "Pegawai 029"
+    },
+    {
+      "id": "E030",
+      "label": "Pegawai 030"
+    },
+    {
+      "id": "E031",
+      "label": "Pegawai 031"
+    },
+    {
+      "id": "E032",
+      "label": "Pegawai 032"
+    },
+    {
+      "id": "E033",
+      "label": "Pegawai 033"
+    },
+    {
+      "id": "E034",
+      "label": "Pegawai 034"
+    },
+    {
+      "id": "E035",
+      "label": "Pegawai 035"
+    },
+    {
+      "id": "E036",
+      "label": "Pegawai 036"
+    },
+    {
+      "id": "E037",
+      "label": "Pegawai 037"
+    },
+    {
+      "id": "E038",
+      "label": "Pegawai 038"
+    },
+    {
+      "id": "E039",
+      "label": "Pegawai 039"
+    },
+    {
+      "id": "E040",
+      "label": "Pegawai 040"
+    }
+  ],
+  "kros": [
+    {
+      "code": "2896.BMA.004",
+      "name": "Publikasi/Laporan Analisis dan Pengembangan Statistik",
+      "teamIds": [
+        "T013"
+      ]
+    },
+    {
+      "code": "2897.BMA.004",
+      "name": "Laporan Diseminasi dan Metadata Statistik",
+      "teamIds": [
+        "T016"
+      ]
+    },
+    {
+      "code": "2897.QDB.003",
+      "name": "Pembinaan Statistik Sektoral",
+      "teamIds": [
+        "T019",
+        "T004"
+      ]
+    },
+    {
+      "code": "2898.BMA.007",
+      "name": "Publikasi/Laporan Statistik Neraca Pengeluaran",
+      "teamIds": [
+        "T014"
+      ]
+    },
+    {
+      "code": "2899.BMA.006",
+      "name": "Publikasi/Laporan Neraca Produksi",
+      "teamIds": [
+        "T013"
+      ]
+    },
+    {
+      "code": "2900.BMA.005",
+      "name": "Pengembangan Metodologi Kegiatan Statistik",
+      "teamIds": [
+        "T015"
+      ]
+    },
+    {
+      "code": "2900.QMA.006",
+      "name": "Pemanfaatan Big Data untuk Statistik Resmi",
+      "teamIds": [
+        "T015"
+      ]
+    },
+    {
+      "code": "2901.CAN.004",
+      "name": "Pengembangan Infrastruktur dan Layanan TIK",
+      "teamIds": [
+        "T015"
+      ]
+    },
+    {
+      "code": "2902.BMA.004",
+      "name": "Publikasi/Laporan Statistik Distribusi",
+      "teamIds": [
+        "T011"
+      ]
+    },
+    {
+      "code": "2902.BMA.006",
+      "name": "Publikasi/Laporan Sensus Ekonomi",
+      "teamIds": [
+        "T017",
+        "T018"
+      ]
+    },
+    {
+      "code": "2903.BMA.007",
+      "name": "Survei Pola Konsumsi Rumah Tangga",
+      "teamIds": [
+        "T012"
+      ]
+    },
+    {
+      "code": "2903.BMA.008",
+      "name": "Survei Diagram Timbang Nilai Tukar Petani",
+      "teamIds": [
+        "T012"
+      ]
+    },
+    {
+      "code": "2903.BMA.009",
+      "name": "Publikasi/Laporan Statistik Harga",
+      "teamIds": [
+        "T012"
+      ]
+    },
+    {
+      "code": "2904.BMA.006",
+      "name": "Statistik Industri, Pertambangan, Energi, dan Konstruksi",
+      "teamIds": [
+        "T010"
+      ]
+    },
+    {
+      "code": "2905.BMA.004",
+      "name": "Survei Angkatan Kerja Nasional",
+      "teamIds": [
+        "T008"
+      ]
+    },
+    {
+      "code": "2906.BMA.005",
+      "name": "Data Tunggal Sosial dan Ekonomi Nasional",
+      "teamIds": [
+        "T008"
+      ]
+    },
+    {
+      "code": "2906.BMA.006",
+      "name": "Survei Sosial Ekonomi Nasional",
+      "teamIds": [
+        "T007"
+      ]
+    },
+    {
+      "code": "2907.BMA.006",
+      "name": "Statistik Ketahanan Sosial",
+      "teamIds": [
+        "T008"
+      ]
+    },
+    {
+      "code": "2907.BMA.008",
+      "name": "Pendataan Potensi Desa",
+      "teamIds": [
+        "T008"
+      ]
+    },
+    {
+      "code": "2907.UBB.006",
+      "name": "Pembinaan Desa Cinta Statistik",
+      "teamIds": [
+        "T020"
+      ]
+    },
+    {
+      "code": "2908.BMA.004",
+      "name": "Statistik Keuangan, TIK, dan Pariwisata",
+      "teamIds": [
+        "T011"
+      ]
+    },
+    {
+      "code": "2909.BMA.005",
+      "name": "Statistik Peternakan, Perikanan, dan Kehutanan",
+      "teamIds": [
+        "T009"
+      ]
+    },
+    {
+      "code": "2910.BMA.007",
+      "name": "Statistik Tanaman Pangan",
+      "teamIds": [
+        "T009"
+      ]
+    },
+    {
+      "code": "2910.BMA.008",
+      "name": "Statistik Hortikultura dan Perkebunan",
+      "teamIds": [
+        "T009"
+      ]
+    },
+    {
+      "code": "8130.BMA.005",
+      "name": "Statistik Peternakan, Perikanan, dan Kehutanan",
+      "teamIds": [
+        "T009"
+      ]
+    },
+    {
+      "code": "8130.BMA.007",
+      "name": "Statistik Tanaman Pangan",
+      "teamIds": [
+        "T009"
+      ]
+    },
+    {
+      "code": "8130.BMA.008",
+      "name": "Statistik Hortikultura dan Perkebunan",
+      "teamIds": [
+        "T009"
+      ]
+    },
+    {
+      "code": "8131.BMA.005",
+      "name": "Statistik Sumber Daya Mineral dan Konstruksi",
+      "teamIds": [
+        "T010"
+      ]
+    },
+    {
+      "code": "2886.EBA.956",
+      "name": "Layanan BMN",
+      "teamIds": [
+        "T002"
+      ]
+    },
+    {
+      "code": "2886.EBA.962",
+      "name": "Layanan Umum",
+      "teamIds": [
+        "T025"
+      ]
+    },
+    {
+      "code": "2886.EBA.994",
+      "name": "Layanan Perkantoran",
+      "teamIds": [
+        "T002"
+      ]
+    },
+    {
+      "code": "2886.EBD.955",
+      "name": "Layanan Manajemen Keuangan",
+      "teamIds": [
+        "T002"
+      ]
+    },
+    {
+      "code": "2886.EBD.961",
+      "name": "Layanan Reformasi Kinerja",
+      "teamIds": [
+        "T025",
+        "T022",
+        "T001",
+        "T023",
+        "T024"
+      ]
+    }
+  ],
+  "sampleActivities": [
+    {
+      "id": "K2026-0006",
+      "teamId": "T001",
+      "title": "Menyusun undangan rapat",
+      "volume": 4,
+      "unit": "O-Keg",
+      "standardMinutes": 30,
+      "kroCode": "2886.EBD.961"
+    },
+    {
+      "id": "K2026-0024",
+      "teamId": "T002",
+      "title": "Entry Web Gaji, update database pegawai",
+      "volume": 14,
+      "unit": "Kegiatan",
+      "standardMinutes": 60,
+      "kroCode": "2886.EBD.955"
+    },
+    {
+      "id": "K2026-0192",
+      "teamId": "T003",
+      "title": "Update isian web PPID",
+      "volume": 12,
+      "unit": "Dokumen",
+      "standardMinutes": 30,
+      "kroCode": "2897.BMA.004"
+    },
+    {
+      "id": "K2026-0193",
+      "teamId": "T004",
+      "title": "Mendukung kelengkapan administrasi",
+      "volume": 8,
+      "unit": "Dokumen",
+      "standardMinutes": 480,
+      "kroCode": "2897.QDB.003"
+    },
+    {
+      "id": "K2026-0200",
+      "teamId": "T007",
+      "title": "Membuat kelengkapan surat dinas",
+      "volume": 22,
+      "unit": "Naskah",
+      "standardMinutes": 18,
+      "kroCode": "2906.BMA.006"
+    },
+    {
+      "id": "K2026-0294",
+      "teamId": "T008",
+      "title": "Rekrutmen petugas",
+      "volume": 12,
+      "unit": "Orang",
+      "standardMinutes": 12,
+      "kroCode": "2905.BMA.004"
+    },
+    {
+      "id": "K2026-0434",
+      "teamId": "T009",
+      "title": "Rekrutmen petugas",
+      "volume": 12,
+      "unit": "Orang",
+      "standardMinutes": 12,
+      "kroCode": "2910.BMA.008"
+    },
+    {
+      "id": "K2026-0538",
+      "teamId": "T010",
+      "title": "Pengutipan Direktori Konstruksi 2026",
+      "volume": 6,
+      "unit": "Responden",
+      "standardMinutes": 30,
+      "kroCode": "2904.BMA.006"
+    },
+    {
+      "id": "K2026-0797",
+      "teamId": "T011",
+      "title": "Alokasi petugas",
+      "volume": 3,
+      "unit": "Orang",
+      "standardMinutes": 6,
+      "kroCode": "2902.BMA.004"
+    },
+    {
+      "id": "K2026-0974",
+      "teamId": "T012",
+      "title": "Membuat kelengkapan surat tugas",
+      "volume": 24,
+      "unit": "Naskah",
+      "standardMinutes": 18,
+      "kroCode": "2903.BMA.009"
+    },
+    {
+      "id": "K2026-1052",
+      "teamId": "T013",
+      "title": "Rekrutmen petugas",
+      "volume": 1,
+      "unit": "Kegiatan",
+      "standardMinutes": 30,
+      "kroCode": "2899.BMA.006"
+    },
+    {
+      "id": "K2026-1173",
+      "teamId": "T014",
+      "title": "Pelatihan petugas",
+      "volume": 3,
+      "unit": "Kegiatan",
+      "standardMinutes": 360,
+      "kroCode": "2898.BMA.007"
+    },
+    {
+      "id": "K2026-1231",
+      "teamId": "T015",
+      "title": "Admin dan Pemeriksaan Pengolahan Susenas",
+      "volume": 2,
+      "unit": "Kegiatan",
+      "standardMinutes": 180,
+      "kroCode": "2901.CAN.004"
+    },
+    {
+      "id": "K2026-1248",
+      "teamId": "T016",
+      "title": "FGD",
+      "volume": 9,
+      "unit": "Kegiatan",
+      "standardMinutes": 300,
+      "kroCode": "2897.BMA.004"
+    },
+    {
+      "id": "K2026-1291",
+      "teamId": "T017",
+      "title": "Membuat kelengkapan surat dinas",
+      "volume": 10,
+      "unit": "Naskah",
+      "standardMinutes": 18,
+      "kroCode": "2902.BMA.006"
+    },
+    {
+      "id": "K2026-1308",
+      "teamId": "T018",
+      "title": "Membuat surat kelengkapan dinas",
+      "volume": 40,
+      "unit": "Dokumen",
+      "standardMinutes": 60,
+      "kroCode": "2902.BMA.006"
+    },
+    {
+      "id": "K2026-1315",
+      "teamId": "T019",
+      "title": "Sosialisasi ke Siswa",
+      "volume": 2,
+      "unit": "O-Keg",
+      "standardMinutes": 120,
+      "kroCode": "2897.QDB.003"
+    },
+    {
+      "id": "K2026-1361",
+      "teamId": "T020",
+      "title": "Pencanangan Desa Cantik",
+      "volume": 4,
+      "unit": "O-Keg",
+      "standardMinutes": 240,
+      "kroCode": "2907.UBB.006"
+    },
+    {
+      "id": "K2026-1369",
+      "teamId": "T021",
+      "title": "Alokasi pembuat konten Medsos",
+      "volume": 12,
+      "unit": "Kegiatan",
+      "standardMinutes": 120,
+      "kroCode": "2897.BMA.004"
+    },
+    {
+      "id": "K2026-1387",
+      "teamId": "T022",
+      "title": "Rapat Evaluasi Pilar 1",
+      "volume": 13,
+      "unit": "O-Keg",
+      "standardMinutes": 120,
+      "kroCode": "2886.EBD.961"
+    },
+    {
+      "id": "K2026-1411",
+      "teamId": "T023",
+      "title": "Menyusun Proposal Inovasi",
+      "volume": 1,
+      "unit": "O-Keg",
+      "standardMinutes": 240,
+      "kroCode": "2886.EBD.961"
+    },
+    {
+      "id": "K2026-1414",
+      "teamId": "T024",
+      "title": "Menyusun list daftar risiko kegiatan",
+      "volume": 11,
+      "unit": "O-Keg",
+      "standardMinutes": 60,
+      "kroCode": "2886.EBD.961"
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+name: Auto-update Firebase Matriks DEV Preview
+
+on:
+  push:
+    branches:
+      - setup/firebase-foundation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: firebase-matriks-dev-preview
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify anonymous preview and closed Firestore
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rules = Path("firestore.rules").read_text()
+          assert "allow read, write: if false;" in rules
+          ref = json.loads(Path("src/data/reference2026.json").read_text())
+          assert ref["meta"]["anonymized"] is True
+          assert len(ref["employees"]) == 40
+          assert len(ref["teams"]) == 25
+          assert len(ref["kros"]) == 33
+          print("DEV preview and rules verified.")
+          PY
+
+      - name: Verify complete V25 v2.6 anonymous prototype
+        run: node scripts/verify-prototype.mjs
+
+      - name: Install frontend dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Build website
+        run: |
+          cp .env.example .env.local
+          npm run build
+          test -f dist/index.html
+          test ! -f dist/demo.html
+          test -f dist/v26/part-001.txt
+          test -f dist/v26/part-017.txt
+
+      - name: Check keyless deployment configuration
+        id: deploy-config
+        env:
+          WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+        shell: bash
+        run: |
+          if [ -n "$WIF_PROVIDER" ] && [ -n "$SERVICE_ACCOUNT" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Firebase preview deployment not connected. Set GCP_WORKLOAD_IDENTITY_PROVIDER and GCP_DEPLOY_SERVICE_ACCOUNT in repository variables once."
+          fi
+
+      - name: Authenticate with Google Cloud (OIDC, no JSON keys)
+        if: steps.deploy-config.outputs.ready == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Install Firebase CLI
+        if: steps.deploy-config.outputs.ready == 'true'
+        run: npm install --global firebase-tools
+
+      - name: Deploy matriks-dev PREVIEW only
+        if: steps.deploy-config.outputs.ready == 'true'
+        run: firebase hosting:channel:deploy matriks-dev --project mkp-bps-blora --expires 30d --non-interactive
+
+# No live Firestore deployment is attempted by this preview workflow.
+# Firestore Spark account rules must be published by the authorized Firebase
+# Console operator, because preview-only GitHub WIF lacks Rules IAM permission.
