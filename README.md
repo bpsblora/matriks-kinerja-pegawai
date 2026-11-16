@@ -24,7 +24,7 @@ Fondasi backend dan antarmuka akun Admin/Ketua Tim/Kepala sudah ditambahkan:
 - `functions/matrixApi.js` dan `functions/matrixSchema.js`: API Firestore terproteksi, perubahan atomik, validasi peran/tim, finalisasi Kepala, dan pencatatan audit.
 - `functions/bootstrapAdmin.cjs`: pembuatan akun Admin pertama melalui terminal tepercaya.
 - `scripts/import-legacy-2026.mjs`: impor PRIVAT seluruh seed data 2026 dari file asli V25 v2.6. Data asli tidak dibundel ke website.
-- Endpoint Cloud Functions lama tetap **nonaktif** dan tidak diperlukan untuk login Spark. **Database matriks operasional** masih belum diaktifkan/migrasi; preview GitHub menggunakan referensi anonim dan data lokal.
+- Endpoint Cloud Functions lama tetap **nonaktif** dan tidak diperlukan untuk login Spark. **Database matriks operasional** masih belum diaktifkan/migrasi; GitHub Pages memakai referensi Excel 2026 dan perubahan tersimpan lokal.
 - [Rincian dan prasyarat operasional](docs/INTEGRASI_OPERASIONAL_V25.md).
 
 ## Arah arsitektur
@@ -46,7 +46,7 @@ Jalur akun yang dipilih: GitHub Pages/Firebase Hosting → Google BPS Blora (Mod
 ## Pengendalian keamanan
 
 - `firestore.rules` sengaja **deny all**. Jangan mengubahnya sebelum aturan hak akses diuji.
-- `.env` dan `.env.*` diabaikan Git (kecuali `.env.example`). **Dilarang** menyimpan password, service account private key, ataupun data pegawai di Git.
+- `.env` dan `.env.*` diabaikan Git (kecuali `.env.example`). **Dilarang** menyimpan password atau service account private key di Git. Referensi Excel 2026 untuk GitHub Pages tercatat sebagai sumber khusus halaman tersebut.
 - `index.html` menampilkan form login DEV yang **nonaktif secara default**. `public/index.html` adalah placeholder statis lama.
 - Workflow DEV `auto-deploy-dev-preview.yml` hanya memperbarui **preview anonim**; tidak mendeploy ke live, Firestore, atau Functions. Pengaturan izin cloud telah disiapkan.
 
@@ -73,11 +73,11 @@ Setiap perubahan di cabang `setup/firebase-foundation` akan melewati build dan m
 
 Dokumen ini tidak merupakan persetujuan untuk memasukkan data pegawai asli ke layanan cloud.
 
-## GitHub Pages untuk pengujian publik (data anonim)
+## GitHub Pages Matriks Kinerja Pegawai
 
 - Alamat: https://bpsblora.github.io/matriks-kinerja-pegawai/
 - Sumber: cabang `setup/firebase-foundation`, workflow `.github/workflows/deploy-github-pages.yml`.
 - GitHub Settings > Pages > Source harus `GitHub Actions`.
-- Preview membuka V25 Terpadu v2.6 secara langsung tanpa login; data hanya simulasi anonim dan penyimpanan masih lokal di browser.
+- Setelah login Google BPS, situs menampilkan data Excel 2026. Aset referensi GitHub Pages dapat diakses publik dan perubahan tersimpan lokal di browser.
 - Bukan layanan operasional: kode login Spark tersedia, tetapi akun awal dan aturan `firestore.spark.rules` harus disiapkan/deploy serta diuji sebelum login nyata. Penyimpanan matriks masih lokal.
 - Setiap push pada cabang ini memicu pemeriksaan prototipe dan deployment ulang GitHub Pages.

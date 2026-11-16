@@ -6,13 +6,14 @@ import sitePolishCss from "./sitePolish.css?raw";
 import {createAccessAdminView} from "./adminAccess.js";
 import {createSparkAccessAdminView} from "./sparkAccessAdmin.js";
 import {simulationMarkup,clearSimulationData} from "./simulationFixture.js";
+import {withOriginalReference2026} from "./pagesReference2026.js";
 import {
  sparkRoleReady,sparkRoleAuth,loginSparkRole,restoreSparkRole,logoutSparkRole,
  watchSparkRoleRevocation
 } from "./sparkRoleAuth.js";
 import "./adminAccess.css";
 
-// GitHub Pages is a preview. Real roles and shared writes remain disabled.
+// GitHub Pages loads the Excel 2026 reference with browser-local changes.
 // Google BPS Blora stays the viewer identity. Role credentials are checked by
 // the server separately and never inferred from a client-side role selection.
 // Prefer Firebase Spark's built-in Email/Password & Firestore Rules.
@@ -151,9 +152,13 @@ async function loadPrototype(){
     if(!result.ok)throw new Error("Berkas prototipe tidak tersedia.");
     return result.text();
   }));
-  const html=chunks.join("");
+  let html=chunks.join("");
   if(!html.includes("Prototipe V25 v2.6")||!html.includes('id="seed"')||!html.includes("function enterPrototypeEdit()"))
     throw new Error("Berkas V25 v2.6 belum lengkap.");
+  if(import.meta.env.BASE_URL==="/matriks-kinerja-pegawai/"){
+    const {default:reference}=await import("./data/reference2026-pages.json");
+    html=withOriginalReference2026(html,reference);
+  }
   protoCache=html;return html;
  })().finally(()=>{loading=null});
  return loading;

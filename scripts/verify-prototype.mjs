@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import {withOriginalReference2026} from "../src/pagesReference2026.js";
 import vm from "node:vm";
 import assert from "node:assert/strict";
 import {simulationMarkup,simulationSeed,simulationKroSeed,simulationOverlay,SIM_PREFIX,clearSimulationData} from "../src/simulationFixture.js";
@@ -53,6 +54,15 @@ assert.equal(seed.annual_allocations_source.length,3224);
 assert.equal(seed.monthly_allocations_source.length,2779);
 assert.equal(kro.kros.length,33);
 assert.equal(kro2027.kros.length,32);
+const pagesReference=JSON.parse(fs.readFileSync("src/data/reference2026-pages.json","utf8"));
+const pagesHtml=withOriginalReference2026(html,pagesReference);
+const readPageSeed=id=>JSON.parse(pagesHtml.split('<script id="'+id+'" type="application/json">')[1].split("</script>")[0]);
+assert.deepEqual(readPageSeed("seed").employees,pagesReference.employees);
+assert.deepEqual(pagesReference.employees.map(employee=>employee.id),seed.employees.map(employee=>employee.id));
+assert.equal(pagesReference.meta.source_sheet,"2026");
+assert(pagesReference.employees.every(employee=>!/^Pegawai \d+$/.test(employee.full_name)));
+assert.deepEqual(readPageSeed("seed").monthly_allocations_source,seed.monthly_allocations_source);
+assert.deepEqual(readPageSeed("kroSeed").official_roster,pagesReference.official_roster);
 assert(seed.employees.every(e=>/^Pegawai \d+$/.test(e.full_name)),"Nama asli pegawai tidak boleh di preview statis");
 assert(Object.values(kro.official_roster).every(x=>!x.leaderName||x.leaderName.startsWith("Pegawai ")),"Nama ketua tim masih asli");
 // Prevent regressions in displayed unit captions and numeric summaries.
@@ -2072,4 +2082,4 @@ assert.equal(vm.runInContext("window.__mpPreviewSwitchRole('superuser')",preview
  "Pilihan sesi hanya meliputi peran yang dikenali");
 
 
-console.log("Prototipe V25 v2.6 lengkap, referensi anonim, tidak ada password demo.");
+console.log("Matriks V25 v2.6 lengkap, referensi 2026 terverifikasi, tanpa password demo.");

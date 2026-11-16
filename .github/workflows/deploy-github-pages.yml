@@ -1,4 +1,4 @@
-name: Publish anonymous Matriks V25 prototype to GitHub Pages
+name: Publish Matriks Kinerja Pegawai to GitHub Pages
 
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify anonymized prototype and closed database
+      - name: Verify Matriks reference and closed database
         shell: bash
         run: |
           python3 - <<'PY'

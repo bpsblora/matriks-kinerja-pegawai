@@ -717,6 +717,17 @@ let sessionUser='';
 const EMP_MASTER_KEY=employeeMasterKey(activeYear);
 const savedEmployees=latestStoredMaster(employeeMasterKey);
 const employeeMasterById=new Map(Array.isArray(savedEmployees)?savedEmployees.map(e=>[e.id,e]):[]);
+if(BASE.meta.originalWorkbookNames){
+ for(const employee of BASE.employees){
+  const saved=employeeMasterById.get(employee.id);
+  if(saved&&/^Pegawai \d+$/.test(saved.full_name))employeeMasterById.set(employee.id,{...saved,full_name:employee.full_name});
+ }
+ for(const roster of Object.values(demoRoster)){
+  if(/^Pegawai \d+$/.test(roster.leaderName)&&employeeMap.has(roster.leaderId)){
+   roster.leaderName=employeeMasterById.get(roster.leaderId)?.full_name||employeeMap.get(roster.leaderId).full_name;
+  }
+ }
+}
 let employeeMaster=BASE.employees.map(e=>({...e,...employeeMasterById.get(e.id)}))
  .concat([...employeeMasterById.values()].filter(e=>!employeeMap.has(e.id)));
 function refreshEmployeeMaster(){BASE.employees.splice(0,BASE.employees.length,...employeeMaster.map(e=>({...e})));employeeMap.clear();BASE.employees.forEach(e=>employeeMap.set(e.id,e));}
