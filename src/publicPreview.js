@@ -32,7 +32,9 @@ const approvedUid=import.meta.env.VITE_VIEWER_GOOGLE_UID||"";
 const allowedDomains=(import.meta.env.VITE_ALLOWED_GOOGLE_DOMAINS||"bps.go.id").split(",").map(v=>v.trim().toLowerCase()).filter(Boolean);
 const reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 let runId=0,protoCache=null,loading=null,initial=true;
-let simulationMode=sessionStorage.getItem("mkp-simulation-mode")==="1";
+const simulationModeKey="mkp-simulation-mode";
+let simulationMode=sessionStorage.getItem(simulationModeKey)==="1";
+let stopFrameSession=()=>{};
 const safe=value=>String(value||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 root.innerHTML=`
 <section class="mp-entry" id="mpEntry">
@@ -60,12 +62,12 @@ root.innerHTML=`
 <dialog id="mpSimDialog" class="mp-sim-dialog" aria-labelledby="mpSimTitle">
  <h2 id="mpSimTitle">Data Simulasi Matriks Pegawai</h2>
  <p>Uji dengan <b>3 tim, 10 pegawai, 6 KRO, dan 8 kegiatan fiktif</b>. Semua perubahan hanya disimpan di browser ini, terpisah dari data biasa dan tidak dikirim ke Firestore.</p>
- <p class="mp-sim-note">Muat ulang akan mengulang pengujian dari awal. Hapus membersihkan data uji browser dan kembali ke tampilan normal.</p>
- <label class="mp-sim-check"><input id="mpSimConfirm" type="checkbox"> Saya setuju perubahan data uji sebelumnya dihapus.</label>
+ <p class="mp-sim-note" id="mpSimNote"></p>
+ <label class="mp-sim-check" id="mpSimConfirmRow"><input id="mpSimConfirm" type="checkbox"> Hapus perubahan simulasi dan mulai ulang.</label>
  <div class="mp-sim-actions">
   <button type="button" id="mpSimCancel">Batal</button>
-  <button type="button" id="mpSimClear" disabled>Hapus Data Simulasi</button>
-  <button type="button" id="mpSimLoad" disabled>Muat Data Simulasi</button>
+  <button type="button" id="mpSimReset" hidden disabled>Atur Ulang Simulasi</button>
+  <button type="button" id="mpSimLoad">Muat Data Simulasi</button>
  </div>
 </dialog>
 <style>
@@ -75,7 +77,7 @@ root.innerHTML=`
 .mp-sim-check{display:flex;align-items:flex-start;gap:10px;padding:9px 0;font-weight:800}.mp-sim-check input{margin-top:5px}
 .mp-sim-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px}
 .mp-sim-actions button{padding:9px 14px;border-radius:9px;border:1px solid #bfdaed;color:#175f97;background:#f4f9ff;font-weight:900}
-#mpSimLoad{background:#146ca9;color:#fff}#mpSimClear{color:#a52d45;background:#fff4f5;border-color:#edb6c2}
+#mpSimLoad{background:#146ca9;color:#fff}#mpSimReset{color:#a52d45;background:#fff4f5;border-color:#edb6c2}
 </style>`;
 const $=id=>document.getElementById(id);
 function revealWelcome(){
@@ -173,6 +175,7 @@ function addAuthenticatedHeader(html,user){
    </button>
    <label id="mpAssignedTeamLabel" class="mp-assigned-team" hidden>Tim Aktif <select id="mpAssignedTeam" aria-label="Tim yang dikelola"></select></label>
    <span class="mp-sim-tag" ${simulationMode?"":"hidden"}>DATA UJI · FIKTIF</span>
+   ${simulationMode?'<button id="mpReturnOriginal" class="mp-accounts-trigger" type="button">Kembali ke Data Asli</button>':""}
    <button id="mpManageSimulation" class="mp-accounts-trigger" type="button" hidden>Data Simulasi</button>
    <button id="mpManageAccounts" class="mp-accounts-trigger" type="button" hidden title="Kelola username, password dan peran">Kelola Akun Akses</button>
    <button id="mpRoleLogout" type="button" hidden title="Keluar dari sesi peran, kembali ke Mode Lihat">Keluar Peran</button>
@@ -366,6 +369,7 @@ async function verifyRoleSession(){
  }
 }
 function bindAuthenticatedSession(frame){
+ stopFrameSession();
  const doc=frame.contentDocument,preview=frame.contentWindow;
  if(!doc)return;
  const get=id=>doc.getElementById(id);
@@ -378,12 +382,19 @@ function bindAuthenticatedSession(frame){
   assignedTeamLabel=get("mpAssignedTeamLabel");
  if(!dialog||!opener||!form||!username||!password||!apply||!badge||!warning||!roleLogout||!accountButton||!simButton||!accountDialog||!accountContent||!assignedTeam||!assignedTeamLabel)return;
  let liveRole=null,busy=false,stopRoleWatch=null;
+ const listeners=new AbortController();
+ const options={signal:listeners.signal};
+ const isCurrentFrame=()=>!listeners.signal.aborted&&frame.contentDocument===doc;
+ stopFrameSession=()=>{
+  listeners.abort();
+  stopRoleWatch?.();
+ };
  const closeAccounts=()=>{
   if(accountDialog.open)accountDialog.close();
   accountContent.replaceChildren();
  };
- $("mpAccountsClose")?.addEventListener("click",closeAccounts);
- accountDialog.addEventListener("click",e=>{if(e.target===accountDialog)closeAccounts();});
+ $("mpAccountsClose")?.addEventListener("click",closeAccounts,options);
+ accountDialog.addEventListener("click",e=>{if(e.target===accountDialog)closeAccounts();},options);
  accountButton.addEventListener("click",()=>{
   // UI visibility is convenience only; server enforces requireAdmin()
   // for every operation and checks Firebase custom role credentials.
@@ -401,30 +412,42 @@ function bindAuthenticatedSession(frame){
 
 
  const simDialog=$("mpSimDialog"),simConfirm=$("mpSimConfirm");
+ const simLoad=$("mpSimLoad"),simReset=$("mpSimReset");
  function closeSim(){if(simDialog.open)simDialog.close();}
  simButton.addEventListener("click",()=>{
   if(liveRole?.role!=="admin")return;
   simConfirm.checked=false;
-  $("mpSimLoad").disabled=true;$("mpSimClear").disabled=true;
+  $("mpSimConfirmRow").hidden=!simulationMode;
+  simLoad.hidden=simulationMode;
+  simReset.hidden=!simulationMode;
+  simReset.disabled=true;
+  $("mpSimNote").textContent=simulationMode?
+   "Atur ulang untuk menghapus perubahan simulasi di browser ini.":
+   "Untuk keluar, klik Kembali ke Data Asli di bagian atas halaman.";
   if(!simDialog.open)simDialog.showModal();
  });
- $("mpSimCancel").addEventListener("click",closeSim);
+ $("mpSimCancel").addEventListener("click",closeSim,options);
  simConfirm.addEventListener("change",()=>{
-  $("mpSimLoad").disabled=!simConfirm.checked;
-  $("mpSimClear").disabled=!simConfirm.checked||!simulationMode;
- });
- function switchSimulation(nextMode){
-  if(liveRole?.role!=="admin"||!simConfirm.checked)return;
-  clearSimulationData(localStorage);
-  simulationMode=nextMode;
-  sessionStorage.setItem("mkp-simulation-mode",nextMode?"1":"0");
+  simReset.disabled=!simConfirm.checked;
+ },options);
+ simLoad.addEventListener("click",()=>{
+  if(liveRole?.role!=="admin"||simulationMode)return;
   closeSim();
-  if(auth.currentUser)void openPrototype(auth.currentUser,++runId);
- }
- $("mpSimLoad").addEventListener("click",()=>switchSimulation(true));
- $("mpSimClear").addEventListener("click",()=>switchSimulation(false));
+  switchSimulation(true);
+ },options);
+ simReset.addEventListener("click",()=>{
+  if(liveRole?.role!=="admin"||!simulationMode||!simConfirm.checked||!auth.currentUser)return;
+  clearSimulationData(localStorage);
+  closeSim();
+  switchSimulation(true);
+ },options);
+ get("mpReturnOriginal")?.addEventListener("click",()=>{
+  closeSim();
+  switchSimulation(false);
+ });
 
  function renderRole(profile){
+  if(!isCurrentFrame())return;
   if(stopRoleWatch){stopRoleWatch();stopRoleWatch=null;}
   liveRole=profile;
   if(sparkRoleReady&&profile){
@@ -544,9 +567,9 @@ function bindAuthenticatedSession(frame){
  // have loaded. A stale/unverified role session is cleared to Mode Lihat.
  if(sparkRoleReady&&sparkRoleAuth){
   sparkRoleAuth.authStateReady().then(async()=>{
-   if(frame.contentWindow!==preview||!auth.currentUser)return;
+   if(!isCurrentFrame()||!auth.currentUser)return;
    const spark=await restoreSparkRole();
-   if(!spark)return;
+   if(!spark||!isCurrentFrame())return;
    const profile={
     role:spark.role==="ketua_tim"?"ketua":spark.role,
     teamId:spark.role==="ketua_tim"?spark.teamIds[0]:"",
@@ -557,14 +580,23 @@ function bindAuthenticatedSession(frame){
    else await logoutSparkRole().catch(()=>{});
   }).catch(()=>{renderRole(null)});
  }else if(roleAuth)roleAuth.authStateReady().then(async()=>{
-  if(frame.contentWindow!==preview||!auth.currentUser)return;
+  if(!isCurrentFrame()||!auth.currentUser)return;
   const profile=await verifyRoleSession();
-  if(!profile)return;
+  if(!profile||!isCurrentFrame())return;
   const changed=preview?.__mpPreviewSwitchRole?.(profile.role,profile.teamId);
   if(changed)renderRole(profile);
   else await signOut(roleAuth).catch(()=>{});
  }).catch(()=>{renderRole(null)});
 }
+function switchSimulation(nextMode){
+ const user=auth.currentUser;
+ if(!user)return;
+ simulationMode=nextMode;
+ if(nextMode)sessionStorage.setItem(simulationModeKey,"1");
+ else sessionStorage.removeItem(simulationModeKey);
+ void openPrototype(user,++runId);
+}
+
 async function openPrototype(user,run){
  try{
    const source=await loadPrototype();
@@ -595,6 +627,7 @@ onAuthStateChanged(auth,async user=>{
  authChecked=true;
  const run=++runId;
  if(!user){
+   stopFrameSession();
    $("mpView").hidden=true;$("mpFrame").removeAttribute("srcdoc");
    $("mpEntry").hidden=false;
    if(initial)initial=false;
