@@ -1758,7 +1758,7 @@ for(const token of [
  "preview?.__mpPreviewSwitchRole?.(profile.role,profile.teamId)",
  'preview?.__mpPreviewSwitchRole?.("pegawai")',
  "signOut(auth)",
- "frame.onload=()=>bindAuthenticatedSession(frame);"
+ "frame.onload=()=>{bindAuthenticatedSession(frame);mountWorkloadPlanning(frame.contentDocument,{simulation:simulationMode});};"
 ])assert(previewSource.includes(token),"Login Google + role username/password belum lengkap: "+token);
 for(const forbidden of ['id="mpRoleSelect"','id="mpRoleTeam"','Akses: Penguji'])
  assert(!previewSource.includes(forbidden),"Pilih peran bebas/lama tidak boleh ada: "+forbidden);
