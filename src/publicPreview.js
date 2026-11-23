@@ -7,6 +7,7 @@ import {createAccessAdminView} from "./adminAccess.js";
 import {createSparkAccessAdminView} from "./sparkAccessAdmin.js";
 import {simulationMarkup,clearSimulationData} from "./simulationFixture.js";
 import {withOriginalReference2026} from "./pagesReference2026.js";
+import {mountWorkloadPlanning} from "./workloadPlanning.js";
 import {
  sparkRoleReady,sparkRoleAuth,loginSparkRole,restoreSparkRole,logoutSparkRole,
  watchSparkRoleRevocation
@@ -603,7 +604,7 @@ async function openPrototype(user,run){
    const html=addAuthenticatedHeader(simulationMode?simulationMarkup(source):source,user);
    if(run!==runId)return;
    const frame=$("mpFrame");
-   frame.onload=()=>bindAuthenticatedSession(frame);
+   frame.onload=()=>{bindAuthenticatedSession(frame);mountWorkloadPlanning(frame.contentDocument,{simulation:simulationMode});};
    frame.srcdoc=html;
    $("mpEntry").hidden=true;$("mpView").hidden=false;
  }catch(err){
