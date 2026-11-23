@@ -13,10 +13,22 @@ export function personHourTotals(organicVolume,partnerVolume,hoursPerUnit){
 function excel2026(doc){
  try{
   const seed=JSON.parse(doc.getElementById("seed").textContent);
-  return (seed.activities||[]).map(a=>({id:a.id,group:a.team||"Belum Terpetakan",activity:a.group||"Kegiatan",
-   description:a.description||"",volume:number(a.annual_volume),unit:a.unit||"Unit",
-   standard:number(a.standard_hours),reported:a.annual_hours_reported==null?null:number(a.annual_hours_reported),
-   organic:null,partner:null,source:"Referensi Excel 2026 — pembagian Organik/Mitra perlu diisi"}));
+  const people=new Map((seed.employees||[]).map(e=>[e.id,e.type]));
+  const totals=new Map();
+  for(const [activityId,personId,volume] of seed.annual_allocations_source||[]){
+   if(!totals.has(activityId))totals.set(activityId,{organic:0,partner:0});
+   const current=totals.get(activityId);
+   if(people.get(personId)==="pegawai")current.organic+=number(volume);
+   else if(people.get(personId)==="mitra")current.partner+=number(volume);
+  }
+  return (seed.activities||[]).map(a=>{
+   const sum=totals.get(a.id),standard=number(a.standard_hours);
+   return {id:a.id,group:a.team||"Belum Terpetakan",activity:a.group||"Kegiatan",
+    description:a.description||"",volume:number(a.annual_volume),unit:a.unit||"Unit",
+    standard,reported:a.annual_hours_reported==null?null:number(a.annual_hours_reported),
+    organic:sum?(sum.organic*standard):null,partner:sum?(sum.partner*standard):null,
+    source:"Referensi Excel 2026 — alokasi dan selisih perlu diverifikasi"};
+  });
  }catch{return []}
 }
 function dexml(s){return String(s||"").replace(/&(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);/g,c=>{
@@ -254,5 +266,6 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
    reported:total,organic,partner,source:"Input perencanaan "+state.year});
   persist();e.currentTarget.reset();render();note("Uraian berhasil ditambahkan dengan total "+fmt(total)+" orang-jam.");
  });
- load(2027);render();
+ const selectedYear=number(doc.getElementById("yearSelect")?.value)||2027;
+ load(Math.max(2026,Math.min(2031,selectedYear)));render();
 }
