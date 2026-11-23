@@ -38,7 +38,7 @@ test("impor gagal jelas jika sheet tahun dimaksud tidak ditemukan",async()=>{
   "xl/_rels/workbook.xml.rels":strToU8("<Relationships/>")
  };
  const file=new File([zipSync(entries)],"uji.xlsx");
- await assert.rejects(()=>xlsxRows(file,2027),/Sheet 2027/);
+ await assert.rejects(()=>xlsxRows(file,2027),/2027.*tidak ditemukan/);
 });
 
 
