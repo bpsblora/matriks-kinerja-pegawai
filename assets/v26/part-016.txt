@@ -833,7 +833,7 @@ async function deleteTeamAdmin(requestedId=null){
  renderTeamAdminPage();renderYearUI();toast('Tim kosong telah dihapus dari daftar '+activeYear+'.');
 }
 function roleActor(){return ({admin:'Admin',kepala:'Kepala BPS',ketua:'Ketua Tim',pegawai:'Pegawai · View'})[currentRole]+(currentRole==='ketua'?' · '+(teamMap.get(roleTeamId)?.name||''):'')}
-function canEdit(teamId){return currentRole==='admin'||currentRole==='kepala'||(currentRole==='ketua'&&teamId===roleTeamId)}
+function canEdit(teamId){return currentRole==='admin'||(currentRole==='ketua'&&teamId===roleTeamId)}
 function checkEdit(teamId){if(!canEdit(teamId)){toast('Mode baca saja. Ketua tim hanya dapat mengedit kegiatan dalam timnya.');return false}return true}
 function applyRolePermissions(){
  const allowed=canEdit(selectedTeam),has=!!selectedId,allowedTask=has&&canEdit(byId.get(selectedId)?.team_id);
@@ -1702,8 +1702,8 @@ function setupYearWelcome(){yearWelcomeReady=true;
   if(chosenTeam&&(currentRole!=='ketua'||chosenTeam===roleTeamId)){$('teamSelect').value=chosenTeam;selectedTeam=chosenTeam;selectedGroup='';selectedId=null;renderGroups();}
   if(st==='closed'){closeYearWelcome();await prepareAnnual(true);if(yearInfo().status!=='draft')return;}
   else closeYearWelcome();
-  setPage('teams');renderYearSetup();if(!canEdit(selectedTeam)){toast('Akun ini belum dapat mengedit tim yang dipilih.');return;}
-  toast('Tetapkan daftar pegawai, susunan tim, dan KRO sebelum Input Alokasi.');
+  setPage('teams');renderYearSetup();if(currentRole!=='kepala'&&!canEdit(selectedTeam)){toast('Akun ini belum dapat mengedit tim yang dipilih.');return;}
+  toast('Pemetaan beban Organik/Mitra menjadi dasar penentuan tim. Setelah disepakati, lengkapi pegawai, susunan tim, dan KRO sebelum Input Alokasi.');
  };
  window.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('yearWelcomeScreen').classList.contains('hidden')){e.preventDefault();closeYearWelcome()}});
 }
