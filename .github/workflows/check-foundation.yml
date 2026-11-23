@@ -59,6 +59,10 @@ jobs:
         run: node --test functions/security.test.js functions/matrixSchema.test.js
       - name: Install frontend dependencies (CI)
         run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Verify annual workload and XLSX import
+        run: |
+          node --check src/workloadPlanning.js
+          node --test scripts/workload-planning.test.mjs
       - name: Build disabled DEV frontend (CI)
         run: |
           cp .env.example .env.local
