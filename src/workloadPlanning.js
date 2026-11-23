@@ -62,7 +62,7 @@ function dataRows(rows,year){
  if(!result.length)throw Error("Tidak ditemukan uraian dengan kelompok fungsi dan nama tugas.");
  return result;
 }
-async function xlsxRows(file,year){
+export async function xlsxRows(file,year){
  const entries=unzipSync(new Uint8Array(await file.arrayBuffer()));
  const read=p=>{if(!entries[p])throw Error("Bagian XLSX tidak ditemukan: "+p);return strFromU8(entries[p])};
  const wb=read("xl/workbook.xml"),sheet=[...wb.matchAll(/<sheet\b[^>]*\/>/g)].map(m=>m[0]).find(s=>s.includes('name="'+year+'"'));
