@@ -69,8 +69,7 @@ async function workbookSheets(file){
   .map(m=>[attr(m[0],"Id"),attr(m[0],"Target")]));
  const sheets=[...wb.matchAll(/<sheet\b[^>]*\/>/g)].map(m=>{
   const name=dexml(attr(m[0],"name")),target=relations.get(attr(m[0],"r:id"));
-  if(!target)throw Error("Lokasi sheet "+name+" tidak ditemukan.");
-  const path=target.startsWith("/")?target.slice(1):"xl/"+target.replace(/^(\.\.\/)*/,"");
+  const path=target?(target.startsWith("/")?target.slice(1):"xl/"+target.replace(/^(\.\.\/)*/,"")):null;
   return {name,path};
  });
  if(!sheets.length)throw Error("File tidak memiliki sheet yang dapat dibaca.");
@@ -84,6 +83,7 @@ async function sheetRows(file,sheetName){
  const {entries,sheets}=await workbookSheets(file);
  const sheet=sheets.find(s=>s.name===sheetName);
  if(!sheet)throw Error('Sheet "'+sheetName+'" tidak ditemukan.');
+ if(!sheet.path)throw Error("Lokasi sheet "+sheetName+" tidak ditemukan.");
  const ss=entries["xl/sharedStrings.xml"]?readEntry(entries,"xl/sharedStrings.xml"):"";
  const strings=[...ss.matchAll(/<si(?:\s[^>]*)?>([\s\S]*?)<\/si>/g)].map(m=>
   dexml([...m[1].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(v=>v[1]).join("")));
