@@ -165,6 +165,7 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
  if(!doc||doc.getElementById("mkpPlanningOpen"))return;
  const win=doc.defaultView,base=excel2026(doc),key=y=>(simulation?"mkp-simulasi-v1:":"")+PREFIX+y;
  const state={year:2027,items:[],names:{},capacity:1650,search:""};
+ let importFile=null,previewRows=null,previewSignature="",sourceMode="manual";
  const $=id=>doc.getElementById(id);
  function load(y){
   let saved;try{saved=JSON.parse(win.localStorage.getItem(key(y))||"null")}catch{}
@@ -198,6 +199,18 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
  "#mkpPlanningDialog td.num{text-align:right;font-variant-numeric:tabular-nums}#mkpPlanningDialog tr.bad{background:#fff5e3}",
  "#mkpPlanningDialog .form-grid{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:10px;margin-top:10px}",
  "#mkpPlanningDialog .hint{font-size:11px;color:#647f91;margin:8px 0}",
+ "#mkpPlanningDialog [hidden]{display:none!important}",
+ "#mkpPlanningDialog .source-tabs{display:flex;gap:8px;margin:12px 0}",
+ "#mkpPlanningDialog .source-tabs button{min-width:145px;background:#f3f9ff;border:1px solid #b3d1e8}",
+ "#mkpPlanningDialog .source-tabs button[aria-pressed=true]{background:#146da7;color:#fff;border-color:#146da7}",
+ "#mkpPlanningDialog .source-panel{border:1px solid #d1e5f2;background:#f8fbff;border-radius:11px;padding:12px;margin:9px 0}",
+ "#mkpPlanningDialog .import-fields{display:flex;flex-wrap:wrap;gap:9px;align-items:end}",
+ "#mkpPlanningDialog .import-fields label{flex:0 1 170px;min-width:128px}",
+ "#mkpPlanningDialog .import-fields label:first-child{flex:1 1 260px}",
+ "#mkpPlanningDialog .import-fields input[type=number]{width:112px}",
+ "#mkpPlanningDialog .import-preview{font-size:12px;padding:9px 12px;margin-top:10px;background:#eaf5fd;border-radius:9px;white-space:pre-wrap;color:#27526f}",
+ "#mkpPlanningDialog .primary{background:#146da7;color:white;border-color:#146da7}",
+ "#mkpPlanningDialog button:disabled{opacity:.5;cursor:not-allowed}",
  "@media(max-width:750px){#mkpPlanningDialog .stats{grid-template-columns:repeat(2,1fr)}#mkpPlanningDialog .form-grid{grid-template-columns:repeat(2,1fr)}}"
  ].join("");
  doc.head.append(style);
@@ -208,8 +221,17 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
  '<header><div><small>PERENCANAAN · SEBELUM PENETAPAN TIM</small><h2>Pemetaan Beban Organik dan Mitra</h2><small>Inventarisasi → Skenario Tim → Kebutuhan SDM → Penetapan Anggota → Alokasi Individu</small></div><button id="mkpPlanClose" type="button">Tutup ×</button></header>',
  '<main><div class="toolbar"><label>Tahun<select id="mkpPlanYear"><option>2026</option><option selected>2027</option><option>2028</option><option>2029</option><option>2030</option><option>2031</option></select></label>',
  '<label>Jam efektif per pegawai/tahun<input type="number" min="1" id="mkpPlanCapacity" value="1650" style="width:110px"></label>',
- '<label>Impor XLSX / CSV<input type="file" id="mkpPlanImport" accept=".xlsx,.csv,.tsv"></label>',
- '<button id="mkpPlanPrevious" type="button">Gunakan Data Tahun Sebelumnya</button><button id="mkpPlanExport" type="button">Unduh Rekap CSV</button></div>',
+ '<button id="mkpPlanExport" type="button">Unduh Rekap CSV</button></div>',
+ '<div class="source-tabs" aria-label="Pilih Metode Inventarisasi"><button data-source-mode="manual" aria-pressed="true" type="button">Input Manual</button><button data-source-mode="excel" aria-pressed="false" type="button">Impor Excel</button></div>',
+ '<section class="source-panel" id="mkpPlanManualActions"><b>Pengisian langsung di website</b><p class="hint">Mulai dari nol, atau salin daftar kegiatan tahun sebelumnya sebagai draf yang bisa diubah.</p><button id="mkpPlanPrevious" type="button">Gunakan Data Tahun Sebelumnya</button> <button id="mkpPlanClear" type="button">Mulai dari Kosong</button></section>',
+ '<section class="source-panel" id="mkpPlanImportActions" hidden><b>Impor Excel dengan Rentang Baris yang Ditentukan</b><p class="hint">Pilih file, sheet, baris awal data, dan baris akhir. Data tidak disimpan sebelum kamu mengeklik Impor.</p><div class="import-fields">',
+ '<label>Pilih File<input type="file" id="mkpPlanImport" accept=".xlsx,.csv,.tsv"></label>',
+ '<label>Sheet<select id="mkpPlanSheet" disabled><option value="">Pilih berkas dahulu</option></select></label>',
+ '<label>Mulai Baris<input id="mkpPlanStartRow" type="number" min="1" step="1" value="3"></label>',
+ '<label>Sampai Baris<input id="mkpPlanEndRow" type="number" min="1" step="1" value="3"></label>',
+ '<label>Metode Impor<select id="mkpPlanMerge"><option value="replace">Ganti Inventarisasi Tahun Ini</option><option value="append">Gabungkan Tanpa Duplikat</option></select></label>',
+ '<button id="mkpPlanCheck" type="button">Pratinjau Rentang</button><button id="mkpPlanImportNow" class="primary" type="button" disabled>Impor Data Terpilih</button></div>',
+ '<div class="import-preview" id="mkpPlanPreview" role="status">File belum dipilih. Untuk workbook contoh 2027, pilih sheet 2027 dengan baris awal 3.</div></section>',
  '<div class="info" id="mkpPlanNote"></div><div class="stats" id="mkpPlanStats"></div>',
  '<h3>1. Kelompok Fungsi (Belum Merupakan Tim Final)</h3><p class="hint">Ubah nama usulan tim. Beri nama sama untuk beberapa fungsi apabila akan digabungkan.</p>',
  '<div class="table-scroll"><table><thead><tr><th>Kelompok Fungsi</th><th>Uraian</th><th>Total Orang-Jam</th><th>Organik</th><th>Mitra</th><th>Usulan Tim</th></tr></thead><tbody id="mkpPlanGroups"></tbody></table></div>',
@@ -218,11 +240,11 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
  '<h3>3. Inventarisasi Kegiatan dan Rincian Uraian</h3><input id="mkpPlanSearch" placeholder="Cari kegiatan/uraian..." style="width:min(100%,380px)">',
  '<div class="table-scroll"><table><thead><tr><th>Fungsi</th><th>Kegiatan</th><th>Uraian</th><th>Volume</th><th>Jam/Satuan</th><th>Total</th><th>Organik</th><th>Mitra</th><th>Status Audit</th><th>Tindakan</th></tr></thead><tbody id="mkpPlanRows"></tbody></table></div>',
  '<p class="hint">Menampilkan maksimal 120 uraian sekaligus. Gunakan pencarian untuk mempersempit. Isian Organik/Mitra 2026 belum tersedia dalam referensi dan tidak diisi otomatis.</p>',
- '<h3>4. Tambah Uraian untuk Inventarisasi</h3><div class="info">Semua kegiatan menggunakan orang-jam. Rapat 5 jam × 8 peserta = <b>40 orang-jam</b>. Jika 5 peserta organik dan 3 mitra, masukkan 25 jam Organik dan 15 jam Mitra. Jangan menggandakan volume dua kali.</div>',
+ '<section id="mkpPlanManualForm"><h3>4. Input Manual — Tambah Uraian Kegiatan</h3><div class="info">Semua kegiatan menggunakan orang-jam. Rapat 5 jam × 8 peserta = <b>40 orang-jam</b>. Jika 5 peserta organik dan 3 mitra, masukkan 25 jam Organik dan 15 jam Mitra. Jangan menggandakan volume dua kali.</div>',
  '<form id="mkpPlanAdd" class="form-grid"><label>Kelompok Fungsi<input name="group" required></label><label>Nama Kegiatan<input name="activity" required></label><label>Uraian<input name="description" required></label><label>Satuan<input name="unit" value="O-Keg" required></label>',
  '<label>Volume Orang-Kegiatan<input name="volume" type="number" min="0.000001" step="any" required></label><label>Jam per Satuan<input name="standard" type="number" min="0.000001" step="any" required></label>',
  '<label>Jam Organik<input name="organic" type="number" min="0" step="any" required></label><label>Jam Mitra<input name="partner" type="number" min="0" step="any" required></label>',
- '<button type="submit">Tambah ke Inventarisasi</button></form>',
+ '<button type="submit">Tambah ke Inventarisasi</button></form></section>',
  '<p class="hint">Data pemetaan disimpan pada browser yang digunakan, terpisah dari data simulasi dan alokasi. Struktur tim final baru ditentukan setelah analisis disepakati.</p>',
  '</main>'
  ].join("");
@@ -288,27 +310,102 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
  }
  trigger.addEventListener("click",()=>{render();dialog.showModal()});
  el("mkpPlanClose").addEventListener("click",()=>dialog.close());
- el("mkpPlanYear").addEventListener("change",e=>{load(number(e.target.value));render()});
+ el("mkpPlanYear").addEventListener("change",e=>{load(number(e.target.value));invalidatePreview();render()});
  el("mkpPlanCapacity").addEventListener("change",e=>{state.capacity=Math.max(1,number(e.target.value));persist();render()});
  el("mkpPlanSearch").addEventListener("input",e=>{state.search=e.target.value;render()});
+
+ function setSourceMode(next){
+  sourceMode=next==="excel"?"excel":"manual";
+  el("mkpPlanManualActions").hidden=sourceMode!=="manual";
+  el("mkpPlanManualForm").hidden=sourceMode!=="manual";
+  el("mkpPlanImportActions").hidden=sourceMode!=="excel";
+  dialog.querySelectorAll("[data-source-mode]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.sourceMode===sourceMode)));
+ }
+ dialog.querySelectorAll("[data-source-mode]").forEach(b=>b.addEventListener("click",()=>setSourceMode(b.dataset.sourceMode)));
+ const previewSignatureOf=()=>[state.year,importFile?.name,importFile?.size,el("mkpPlanSheet").value,el("mkpPlanStartRow").value,el("mkpPlanEndRow").value].join("|");
+ function invalidatePreview(){
+  previewRows=null;previewSignature="";el("mkpPlanImportNow").disabled=true;
+ }
+ for(const id of ["mkpPlanSheet","mkpPlanStartRow","mkpPlanEndRow"]){
+  el(id).addEventListener("change",invalidatePreview);
+ }
  el("mkpPlanImport").addEventListener("change",async e=>{
-  const f=e.target.files?.[0];if(!f)return;
+  importFile=e.target.files?.[0]||null;
+  invalidatePreview();
+  const sheet=el("mkpPlanSheet"),detail=el("mkpPlanPreview");
+  sheet.innerHTML="";sheet.disabled=true;
+  if(!importFile){detail.textContent="Belum ada berkas terpilih.";return}
+  detail.textContent="Memeriksa isi workbook...";
   try{
-   note("Membaca data Excel "+f.name+" ...");
-   const rows=/\.xlsx$/i.test(f.name)?await xlsxRows(f,state.year):dataRows(csvRows(await f.text()),state.year);
-   if(!win.confirm("Impor "+rows.length+" uraian dari "+f.name+" ke tahun "+state.year+"? Draf pemetaan lokal tahun ini akan diganti."))return;
-   state.items=rows;state.names={};persist();render();note("Impor berhasil: "+fmt(rows.length)+" uraian. Periksa baris yang perlu rekonsiliasi.");
-  }catch(error){note("Impor gagal: "+String(error?.message||error),true)}
-  finally{e.target.value=""}
+   if(/\.xlsx$/i.test(importFile.name)){
+    const names=await xlsxSheets(importFile);
+    sheet.innerHTML=names.map(name=>'<option value="'+html(name)+'">'+html(name)+'</option>').join("");
+    sheet.disabled=false;sheet.value=names.includes(String(state.year))?String(state.year):names[0];
+    const info=await xlsxSheetInfo(importFile,sheet.value);
+    el("mkpPlanStartRow").value=String(info.firstRow||3);
+    el("mkpPlanEndRow").value=String(info.lastRow||info.firstRow||3);
+    detail.textContent="Sheet tersedia: "+names.join(", ")+".\nPilihan awal: "+sheet.value+" · baris "+(info.firstRow||"?")+"–"+(info.lastRow||"?")+". Periksa rentang sebelum impor.";
+   }else if(/\.(csv|tsv)$/i.test(importFile.name)){
+    sheet.innerHTML='<option value="CSV">CSV / TSV (satu sheet)</option>';sheet.disabled=true;
+    const rows=csvRows(await importFile.text());rows.forEach((r,i)=>r.rowNumber=i+1);
+    const info=rangeBounds(rows);
+    el("mkpPlanStartRow").value=String(info.firstRow||2);
+    el("mkpPlanEndRow").value=String(info.lastRow||info.firstRow||2);
+    detail.textContent="CSV / TSV · baris "+(info.firstRow||"?")+"–"+(info.lastRow||"?")+".";
+   }else throw Error("Pilih file Excel .xlsx atau .csv/.tsv.");
+  }catch(error){detail.textContent="Tidak dapat membaca file: "+String(error?.message||error);importFile=null}
+ });
+ el("mkpPlanSheet").addEventListener("change",async()=>{
+  if(!importFile||!/\.xlsx$/i.test(importFile.name))return;
+  const info=await xlsxSheetInfo(importFile,el("mkpPlanSheet").value);
+  el("mkpPlanStartRow").value=String(info.firstRow||3);
+  el("mkpPlanEndRow").value=String(info.lastRow||info.firstRow||3);
+  el("mkpPlanPreview").textContent="Sheet "+el("mkpPlanSheet").value+" dipilih. Pilih rentang baris, lalu klik Pratinjau.";
+ });
+ el("mkpPlanCheck").addEventListener("click",async()=>{
+  if(!importFile)return note("Pilih file Excel atau CSV terlebih dahulu.",true);
+  invalidatePreview();
+  const preview=el("mkpPlanPreview");preview.textContent="Membaca rentang data...";
+  try{
+   const opts={sheetName:el("mkpPlanSheet").value,startRow:Number(el("mkpPlanStartRow").value),endRow:Number(el("mkpPlanEndRow").value)};
+   const rows=/\.xlsx$/i.test(importFile.name)?await xlsxRows(importFile,state.year,opts):
+    csvImportRows(await importFile.text(),state.year,opts);
+   previewRows=rows;previewSignature=previewSignatureOf();
+   const groups=new Set(rows.map(x=>x.group));
+   const samples=rows.slice(0,3).map(x=>x.source+" · "+x.group+" · "+x.description).join("\n");
+   preview.textContent="Ditemukan "+fmt(rows.length)+" uraian pada "+fmt(groups.size)+" kelompok fungsi.\nContoh:\n"+samples+
+    "\n\nLanjutkan dengan Impor Data Terpilih. Periksa kolom A–J dan audit perhitungan setelah impor.";
+   el("mkpPlanImportNow").disabled=false;
+  }catch(error){preview.textContent="Pratinjau gagal: "+String(error?.message||error);note("Periksa nama sheet, header dan batas baris Excel.",true)}
+ });
+ el("mkpPlanImportNow").addEventListener("click",()=>{
+  if(!previewRows||previewSignature!==previewSignatureOf())return note("Ulangi Pratinjau Rentang sebelum impor.",true);
+  const mode=el("mkpPlanMerge").value,items=previewRows;
+  const duplicates=new Set(state.items.map(x=>JSON.stringify([x.group,x.activity,x.description,x.unit].map(v=>String(v||"").toLocaleLowerCase("id").trim()))));
+  const newRows=mode==="append"?items.filter(x=>!duplicates.has(JSON.stringify([x.group,x.activity,x.description,x.unit].map(v=>String(v||"").toLocaleLowerCase("id").trim())))):items;
+  const prompt="Impor "+fmt(newRows.length)+" uraian ke tahun "+state.year+" dari sheet "+el("mkpPlanSheet").value+
+   " baris "+el("mkpPlanStartRow").value+"–"+el("mkpPlanEndRow").value+
+   (mode==="replace"?"? Inventarisasi yang tersimpan pada tahun ini akan diganti.":"? Data yang sudah ada akan dipertahankan.");
+  if(!win.confirm(prompt))return;
+  state.items=mode==="append"?state.items.concat(newRows.map((x,i)=>({...x,id:x.id+"-IMPORT-"+Date.now()+"-"+i}))):items;
+  if(mode==="replace")state.names={};
+  persist();render();
+  el("mkpPlanPreview").textContent="Impor berhasil: "+fmt(newRows.length)+" uraian. Data tersimpan lokal pada browser ini.";
+  invalidatePreview();
  });
  el("mkpPlanPrevious").addEventListener("click",()=>{
-  if(state.year<=2026)return note("Tahun 2026 menggunakan referensi matriks Excel.",true);
+  if(state.year<=2026)return note("Tahun 2026 sudah menjadi sumber referensi awal.",true);
   let prev;try{prev=JSON.parse(win.localStorage.getItem(key(state.year-1))||"null")}catch{}
   const rows=prev?.items||(state.year===2027?base:[]);
-  if(!rows.length)return note("Inventarisasi tahun "+(state.year-1)+" belum tersedia.",true);
-  if(!win.confirm("Gunakan "+rows.length+" uraian "+(state.year-1)+" sebagai referensi "+state.year+"? Volume dan pembagian organik/mitra harus ditinjau ulang."))return;
-  state.items=rows.map((r,i)=>({...r,id:"REK-"+state.year+"-"+i,organic:null,partner:null,source:"Referensi "+(state.year-1)}));
-  state.names={};persist();render();
+  if(!rows.length)return note("Belum ada kegiatan dari tahun "+(state.year-1)+". Lengkapi terlebih dahulu atau input manual.",true);
+  if(!win.confirm("Gunakan "+fmt(rows.length)+" uraian dari "+(state.year-1)+" sebagai draf "+state.year+
+    "? Seluruh pembagian Organik/Mitra akan dikosongkan untuk ditinjau ulang, dan data pemetaan tahun ini akan diganti."))return;
+  state.items=previousYearDraft(rows,state.year);state.names={};persist();render();
+  note("Daftar tahun lalu telah disalin sebagai draf "+state.year+". Edit volume, standar waktu, dan Jam Organik/Mitra sebelum menetapkan kebutuhan tim.");
+ });
+ el("mkpPlanClear").addEventListener("click",()=>{
+  if(!win.confirm("Mulai inventarisasi "+state.year+" dari kosong? Semua rincian yang disimpan lokal untuk tahun tersebut akan dihapus."))return;
+  state.items=[];state.names={};persist();render();note("Inventarisasi kosong. Silakan input kegiatan dan uraian secara manual.");
  });
  el("mkpPlanExport").addEventListener("click",()=>{
   const map=new Map();
@@ -329,5 +426,5 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
   persist();e.currentTarget.reset();render();note("Uraian berhasil ditambahkan dengan total "+fmt(total)+" orang-jam.");
  });
  const selectedYear=number(doc.getElementById("yearSelect")?.value)||2027;
- load(Math.max(2026,Math.min(2031,selectedYear)));render();
+ load(Math.max(2026,Math.min(2031,selectedYear)));render();setSourceMode("manual");
 }
