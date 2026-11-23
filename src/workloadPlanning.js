@@ -24,7 +24,7 @@ function excel2026(doc){
   return (seed.activities||[]).map(a=>{
    const sum=totals.get(a.id),standard=number(a.standard_hours);
    return {id:a.id,group:a.team||"Belum Terpetakan",activity:a.group||"Kegiatan",
-    description:a.description||"",volume:number(a.annual_volume),unit:a.unit||"Unit",
+    description:a.description||"",volume:sum?sum.organic+sum.partner:number(a.annual_volume),unit:a.unit||"Unit",
     standard,reported:a.annual_hours_reported==null?null:number(a.annual_hours_reported),
     organic:sum?(sum.organic*standard):null,partner:sum?(sum.partner*standard):null,
     source:"Referensi Excel 2026 — alokasi dan selisih perlu diverifikasi"};
@@ -168,14 +168,14 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
  const el=id=>doc.getElementById(id);
  const note=(s,warn)=>{el("mkpPlanNote").textContent=s;el("mkpPlanNote").classList.toggle("warn",!!warn)};
  function render(){
-  let total=0,org=0,mitra=0,unknown=0,problems=0;const groups=new Map();
-  for(const r of state.items){const x=audit(r);total+=x.total;org+=x.organic;mitra+=x.partner;
+  let total=0,org=0,mitra=0,reported=0,unknown=0,problems=0;const groups=new Map();
+  for(const r of state.items){const x=audit(r);total+=x.total;org+=x.organic;mitra+=x.partner;reported+=r.reported==null?x.total:number(r.reported);
    if(x.missing)unknown+=x.total;if(x.badSplit||x.badSource)problems++;
    const key=r.group||"Belum Dikelompokkan";
    if(!groups.has(key))groups.set(key,{count:0,total:0,organic:0,partner:0});
    const g=groups.get(key);g.count++;g.total+=x.total;g.organic+=x.organic;g.partner+=x.partner;
   }
-  el("mkpPlanStats").innerHTML=[["Uraian",fmt(state.items.length)],["Total Kantor",fmt(total)+" Jam"],["Jam Organik",fmt(org)],["Jam Mitra",fmt(mitra)]].map(a=>'<section><small>'+a[0]+'</small><strong>'+a[1]+'</strong></section>').join("");
+  el("mkpPlanStats").innerHTML=[["Uraian",fmt(state.items.length)],["Total Hitung Ulang",fmt(total)+" Jam"],["Total Sumber Excel",fmt(reported)+" Jam"],["Jam Organik",fmt(org)],["Jam Mitra",fmt(mitra)]].map(a=>'<section><small>'+a[0]+'</small><strong>'+a[1]+'</strong></section>').join("");
   const list=[...groups].sort((a,b)=>b[1].total-a[1].total);
   el("mkpPlanGroups").innerHTML=list.map(([name,g])=>
    '<tr><td>'+html(name)+'</td><td class="num">'+fmt(g.count)+'</td><td class="num">'+fmt(g.total)+'</td><td class="num">'+fmt(g.organic)+'</td><td class="num">'+fmt(g.partner)+'</td><td><input data-func="'+html(name)+'" value="'+html(state.names[name]||name)+'" style="min-width:200px"></td></tr>'
@@ -200,7 +200,7 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
   el("mkpPlanRows").querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",()=>editRow(b.dataset.edit)));
   el("mkpPlanYear").value=String(state.year);el("mkpPlanCapacity").value=String(state.capacity);
   if(!state.items.length)note("Belum ada rincian "+state.year+". Impor workbook atau gunakan referensi tahun sebelumnya.",true);
-  else if(unknown||problems)note("Audit: "+fmt(unknown)+" orang-jam belum dipisah Organik/Mitra; "+problems+" baris memiliki selisih. Perbaiki sebelum digunakan untuk penetapan kebutuhan SDM.",true);
+  else if(unknown||problems)note("Audit: "+fmt(unknown)+" orang-jam belum dipisah Organik/Mitra; "+problems+" baris memiliki selisih. Total dihitung dari volume × standar waktu; angka sumber Excel (H) ditampilkan terpisah. Rekonsiliasi sebelum menentukan SDM.",true);
   else note(fmt(state.items.length)+" uraian terpetakan. Total Beban = Organik + Mitra. FTE hanya memakai Jam Organik.");
  }
  function editRow(id){
