@@ -47,52 +47,114 @@ function csvRows(src){
  }
  row.push(part);if(row.some(x=>x.trim()))rows.push(row);return rows;
 }
-function dataRows(rows,year){
- const header=rows.findIndex(r=>String(r[0]||"").trim().toLocaleLowerCase("id")==="kode tim" &&
-  String(r[8]||"").toLocaleLowerCase("id").includes("organik"));
- if(header<0)throw Error("Header A–J tidak cocok. Diperlukan Kode Tim, Tim Kerja, Kegiatan, Uraian, Vol, Satuan, Waktu per Satuan, Total Jam, Jam Organik, Jam Mitra.");
- const result=[];
- for(let i=header+1;i<rows.length;i++){
-  const r=rows[i];if(!String(r[1]||"").trim()||!String(r[3]||"").trim())continue;
-  result.push({id:"Y"+year+"-R"+(i+1),group:String(r[1]).trim(),activity:String(r[2]||"").trim(),
-   description:String(r[3]).trim(),volume:number(r[4]),unit:String(r[5]||"Unit"),
-   standard:number(r[6]),reported:number(r[7]),organic:number(r[8]),partner:number(r[9]),
-   source:"Excel "+year+" · baris "+(i+1)});
- }
- if(!result.length)throw Error("Tidak ditemukan uraian dengan kelompok fungsi dan nama tugas.");
- return result;
+
+const workbookCache=new WeakMap();
+async function workbookEntries(file){
+ let entries=workbookCache.get(file);
+ if(!entries){entries=unzipSync(new Uint8Array(await file.arrayBuffer()));workbookCache.set(file,entries)}
+ return entries;
 }
-export async function xlsxRows(file,year){
- const entries=unzipSync(new Uint8Array(await file.arrayBuffer()));
- const read=p=>{if(!entries[p])throw Error("Bagian XLSX tidak ditemukan: "+p);return strFromU8(entries[p])};
- const wb=read("xl/workbook.xml"),sheet=[...wb.matchAll(/<sheet\b[^>]*\/>/g)].map(m=>m[0]).find(s=>s.includes('name="'+year+'"'));
- if(!sheet)throw Error("Sheet "+year+" tidak ada di workbook.");
- const relationId=sheet.match(/r:id="([^"]+)"/)?.[1];
- const rel=[...read("xl/_rels/workbook.xml.rels").matchAll(/<Relationship\b[^>]*\/>/g)].map(m=>m[0]).find(s=>s.includes('Id="'+relationId+'"'));
- const target=rel?.match(/Target="([^"]+)"/)?.[1];
- if(!target)throw Error("Lokasi worksheet tidak diketahui.");
- const path=target.startsWith("/")?target.slice(1):"xl/"+target.replace(/^(\.\.\/)*/,"");
- const ss=entries["xl/sharedStrings.xml"]?strFromU8(entries["xl/sharedStrings.xml"]):"";
+function readEntry(entries,path){
+ if(!entries[path])throw Error("Bagian XLSX tidak ditemukan: "+path);
+ return strFromU8(entries[path]);
+}
+function attr(tag,name){
+ return tag.match(new RegExp("(?:^|\\s)"+name.replace(":","\\:")+'="([^"]*)"'))?.[1]||"";
+}
+async function workbookSheets(file){
+ const entries=await workbookEntries(file);
+ const wb=readEntry(entries,"xl/workbook.xml");
+ const relations=new Map([...readEntry(entries,"xl/_rels/workbook.xml.rels")
+  .matchAll(/<Relationship\b[^>]*\/>/g)]
+  .map(m=>[attr(m[0],"Id"),attr(m[0],"Target")]));
+ const sheets=[...wb.matchAll(/<sheet\b[^>]*\/>/g)].map(m=>{
+  const name=dexml(attr(m[0],"name")),target=relations.get(attr(m[0],"r:id"));
+  if(!target)throw Error("Lokasi sheet "+name+" tidak ditemukan.");
+  const path=target.startsWith("/")?target.slice(1):"xl/"+target.replace(/^(\.\.\/)*/,"");
+  return {name,path};
+ });
+ if(!sheets.length)throw Error("File tidak memiliki sheet yang dapat dibaca.");
+ return {entries,sheets};
+}
+export async function xlsxSheets(file){
+ const {sheets}=await workbookSheets(file);
+ return sheets.map(s=>s.name);
+}
+async function sheetRows(file,sheetName){
+ const {entries,sheets}=await workbookSheets(file);
+ const sheet=sheets.find(s=>s.name===sheetName);
+ if(!sheet)throw Error('Sheet "'+sheetName+'" tidak ditemukan.');
+ const ss=entries["xl/sharedStrings.xml"]?readEntry(entries,"xl/sharedStrings.xml"):"";
  const strings=[...ss.matchAll(/<si(?:\s[^>]*)?>([\s\S]*?)<\/si>/g)].map(m=>
   dexml([...m[1].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(v=>v[1]).join("")));
- const xml=read(path),rows=[],rowRx=/<row\b[^>]*>([\s\S]*?)<\/row>/g;
+ const xml=readEntry(entries,sheet.path),rows=[],rowRx=/<row\b([^>]*)>([\s\S]*?)<\/row>/g;
  let match;
  while((match=rowRx.exec(xml))){
-  const row=Array(10).fill(""),content=match[1],cellRx=/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
-  let cell;
-  while((cell=cellRx.exec(content))){
-   const col=cell[1].match(/\br="([A-Z]+)\d+"/)?.[1];
+  const row=Array(10).fill(""),rowNo=Number(attr(match[1],"r"))||rows.length+1;
+  const cellRx=/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;let cell;
+  while((cell=cellRx.exec(match[2]))){
+   const col=attr(cell[1],"r").match(/^([A-Z]+)\d+$/)?.[1];
    if(!col||col.length!==1)continue;
-   const index=col.charCodeAt(0)-65;
-   if(index>=10)break;
+   const ix=col.charCodeAt(0)-65;if(ix<0||ix>9)continue;
    const value=cell[2]?.match(/<v>([\s\S]*?)<\/v>/)?.[1]||"";
    const inline=cell[2]?.match(/<is\b[^>]*>([\s\S]*?)<\/is>/)?.[1]||"";
-   row[index]=/\bt="s"/.test(cell[1])?strings[Number(value)]||"":inline?dexml(inline.replace(/<[^>]*>/g,"")):dexml(value);
+   row[ix]=attr(cell[1],"t")==="s"?strings[Number(value)]||"":
+    inline?dexml([...inline.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(m=>m[1]).join("")):dexml(value);
   }
-  if(row.some(Boolean))rows.push(row);
+  if(row.some(v=>String(v).trim())){row.rowNumber=rowNo;rows.push(row)}
  }
- return dataRows(rows,year);
+ return rows;
 }
+function headerIndex(rows){
+ return rows.findIndex(r=>String(r[0]||"").trim().toLocaleLowerCase("id")==="kode tim" &&
+  String(r[8]||"").toLocaleLowerCase("id").includes("organik")&&
+  String(r[9]||"").toLocaleLowerCase("id").includes("mitra"));
+}
+function rangeBounds(rows){
+ const hi=headerIndex(rows);
+ const data=hi>=0?rows.slice(hi+1):rows;
+ return {headerRow:hi>=0?(rows[hi].rowNumber||hi+1):null,
+  firstRow:data[0]?.rowNumber||0,lastRow:data.at(-1)?.rowNumber||0};
+}
+export async function xlsxSheetInfo(file,sheetName){
+ return rangeBounds(await sheetRows(file,sheetName));
+}
+function dataRows(rows,year,options={}){
+ const hi=headerIndex(rows);
+ if(hi<0)throw Error("Format kolom A–J tidak sesuai: baris header harus berisi Kode Tim, Tim Kerja, Kegiatan, Uraian, Vol, Satuan, Waktu per Satuan, Total Jam, Jam Organik, dan Jam Mitra. Pilih sheet yang memuat format matriks ini.");
+ const firstData=rows[hi].rowNumber?rows[hi].rowNumber+1:hi+2;
+ const maxRow=rows.at(-1)?.rowNumber||rows.length;
+ const start=options.startRow==null?firstData:Number(options.startRow);
+ const end=options.endRow==null?maxRow:Number(options.endRow);
+ if(!Number.isInteger(start)||!Number.isInteger(end)||start<firstData||end<start)
+  throw Error("Rentang tidak valid. Baris awal minimal "+firstData+" dan baris akhir tidak boleh lebih kecil dari awal.");
+ if(end>maxRow)throw Error("Baris akhir maksimal "+maxRow+" pada sheet ini.");
+ const result=[];
+ for(let i=hi+1;i<rows.length;i++){
+  const r=rows[i],line=r.rowNumber||i+1;
+  if(line<start||line>end)continue;
+  if(!String(r[1]||"").trim()||!String(r[3]||"").trim())continue;
+  result.push({id:"Y"+year+"-R"+line,group:String(r[1]).trim(),activity:String(r[2]||"").trim(),
+   description:String(r[3]).trim(),volume:number(r[4]),unit:String(r[5]||"Unit"),
+   standard:number(r[6]),reported:r[7]===""?null:number(r[7]),
+   organic:r[8]===""?null:number(r[8]),partner:r[9]===""?null:number(r[9]),
+   source:"Excel "+year+" · baris "+line});
+ }
+ if(!result.length)throw Error("Tidak ada uraian pada rentang "+start+"–"+end+". Periksa sheet dan nomor baris.");
+ return result;
+}
+export async function xlsxRows(file,year,options={}){
+ return dataRows(await sheetRows(file,options.sheetName||String(year)),year,options);
+}
+export function csvImportRows(text,year,options={}){
+ const rows=csvRows(text);rows.forEach((r,i)=>r.rowNumber=i+1);
+ return dataRows(rows,year,options);
+}
+export function previousYearDraft(rows,year){
+ return rows.map((r,i)=>({...r,id:"REK-"+year+"-"+i,organic:null,partner:null,
+  source:"Referensi "+(year-1)+" — pembagian Organik/Mitra perlu diverifikasi"}));
+}
+
 function audit(r){
  const total=number(r.volume)*number(r.standard),missing=r.organic==null||r.partner==null;
  const organic=missing?0:number(r.organic),partner=missing?0:number(r.partner);
