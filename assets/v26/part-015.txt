@@ -938,6 +938,45 @@ function decideKroProposal(tid,approved,note=''){
  persist();
  return true;
 }
+// Import verified planning items into the SAME annual catalog used by Input Alokasi.
+// No individual allocations are created automatically; organic/partner hours stay in planning.
+window.__mpPlanningSyncActivities=function(records,year){
+ if(currentRole!=='admin')return {ok:false,error:'Hanya Admin yang dapat meneruskan kegiatan ke Input Alokasi.'};
+ if(isBaseYear||Number(year)!==activeYear)return {ok:false,error:'Pilih tahun draf yang sama pada matriks dan inventarisasi.'};
+ if(yearInfo().status!=='draft')return {ok:false,error:'Buka draf tahun berjalan terlebih dahulu.'};
+ if(!Array.isArray(records)||!records.length)return {ok:false,error:'Belum ada uraian untuk diteruskan.'};
+ if(records.length>10000)return {ok:false,error:'Jumlah uraian terlalu besar untuk satu transfer.'};
+ const candidate=[],missing=new Set();
+ const existing=new Set(activities.map(a=>JSON.stringify([a.team_id,groupName(a),a.description,a.unit].map(x=>String(x||'').trim().toLocaleLowerCase('id')))));
+ const incoming=new Set();
+ for(const row of records){
+  const proposed=String(row.proposedTeam||'').trim();
+  const team=demoTeams.find(t=>t.active!==false&&String(t.name).toLocaleLowerCase('id')===proposed.toLocaleLowerCase('id'));
+  if(!team){missing.add('Tim belum ditetapkan: '+proposed);continue}
+  if(!yearTeamReady(team.id)){missing.add('Susunan tim belum disetujui: '+proposed);continue}
+  if(!yearKroReady(team.id)){missing.add('KRO belum disetujui: '+proposed);continue}
+  const group=canon(row.activity||row.group),description=String(row.description||'').trim(),unit=canonicalActivityUnit(row.unit);
+  const standard=Number(row.standard);
+  if(!description||!unit||!group||!Number.isFinite(standard)||standard<=0){missing.add('Uraian belum lengkap: '+description);continue}
+  const signature=JSON.stringify([team.id,group,description,unit].map(x=>String(x||'').trim().toLocaleLowerCase('id')));
+  if(existing.has(signature)||incoming.has(signature))continue;
+  incoming.add(signature);
+  candidate.push({
+   id:'KNEW-PLAN-'+crypto.randomUUID(),team_id:team.id,team:team.name,group,description,unit,
+   standard_hours:standard,annual_volume:Number(row.volume)||null,annual_hours_reported:Number(row.reported)||null,
+   sourceInventoryId:String(row.id||''),sourceYear:activeYear,
+   legacy_row:null,status:'aktif',calculation_mode:'belum_ditentukan'
+  });
+ }
+ if(missing.size)return {ok:false,error:[...missing].slice(0,6).join('; ')+(missing.size>6?' dan lainnya.':'')};
+ if(!candidate.length)return {ok:true,created:0,duplicates:records.length};
+ state.added.push(...candidate);
+ if(!persist()){state.added.splice(-candidate.length,candidate.length);return {ok:false,error:'Gagal menyimpan katalog kegiatan.'}}
+ rebuild();syncAllTeamSelectors();renderGroups();renderYearUI();
+ logChange('Gunakan inventarisasi pada Input Alokasi',candidate.length+' uraian tahun '+activeYear);
+ persist();
+ return {ok:true,created:candidate.length,duplicates:records.length-candidate.length};
+};
 function allowYearTask(tid){if(demoTeams.find(t=>t.id===tid)?.active===false){toast('Tim sedang nonaktif. Aktifkan kembali melalui Kelola Tim sebelum input alokasi baru.');setPage('teams');return false}if(isBaseYear)return true;if(!predecessorHasData()){toast('Isi dan simpan Matriks '+(activeYear-1)+' terlebih dahulu.');return false}if(yearInfo().status==='closed'){toast('Siapkan draf '+activeYear+' dari panel periode tahun.');return false}if(!staffReady()){toast('Tetapkan daftar pegawai '+activeYear+' terlebih dahulu di Kelola Tim.');setPage('teams');return false}if(!yearTeamReady(tid)){toast('Tetapkan ketua dan anggota tim '+activeYear+' dahulu.');setPage('teams');return false}if(!yearKroReady(tid)){toast('Tetapkan pilihan KRO tim ini di menu Pembagian KRO sebelum menginput kegiatan.');setPage('kro');return false}return true}
 function renderYearStaff(){
  const host=$('annualStaffList');if(!host)return;
