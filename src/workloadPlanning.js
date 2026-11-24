@@ -296,7 +296,7 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
 
  function render(){
   let total=0,org=0,mitra=0,reported=0,unknown=0,problems=0;const groups=new Map();
-  for(const r of state.items){const x=audit(r);total+=x.total;org+=x.organic;mitra+=x.partner;reported+=r.reported==null?x.total:number(r.reported);
+  for(const r of state.items){const x=audit(r);total+=x.total;org+=x.organic;mitra+=x.partner;reported+=r.sourceReported!=null?number(r.sourceReported):(r.reported==null?x.total:number(r.reported));
    if(x.missing)unknown+=x.total;if(x.badSplit||x.badSource)problems++;
    const key=r.group||"Belum Dikelompokkan";
    if(!groups.has(key))groups.set(key,{count:0,total:0,organic:0,partner:0});
@@ -346,7 +346,7 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
   else note(fmt(state.items.length)+" uraian terpetakan. Total Beban = Organik + Mitra. FTE hanya memakai Jam Organik.");
  }
  function editRow(id){
-  const r=state.items.find(a=>a.id===id);if(!r)return;
+  const r=state.items.find(a=>a.id===id);if(!r||!canEdit())return;
   const shell=doc.createElement("dialog");shell.style.cssText="border:1px solid #b7d5e9;border-radius:13px;padding:20px;max-width:480px;width:calc(100vw - 36px);color:#194f7c;font:13px Arial";
   shell.innerHTML='<h3 style="margin:0 0 12px">Ubah Rincian Beban Kerja</h3><form method="dialog" id="mkpRowForm" style="display:grid;gap:10px">'+
    '<label>Uraian<input name="description" style="display:block;width:100%" value="'+html(r.description)+'" required></label>'+
@@ -354,14 +354,16 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
    '<label>Jam per Satuan<input name="standard" type="number" step="any" min="0.000001" value="'+html(r.standard)+'" required></label>'+
    '<label>Jam Organik<input name="organic" type="number" min="0" step="any" value="'+html(r.organic??"")+'" required></label>'+
    '<label>Jam Mitra<input name="partner" type="number" min="0" step="any" value="'+html(r.partner??"")+'" required></label>'+
+   '<label>Total Jam Disepakati<input name="reported" type="number" step="any" min="0" value="'+html(r.reported??(number(r.volume)*number(r.standard)))+'" required></label>'+
+   '<p style="font-size:11px;color:#61778b">Angka sumber Excel awal tetap disimpan terpisah. Total Jam Disepakati harus sesuai Volume × Standar Waktu dan Jam Organik + Jam Mitra.</p>'+
    '<div style="display:flex;gap:8px;justify-content:end"><button value="cancel">Batal</button><button value="save" style="background:#176b9d;color:white">Simpan</button></div></form>';
   doc.body.append(shell);shell.showModal();
   shell.addEventListener("close",()=>{
    if(shell.returnValue==="save"){
     const fd=new FormData(shell.querySelector("form"));
-    const vol=number(fd.get("volume")),std=number(fd.get("standard")),organic=number(fd.get("organic")),partner=number(fd.get("partner"));
-    if(std<=0||vol<0||organic<0||partner<0){note("Angka volume, standar, atau pembagian jam tidak valid.",true)}
-    else{r.description=String(fd.get("description")).trim();r.volume=vol;r.standard=std;r.organic=organic;r.partner=partner;persist();render();}
+    const vol=number(fd.get("volume")),std=number(fd.get("standard")),organic=number(fd.get("organic")),partner=number(fd.get("partner")),accepted=number(fd.get("reported"));
+    if(std<=0||vol<0||organic<0||partner<0||accepted<0){note("Angka volume, standar, atau pembagian jam tidak valid.",true)}
+    else{if(!Object.prototype.hasOwnProperty.call(r,"sourceReported"))r.sourceReported=r.reported;r.description=String(fd.get("description")).trim();r.volume=vol;r.standard=std;r.organic=organic;r.partner=partner;r.reported=accepted;persist();render();}
    }
    shell.remove();
   },{once:true});
