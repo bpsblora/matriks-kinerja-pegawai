@@ -815,13 +815,14 @@ function stageAccess(page){
  if(!staffReady()||!anyEstablishedTeam())return false;
  if(page==='kro')return true;
  if(!anyEstablishedKro())return false;
- if(page==='input')return true;
+ if(page==='input'){const plan=window.__mpPlanningStatus?.();return !!plan&&plan.year===activeYear&&plan.total>0&&plan.approved&&plan.pending===0;}
  return publishedAllocationCount()>0;
 }
 function stageBlockReason(page){
  if(yearInfo().status==='closed')return 'Buka draf '+activeYear+' untuk memulai penyusunan setelah inventarisasi beban.';
  if(!staffReady()||!anyEstablishedTeam())return 'Tetapkan struktur tim dan kebutuhan pegawai berdasarkan Pemetaan Beban Kerja sebelum membuka '+page+'.';
  if(!anyEstablishedKro())return 'Tetapkan KRO tim terlebih dahulu di Pembagian KRO.';
+ if(page==='input'){const p=window.__mpPlanningStatus?.();if(!p?.approved||p.year!==activeYear||p.pending) return 'Verifikasi inventarisasi dan tetapkan skenario struktur tim '+activeYear+' bersama Kepala BPS terlebih dahulu.';}
  return 'Isi dan tetapkan alokasi sebelum membuka '+page+'.';
 }
 function refreshStageNav(){
@@ -938,7 +939,7 @@ function decideKroProposal(tid,approved,note=''){
  persist();
  return true;
 }
-function allowYearTask(tid){if(demoTeams.find(t=>t.id===tid)?.active===false){toast('Tim sedang nonaktif. Aktifkan kembali melalui Kelola Tim sebelum input alokasi baru.');setPage('teams');return false}if(isBaseYear)return true;if(!predecessorHasData()){toast('Isi dan simpan Matriks '+(activeYear-1)+' terlebih dahulu.');return false}if(yearInfo().status==='closed'){toast('Siapkan draf '+activeYear+' dari panel periode tahun.');return false}if(!staffReady()){toast('Tetapkan daftar pegawai '+activeYear+' terlebih dahulu di Kelola Tim.');setPage('teams');return false}if(!yearTeamReady(tid)){toast('Tetapkan ketua dan anggota tim '+activeYear+' dahulu.');setPage('teams');return false}if(!yearKroReady(tid)){toast('Tetapkan pilihan KRO tim ini di menu Pembagian KRO sebelum menginput kegiatan.');setPage('kro');return false}return true}
+function allowYearTask(tid){if(demoTeams.find(t=>t.id===tid)?.active===false){toast('Tim sedang nonaktif. Aktifkan kembali melalui Kelola Tim sebelum input alokasi baru.');setPage('teams');return false}if(isBaseYear)return true;const p=window.__mpPlanningStatus?.();if(!p?.approved||p.year!==activeYear||p.pending){toast('Inventarisasi dan struktur tim '+activeYear+' harus diverifikasi serta ditetapkan Kepala BPS terlebih dahulu.');setPage('scenario');return false}if(!predecessorHasData()){toast('Isi dan simpan Matriks '+(activeYear-1)+' terlebih dahulu.');return false}if(yearInfo().status==='closed'){toast('Siapkan draf '+activeYear+' dari panel periode tahun.');return false}if(!staffReady()){toast('Tetapkan daftar pegawai '+activeYear+' terlebih dahulu di Kelola Tim.');setPage('teams');return false}if(!yearTeamReady(tid)){toast('Tetapkan ketua dan anggota tim '+activeYear+' dahulu.');setPage('teams');return false}if(!yearKroReady(tid)){toast('Tetapkan pilihan KRO tim ini di menu Pembagian KRO sebelum menginput kegiatan.');setPage('kro');return false}return true}
 // Import verified planning items into the SAME annual catalog used by Input Alokasi.
 // No individual allocations are created automatically; organic/partner hours stay in planning.
 window.__mpPlanningSyncActivities=function(records,year){
