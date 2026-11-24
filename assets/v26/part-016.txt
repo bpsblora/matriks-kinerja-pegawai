@@ -1647,9 +1647,10 @@ function renderYearUI(){
  $('yearPrepare').classList.toggle('hidden',!(status==='closed'&&!isBaseYear&&canPrepareAnnual()));
  $('yearHow').classList.toggle('hidden',!yearWelcomeNeeded());
  $('yearApprove').classList.toggle('hidden',!(status==='draft'&&!isBaseYear&&['kepala','admin'].includes(currentRole)));
+ const plan=window.__mpPlanningStatus?.();const planningReady=!!plan&&plan.year===activeYear&&plan.approved&&plan.total>0&&plan.pending===0;
  const canApproveTeams=teamProgress.total>0&&teamProgress.pending.length===0&&teamProgress.awaiting.length===0;
- $('yearApprove').disabled=!canApproveTeams||!staffReady()||!publishedAllocationCount()||!activities.some(a=>a.status==='aktif');
- $('yearApprove').title=!canApproveTeams?'Menunggu '+teamProgress.pending.length+' Tim Belum Lengkap dan '+teamProgress.awaiting.length+' Susunan Tim Belum Disetujui Kepala BPS. '+teamBlock:
+ $('yearApprove').disabled=!planningReady||!canApproveTeams||!staffReady()||!publishedAllocationCount()||!activities.some(a=>a.status==='aktif');
+ $('yearApprove').title=!planningReady?'Inventarisasi dan skenario struktur tim harus ditetapkan Kepala BPS sebelum finalisasi tahun.':!canApproveTeams?'Menunggu '+teamProgress.pending.length+' Tim Belum Lengkap dan '+teamProgress.awaiting.length+' Susunan Tim Belum Disetujui Kepala BPS. '+teamBlock:
   !publishedAllocationCount()?'Tetapkan minimal satu alokasi kegiatan terlebih dahulu.':'Setujui matriks setelah seluruh pemeriksaan tahunan selesai.';
  const pretty=info.approvedAt?new Date(info.approvedAt).toLocaleString('id-ID'):'';
  $('yearStateTitle').textContent=isBaseYear?'2026 · Referensi Matriks Asli':status==='approved'?activeYear+' · Matriks Ditetapkan':status==='draft'?activeYear+' · Draf Penyusunan':activeYear+' · Belum Disiapkan';
@@ -1667,6 +1668,8 @@ async function prepareAnnual(skipConfirm=false){if(!canPrepareAnnual()||isBaseYe
 }
 async function approveAnnual(){
  if(!['kepala','admin'].includes(currentRole)||isBaseYear||yearInfo().status!=='draft')return;
+ const planning=window.__mpPlanningStatus?.();
+ if(!planning?.approved||planning.year!==activeYear||planning.pending||!planning.total){toast('Selesaikan inventarisasi dan persetujuan struktur tim tahun '+activeYear+' sebelum finalisasi.');setPage('scenario');return;}
  const teams=annualTeamCompletion();
  if(!teams.total)return toast('Belum ada Tim Aktif yang dapat ditetapkan.');
  if(teams.pending.length){
