@@ -164,15 +164,19 @@ function audit(r){
 export function mountWorkloadPlanning(doc,{simulation=false}={}){
  if(!doc||doc.getElementById("mkpPlanningOpen"))return;
  const win=doc.defaultView,base=excel2026(doc),key=y=>(simulation?"mkp-simulasi-v1:":"")+PREFIX+y;
- const state={year:2027,items:[],names:{},capacity:1650,search:""};
+ const state={year:2027,items:[],names:{},assignments:{},structureStatus:"draft",approvedAt:"",capacity:1650,search:""};
  let importFile=null,previewRows=null,previewSignature="",sourceMode="manual";
  const $=id=>doc.getElementById(id);
  function load(y){
   let saved;try{saved=JSON.parse(win.localStorage.getItem(key(y))||"null")}catch{}
   state.year=y;state.items=Array.isArray(saved?.items)?saved.items:y===2026?base:[];
-  state.names=saved?.names||{};state.capacity=number(saved?.capacity)||1650;
+  state.names=saved?.names||{};state.assignments=saved?.assignments||{};state.structureStatus=saved?.structureStatus||"draft";state.approvedAt=saved?.approvedAt||"";state.capacity=number(saved?.capacity)||1650;
  }
- function persist(){win.localStorage.setItem(key(state.year),JSON.stringify({items:state.items,names:state.names,capacity:state.capacity}))}
+ function store(){win.localStorage.setItem(key(state.year),JSON.stringify({items:state.items,names:state.names,assignments:state.assignments,structureStatus:state.structureStatus,approvedAt:state.approvedAt,capacity:state.capacity}))}
+ function persist(){state.structureStatus="draft";state.approvedAt="";store();}
+ const userRole=()=>win.__mpPreviewSessionState?.()?.role||"pegawai";
+ const canEdit=()=>userRole()==="admin";
+ const isHead=()=>userRole()==="kepala";
  const style=doc.createElement("style");
  style.textContent=[
  "#mkpPlanningOpen{padding:8px 12px!important;border-radius:9px!important;border:1px solid #9fc9e3!important;background:#e4f4ff!important;color:#125688!important;font-weight:850!important;cursor:pointer!important}",
@@ -245,7 +249,7 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
  '<h3>2. Skenario Struktur dan Kebutuhan Anggota Organik</h3><div class="table-scroll"><table><thead><tr><th>Usulan Tim</th><th>Fungsi Tergabung</th><th>Total</th><th>Organik</th><th>Mitra</th><th>FTE Organik</th><th>Indikasi Anggota*</th></tr></thead><tbody id="mkpPlanTeams"></tbody></table></div>',
  '<p class="hint">*Indikasi = pembulatan ke atas FTE, bukan keputusan jumlah anggota. Evaluasi penugasan lintas tim, kompetensi, dan beban puncak bulanan.</p>',
  '<h3>3. Inventarisasi Kegiatan dan Rincian Uraian</h3><input id="mkpPlanSearch" placeholder="Cari kegiatan/uraian..." style="width:min(100%,380px)">',
- '<div class="table-scroll"><table><thead><tr><th>Fungsi</th><th>Kegiatan</th><th>Uraian</th><th>Volume</th><th>Jam/Satuan</th><th>Total</th><th>Organik</th><th>Mitra</th><th>Status Audit</th><th>Tindakan</th></tr></thead><tbody id="mkpPlanRows"></tbody></table></div>',
+ '<div class="table-scroll"><table><thead><tr><th>Fungsi</th><th>Kegiatan</th><th>Uraian</th><th>Volume</th><th>Jam/Satuan</th><th>Total</th><th>Organik</th><th>Mitra</th><th>Status Audit</th><th>Usulan Tim per Uraian</th><th>Tindakan</th></tr></thead><tbody id="mkpPlanRows"></tbody></table></div>',
  '<p class="hint">Menampilkan maksimal 120 uraian sekaligus. Gunakan pencarian untuk mempersempit. Isian Organik/Mitra 2026 belum tersedia dalam referensi dan tidak diisi otomatis.</p>',
  '<section id="mkpPlanManualForm"><h3>4. Input Manual — Tambah Uraian Kegiatan</h3><div class="info">Semua kegiatan menggunakan orang-jam. Rapat 5 jam × 8 peserta = <b>40 orang-jam</b>. Jika 5 peserta organik dan 3 mitra, masukkan 25 jam Organik dan 15 jam Mitra. Jangan menggandakan volume dua kali.</div>',
  '<form id="mkpPlanAdd" class="form-grid"><label>Kelompok Fungsi<input name="group" required></label><label>Nama Kegiatan<input name="activity" required></label><label>Uraian<input name="description" required></label><label>Satuan<input name="unit" value="O-Keg" required></label>',
@@ -281,13 +285,15 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
    '<tr><td>'+html(name)+'</td><td class="num">'+fmt(g.count)+'</td><td class="num">'+fmt(g.total)+'</td><td class="num">'+fmt(g.organic)+'</td><td class="num">'+fmt(g.partner)+'</td><td><input data-func="'+html(name)+'" value="'+html(state.names[name]||name)+'" style="min-width:200px"></td></tr>'
   ).join("")||'<tr><td colspan="6">Data kosong. Impor Matriks Kegiatan Pegawai 2027.xlsx untuk memulai.</td></tr>';
   const teams=new Map();
-  for(const [name,g] of list){const dest=(state.names[name]||name).trim()||name;
-   if(!teams.has(dest))teams.set(dest,{groups:[],total:0,organic:0,partner:0});
-   const x=teams.get(dest);x.groups.push(name);x.total+=g.total;x.organic+=g.organic;x.partner+=g.partner;
+  for(const r of state.items){
+   const a=audit(r),name=(state.assignments[r.id]||state.names[r.group]||r.group||"Belum Dikelompokkan").trim();
+   if(!teams.has(name))teams.set(name,{groups:new Set(),total:0,organic:0,partner:0,unverified:0});
+   const g=teams.get(name);g.groups.add(r.group);g.total+=a.total;g.organic+=a.organic;g.partner+=a.partner;
+   if(a.missing||a.badSplit||a.badSource)g.unverified++;
   }
   el("mkpPlanTeams").innerHTML=[...teams].sort((a,b)=>b[1].total-a[1].total).map(([name,g])=>{
    const fte=g.organic/state.capacity;
-   return '<tr><td><b>'+html(name)+'</b></td><td class="wrap">'+html(g.groups.join("; "))+'</td><td class="num">'+fmt(g.total)+'</td><td class="num">'+fmt(g.organic)+'</td><td class="num">'+fmt(g.partner)+'</td><td class="num">'+fmt(fte)+'</td><td class="num">'+fmt(Math.ceil(fte))+'</td></tr>';
+   return '<tr><td><b>'+html(name)+'</b></td><td class="wrap">'+html([...g.groups].join("; "))+'</td><td class="num">'+fmt(g.total)+'</td><td class="num">'+fmt(g.organic)+'</td><td class="num">'+fmt(g.partner)+'</td><td class="num">'+fmt(fte)+'</td><td class="num">'+fmt(Math.ceil(fte))+'</td></tr>';
   }).join("")||'<tr><td colspan="7">Belum ada skenario yang dihitung.</td></tr>';
   const query=state.search.toLocaleLowerCase("id");
   el("mkpPlanRows").innerHTML=state.items.filter(r=>!query||[r.group,r.activity,r.description].join(" ").toLocaleLowerCase("id").includes(query)).slice(0,120).map(r=>{
