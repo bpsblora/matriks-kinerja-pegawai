@@ -1630,7 +1630,7 @@ function renderYearUI(){
 }
 async function prepareAnnual(skipConfirm=false){if(!canPrepareAnnual()||isBaseYear||yearInfo().status!=='closed')return;if(!predecessorHasData()){toast('Matriks '+(activeYear-1)+' masih kosong. Lengkapi data tahun sebelumnya dahulu.');return}
  if(!skipConfirm&&!await uiConfirm('Buka draf '+activeYear+' dengan acuan '+previousYear+'? Tinjau daftar pegawai, susunan tim, dan KRO sebelum menginput alokasi.'))return;
- yearCatalog[String(activeYear)]={status:'draft',preparedAt:new Date().toISOString(),preparedBy:roleActor()};saveYearCatalog();renderYearUI();setPage('teams');renderYearSetup();$('mkpPlanningOpen')?.click();toast('Draf '+activeYear+' dibuka. Petakan beban kerja sebelum menetapkan tim dan anggotanya.');
+ yearCatalog[String(activeYear)]={status:'draft',preparedAt:new Date().toISOString(),preparedBy:roleActor()};saveYearCatalog();renderYearUI();setPage('inventory');renderYearSetup();toast('Draf '+activeYear+' dibuka. Inventarisasi dan pemetaan beban mendahului penetapan struktur tim.');
 }
 async function approveAnnual(){
  if(!['kepala','admin'].includes(currentRole)||isBaseYear||yearInfo().status!=='draft')return;
@@ -1664,7 +1664,7 @@ function refreshYearLabels(){
 function setupYearSelector(){
  fillSelect($('yearSelect'),Array.from({length:maxYear-firstYear+1},(_,i)=>({value:String(firstYear+i),label:String(firstYear+i)})),String(activeYear));
  $('yearSelect').onchange=()=>{const y=Number($('yearSelect').value);if(y===activeYear)return;try{localStorage.setItem(YEAR_SELECTION_KEY,String(y))}catch(e){}location.reload()};
- $('yearPrepare').onclick=prepareAnnual;$('yearApprove').onclick=approveAnnual;
+ $('yearPrepare').onclick=prepareAnnual;$('yearApprove').onclick=approveAnnual; if($('annualOpenPlanning'))$('annualOpenPlanning').onclick=()=>setPage('inventory');
  refreshYearLabels();renderYearUI();setupYearWelcome();maybeShowYearWelcome();
 }
 
@@ -1702,7 +1702,7 @@ function setupYearWelcome(){yearWelcomeReady=true;
   if(chosenTeam&&(currentRole!=='ketua'||chosenTeam===roleTeamId)){$('teamSelect').value=chosenTeam;selectedTeam=chosenTeam;selectedGroup='';selectedId=null;renderGroups();}
   if(st==='closed'){closeYearWelcome();await prepareAnnual(true);if(yearInfo().status!=='draft')return;}
   else closeYearWelcome();
-  setPage('teams');renderYearSetup();if(currentRole!=='kepala'&&!canEdit(selectedTeam)){toast('Akun ini belum dapat mengedit tim yang dipilih.');return;}
+  setPage('inventory');renderYearSetup();
   toast('Pemetaan beban Organik/Mitra menjadi dasar penentuan tim. Setelah disepakati, lengkapi pegawai, susunan tim, dan KRO sebelum Input Alokasi.');
  };
  window.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('yearWelcomeScreen').classList.contains('hidden')){e.preventDefault();closeYearWelcome()}});
