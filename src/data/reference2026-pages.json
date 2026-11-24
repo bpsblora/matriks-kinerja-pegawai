@@ -1,0 +1,704 @@
+{
+  "meta": {
+    "year": 2026,
+    "dataset": "Matriks Pegawai 2026",
+    "source_file": "Matriks Kegiatan Pegawai 2026.xlsx",
+    "source_sheet": "2026",
+    "status": "snapshot_belum_divalidasi",
+    "extracted_utc": "2026-11-04T02:26:27Z",
+    "caution": "Do not publish real employee data in a public repository; preliminary legacy calculations may be inconsistent."
+  },
+  "employees": [
+    {
+      "id": "E001",
+      "full_name": "Amrih Sulistyanto, A.Md",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E002",
+      "full_name": "Dewi Setyowati, MS",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E003",
+      "full_name": "Dwi Setiawan, A.Md",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E004",
+      "full_name": "Eunike Lidya Ritonga, A.Md",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E005",
+      "full_name": "Hadi Riyantono, A.Md",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E006",
+      "full_name": "Heru Hermawan, SST, MSE",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E007",
+      "full_name": "Hinaryanto",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E008",
+      "full_name": "Indah Permatasari, A.Md",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E009",
+      "full_name": "Kasmuni, A.Md",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E010",
+      "full_name": "Kurniadi Sosiawan, S.Si, MT",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E011",
+      "full_name": "Lilik Purhantoro",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E012",
+      "full_name": "Miftahus Sa'adah S.Tr.Stat",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E013",
+      "full_name": "M Kadarisman",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E014",
+      "full_name": "Nia Aprillyana, S.ST, M.Si",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E015",
+      "full_name": "Novita Ayuningtyas, SST",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E016",
+      "full_name": "Ria Pujo Pangesti, SST",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E017",
+      "full_name": "Rosyida Dwi Setianingsih, SST",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E018",
+      "full_name": "Septi Uswatan Utami, A.Md",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E019",
+      "full_name": "Setyo Nugroho, A.Md",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E020",
+      "full_name": "Sigit Nova Riyanto, S.Si",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E021",
+      "full_name": "Sigit Wibowo, MM",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E022",
+      "full_name": "Sucipto Utomo",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E023",
+      "full_name": "Suparman, SST, M.M.",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E024",
+      "full_name": "Sutopo",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E025",
+      "full_name": "Sutrisno, S.E.",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E026",
+      "full_name": "Tenri Ratna Seminnar, A.Md",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E027",
+      "full_name": "Titik Kurnia Rahman, A.Md",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E028",
+      "full_name": "Tri Rahayu Yekti Mulyani",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E029",
+      "full_name": "Tri Susilo, A.Md",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E030",
+      "full_name": "Ulfatu Afifah Syarifah, A.Md.",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E031",
+      "full_name": "Yunita Rizki Intan Sari, SST",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E032",
+      "full_name": "Yustiar Adhinugroho S.Tr.Stat",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E033",
+      "full_name": "Zainudin Isnaini, A.Md.",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E034",
+      "full_name": "Adip Priyanto",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E035",
+      "full_name": "Bogar Yuanton Kartiko",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E036",
+      "full_name": "Heri Pujianto",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E037",
+      "full_name": "Rustam",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E038",
+      "full_name": "Muhammad Alfa Risxi S.Tr.Stat",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E039",
+      "full_name": "Muhammad Yusuf S.Tr.Stat",
+      "type": "pegawai",
+      "active": true
+    },
+    {
+      "id": "E040",
+      "full_name": "Mitra",
+      "type": "mitra",
+      "active": true
+    }
+  ],
+  "official_roster": {
+    "T001": {
+      "leaderId": "E023",
+      "leaderName": "Suparman, SST, MM",
+      "members": [
+        "E006",
+        "E026",
+        "E010",
+        "E002",
+        "E020",
+        "E015",
+        "E031",
+        "E021",
+        "E014",
+        "E028",
+        "E017",
+        "E018",
+        "E001"
+      ],
+      "source_row": 5,
+      "source_team_name": "SAKIP"
+    },
+    "T002": {
+      "leaderId": "E002",
+      "leaderName": "Dewi Setyowati, MS",
+      "members": [
+        "E025",
+        "E008",
+        "E004",
+        "E035",
+        "E036"
+      ],
+      "source_row": 22,
+      "source_team_name": "Administrasi Keuangan"
+    },
+    "T003": {
+      "leaderId": "E010",
+      "leaderName": "Kurniadi Sosiawan, S.Si, MT",
+      "members": [
+        "E025",
+        "E014",
+        "E006",
+        "E020",
+        "E002",
+        "E017",
+        "E015",
+        "E028",
+        "E027",
+        "E031",
+        "E007",
+        "E032",
+        "E030",
+        "E013"
+      ],
+      "source_row": 29,
+      "source_team_name": "PPID"
+    },
+    "T004": {
+      "leaderId": "E010",
+      "leaderName": "Kurniadi Sosiawan, S.Si, MT",
+      "members": [
+        "E001",
+        "E018",
+        "E004"
+      ],
+      "source_row": 47,
+      "source_team_name": "Pelaksana EPSS"
+    },
+    "T005": {
+      "leaderId": "E028",
+      "leaderName": "Ir. Tri Rahayu Yekti Mulyani",
+      "members": [
+        "E030",
+        "E035",
+        "E036",
+        "E037",
+        "E034"
+      ],
+      "source_row": 52,
+      "source_team_name": "Penataan Lingkungan"
+    },
+    "T006": {
+      "leaderId": "E029",
+      "leaderName": "Tri Susilo, A.Md",
+      "members": [
+        "E005",
+        "E019",
+        "E011",
+        "E032",
+        "E026"
+      ],
+      "source_row": 59,
+      "source_team_name": "Kebugaran pegawai"
+    },
+    "T007": {
+      "leaderId": "E017",
+      "leaderName": "Rosyida Dwi Setianingsih, SST",
+      "members": [
+        "E033"
+      ],
+      "source_row": 69,
+      "source_team_name": "Statistik Kesejahteraan"
+    },
+    "T008": {
+      "leaderId": "E006",
+      "leaderName": "Heru Hermawan, SST, M.S.E",
+      "members": [
+        "E026",
+        "E003"
+      ],
+      "source_row": 72,
+      "source_team_name": "Statistik Kependudukan"
+    },
+    "T009": {
+      "leaderId": "E020",
+      "leaderName": "Sigit Nova Riyanto, S.Si",
+      "members": [
+        "E009",
+        "E011"
+      ],
+      "source_row": 76,
+      "source_team_name": "Statistik Pertanian"
+    },
+    "T010": {
+      "leaderId": "E021",
+      "leaderName": "Ir. Sigit Wibowo, MM",
+      "members": [
+        "E019",
+        "E039",
+        "E038"
+      ],
+      "source_row": 80,
+      "source_team_name": "Statistik INPEK"
+    },
+    "T011": {
+      "leaderId": "E028",
+      "leaderName": "Ir. Tri Rahayu Yekti Mulyani",
+      "members": [
+        "E005"
+      ],
+      "source_row": 85,
+      "source_team_name": "Statistik Distribusi dan KTIP"
+    },
+    "T012": {
+      "leaderId": "E027",
+      "leaderName": "Titik Kurnia Rahman, A.Md",
+      "members": [
+        "E022"
+      ],
+      "source_row": 88,
+      "source_team_name": "Statistik Harga"
+    },
+    "T013": {
+      "leaderId": "E014",
+      "leaderName": "Nia Aprillyana, S.ST, M.Si",
+      "members": [
+        "E029",
+        "E002",
+        "E020",
+        "E006",
+        "E021",
+        "E017",
+        "E016",
+        "E015",
+        "E012"
+      ],
+      "source_row": 91,
+      "source_team_name": "Neraca dan Analisis"
+    },
+    "T014": {
+      "leaderId": "E015",
+      "leaderName": "Novita Ayuningtyas, SST.,M.Ec.Dev",
+      "members": [
+        "E024",
+        "E016"
+      ],
+      "source_row": 102,
+      "source_team_name": "Neraca Pengeluaran"
+    },
+    "T015": {
+      "leaderId": "E032",
+      "leaderName": "Yustiar Adhinugroho, S.Tr.Stat",
+      "members": [
+        "E007",
+        "E035",
+        "E036"
+      ],
+      "source_row": 106,
+      "source_team_name": "Teknologi dan Informasi"
+    },
+    "T016": {
+      "leaderId": "E031",
+      "leaderName": "Yunita Rizki Intan Sari, SST",
+      "members": [
+        "E030",
+        "E013"
+      ],
+      "source_row": 111,
+      "source_team_name": "Diseminasi dan Pelayanan Statistik"
+    },
+    "T017": {
+      "leaderId": "E017",
+      "leaderName": "Rosyida Dwi Setianingsih, SST",
+      "members": [
+        "E028",
+        "E020",
+        "E030",
+        "E015",
+        "E033",
+        "E011",
+        "E024",
+        "E022",
+        "E019",
+        "E003",
+        "E009",
+        "E010",
+        "E004",
+        "E002",
+        "E008",
+        "E021",
+        "E025",
+        "E001",
+        "E018",
+        "E031",
+        "E032",
+        "E007",
+        "E014",
+        "E006",
+        "E012"
+      ],
+      "source_row": 115,
+      "source_team_name": "Tim Pelaksana SE2026"
+    },
+    "T018": {
+      "leaderId": "E027",
+      "leaderName": "Titik Kurnia Rahman, A.Md",
+      "members": [
+        "E005",
+        "E013",
+        "E026",
+        "E029",
+        "E016",
+        "E036",
+        "E035"
+      ],
+      "source_row": 145,
+      "source_team_name": "GARDA SE2026"
+    },
+    "T019": {
+      "leaderId": "E023",
+      "leaderName": "Suparman, SST, MM",
+      "members": [
+        "E003",
+        "E020",
+        "E031",
+        "E029",
+        "E030",
+        "E017",
+        "E012",
+        "E013",
+        "E014",
+        "E032",
+        "E021",
+        "E006",
+        "E015",
+        "E028",
+        "E027",
+        "E009",
+        "E011",
+        "E005",
+        "E022",
+        "E007",
+        "E033",
+        "E016",
+        "E004",
+        "E024",
+        "E025",
+        "E001",
+        "E008",
+        "E010",
+        "E026",
+        "E002",
+        "E018",
+        "E019"
+      ],
+      "source_row": 154,
+      "source_team_name": "Pembinaan Statistik Sektoral"
+    },
+    "T020": {
+      "leaderId": "E032",
+      "leaderName": "Yustiar Adhinugroho, S.Tr.Stat",
+      "members": [
+        "E033",
+        "E019",
+        "E006",
+        "E003",
+        "E020",
+        "E010",
+        "E029",
+        "E005",
+        "E032",
+        "E009",
+        "E017",
+        "E025",
+        "E027",
+        "E018",
+        "E014",
+        "E024",
+        "E031",
+        "E008",
+        "E002",
+        "E011",
+        "E021",
+        "E016",
+        "E026",
+        "E013",
+        "E030",
+        "E001",
+        "E028",
+        "E007",
+        "E015",
+        "E012",
+        "E023",
+        "E022"
+      ],
+      "source_row": 188,
+      "source_team_name": "Desa Cantik"
+    },
+    "T021": {
+      "leaderId": "E031",
+      "leaderName": "Yunita Rizki Intan Sari, SST",
+      "members": [
+        "E026",
+        "E020",
+        "E011",
+        "E013",
+        "E033",
+        "E036",
+        "E035",
+        "E032",
+        "E014",
+        "E030",
+        "E012",
+        "E027",
+        "E015",
+        "E017",
+        "E004"
+      ],
+      "source_row": 207,
+      "source_team_name": "Humas dan Media Sosial"
+    },
+    "T022": {
+      "leaderId": "",
+      "leaderName": "Rukhedi, S.Si., MSE",
+      "members": [
+        "E023",
+        "E006",
+        "E015",
+        "E016",
+        "E012",
+        "E033",
+        "E022",
+        "E011",
+        "E020",
+        "E027",
+        "E005",
+        "E003",
+        "E010",
+        "E008",
+        "E018",
+        "E001",
+        "E019",
+        "E002",
+        "E021",
+        "E025",
+        "E026",
+        "E017",
+        "E014",
+        "E028",
+        "E024",
+        "E009",
+        "E031",
+        "E032",
+        "E030",
+        "E029",
+        "E013",
+        "E007"
+      ],
+      "source_row": 225,
+      "source_team_name": "RB-ZI"
+    },
+    "T023": {
+      "leaderId": "E023",
+      "leaderName": "Suparman, SST, MM",
+      "members": [
+        "E015",
+        "E032",
+        "E012",
+        "E014",
+        "E030",
+        "E027",
+        "E028",
+        "E016",
+        "E007"
+      ],
+      "source_row": 265,
+      "source_team_name": "Inovasi"
+    },
+    "T024": {
+      "leaderId": "E014",
+      "leaderName": "Nia Aprillyana, S.ST, M.Si",
+      "members": [
+        "E015",
+        "E006",
+        "E010",
+        "E021",
+        "E031",
+        "E017",
+        "E020",
+        "E002",
+        "E027",
+        "E028",
+        "E023",
+        "E032"
+      ],
+      "source_row": 276,
+      "source_team_name": "Manajemen Risiko"
+    }
+  },
+  "extra_teams_in_roster": [
+    {
+      "team": "Penilai Badan",
+      "leaderName": "Sigit Nova Riyanto, S.Si",
+      "members": [
+        "E031",
+        "E015"
+      ]
+    },
+    {
+      "team": "SPBE",
+      "leaderName": "Yustiar Adhinugroho, S.Tr.Stat",
+      "members": [
+        "E007",
+        "E035",
+        "E036",
+        "E031",
+        "E030",
+        "E013"
+      ]
+    }
+  ]
+}

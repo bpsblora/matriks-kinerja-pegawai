@@ -1,0 +1,16 @@
+rules_version = '2';
+
+// Cadangan aturan tahap uji login Admin — hanya boleh membaca profil sendiri.
+// Bila pengujian aturan pengelolaan akun Spark bermasalah, gunakan file ini
+// untuk kembali ke Mode Login Saja tanpa membuka database matriks.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /sparkRoleProfiles/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, create, update, delete: if false;
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
