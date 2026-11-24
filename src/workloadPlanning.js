@@ -229,7 +229,7 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
  scenarioPage.innerHTML='<section class="panel" style="padding:20px"><h2>Pemetaan &amp; Skenario Tim</h2><p>Ubah usulan nama tim untuk menggabungkan kelompok fungsi, lalu bandingkan total jam, Jam Organik, Jam Mitra, FTE, dan kebutuhan anggota.</p><button type="button" class="btn primary" id="mkpScenarioOpen">Buka Skenario Pembentukan Tim</button></section>';
  const dialog=doc.createElement("section");dialog.id="mkpPlanningDialog";
  dialog.innerHTML=[
- '<header><div><small>PERENCANAAN · SEBELUM PENETAPAN TIM</small><h2>Pemetaan Beban Organik dan Mitra</h2><small>Inventarisasi → Skenario Tim → Kebutuhan SDM → Penetapan Anggota → Alokasi Individu</small></div><button id="mkpPlanClose" type="button">Tutup ×</button></header>',
+ '<header><div><small>PERENCANAAN · SEBELUM PENETAPAN TIM</small><h2>Pemetaan Beban Organik dan Mitra</h2><small>Inventarisasi → Skenario Tim → Kebutuhan SDM → Penetapan Anggota → Alokasi Individu</small></div><button id="mkpPlanClose" type="button">Kembali ke Dashboard</button></header>',
  '<main><div class="toolbar"><label>Tahun<select id="mkpPlanYear"><option>2026</option><option selected>2027</option><option>2028</option><option>2029</option><option>2030</option><option>2031</option></select></label>',
  '<label>Jam efektif per pegawai/tahun<input type="number" min="1" id="mkpPlanCapacity" value="1650" style="width:110px"></label>',
  '<button id="mkpPlanExport" type="button">Unduh Rekap CSV</button></div>',
@@ -368,6 +368,10 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
    shell.remove();
   },{once:true});
  }
+ win.__mpPlanningStatus=()=>({
+  year:state.year,total:state.items.length,approved:state.structureStatus==="approved",
+  pending:state.items.filter(r=>{const a=audit(r);return a.missing||a.badSplit||a.badSource||!r.description||!r.activity||number(r.standard)<=0}).length
+ });
  win.__mpPlanningRefresh=page=>page==="dashboard"?refreshDashboard():render();
  el("mkpPlanClose").addEventListener("click",()=>doc.getElementById("navDashboard")?.click());
  el("mkpScenarioToInventory").addEventListener("click",()=>doc.getElementById("navInventory")?.click());
