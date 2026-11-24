@@ -629,7 +629,7 @@ const dashboardRenderStart=inline.indexOf("function renderCombinedDashboard(){")
 const dashboardRenderEnd=inline.indexOf("let kroBoardDraft=",dashboardRenderStart);
 assert(dashboardRenderStart>=0&&dashboardRenderEnd>dashboardRenderStart,"Kartu ringkasan Dashboard tidak dapat diperiksa");
 const dashboardRender=inline.slice(dashboardRenderStart,dashboardRenderEnd);
-for(const label of ["Tim","Pegawai Aktif","Uraian Aktif","Total Jam Alokasi"]){
+for(const label of ["Tim","Pegawai Aktif","Uraian Aktif","Jam Alokasi Pegawai Organik"]){
  assert(dashboardRender.includes("<small>"+label+"</small>"),"Label ringkasan Dashboard terhapus: "+label);
 }
 assert(dashboardRender.split("<article><small>").length===5,"Dashboard harus tetap memiliki empat KPI, bukan duplikasi atau kartu kosong");
