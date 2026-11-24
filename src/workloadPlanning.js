@@ -173,7 +173,7 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
   state.names=saved?.names||{};state.assignments=saved?.assignments||{};state.structureStatus=saved?.structureStatus||"draft";state.approvedAt=saved?.approvedAt||"";state.capacity=number(saved?.capacity)||1650;
  }
  function store(){win.localStorage.setItem(key(state.year),JSON.stringify({items:state.items,names:state.names,assignments:state.assignments,structureStatus:state.structureStatus,approvedAt:state.approvedAt,capacity:state.capacity}))}
- function persist(){state.structureStatus="draft";state.approvedAt="";store();}
+ function persist(){state.structureStatus="draft";state.approvedAt="";store();refreshDashboard();}
  const userRole=()=>win.__mpPreviewSessionState?.()?.role||"pegawai";
  const canEdit=()=>userRole()==="admin";
  const isHead=()=>userRole()==="kepala";
@@ -271,6 +271,29 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
  while(item&&item!==stop){const next=item.nextElementSibling;scenarioTables.append(item);item=next;}
  const el=id=>doc.getElementById(id);
  const note=(s,warn)=>{el("mkpPlanNote").textContent=s;el("mkpPlanNote").classList.toggle("warn",!!warn)};
+
+ function refreshDashboard(){
+  const host=el("pageDashboard");if(!host||host.classList.contains("hidden"))return;
+  let card=el("mkpPlanDashboard");
+  if(!card){
+   card=doc.createElement("section");card.id="mkpPlanDashboard";card.className="panel";
+   card.style.cssText="padding:15px 19px;margin:10px 0 16px;border:1px solid #d4e5f1;border-radius:12px";
+   const heading=host.querySelector(".combined-metrics");if(heading)heading.after(card);else host.prepend(card);
+  }
+  let total=0,organic=0,partner=0,pending=0;
+  for(const item of state.items){const a=audit(item);total+=a.total;organic+=a.organic;partner+=a.partner;
+   if(a.missing||a.badSplit||a.badSource)pending++;
+  }
+  card.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0;color:#145c91">Pemetaan Awal Beban Kerja '+state.year+'</h3><small>Inventarisasi dan alokasi pegawai dihitung terpisah</small></div>'+
+   '<div class="combined-metrics" style="margin-top:12px">'+
+   '<article><small>Total Tanggung Jawab Kantor</small><strong>'+fmt(total)+' Jam-Orang</strong></article>'+
+   '<article><small>Jam Organik</small><strong>'+fmt(organic)+' Jam-Orang</strong></article>'+
+   '<article><small>Jam Mitra</small><strong>'+fmt(partner)+' Jam-Orang</strong></article>'+
+   '<article><small>Perlu Rekonsiliasi</small><strong>'+fmt(pending)+' Uraian</strong></article></div>'+
+   '<p style="font-size:12px;color:#54718a;margin:10px 0 0">'+(state.structureStatus==="approved"?'Skenario struktur telah disetujui secara lokal; belum tersinkron antarpengguna.':'Skenario struktur belum disetujui.')+
+   ' Perhitungan beban kantor mencakup pekerjaan yang dilaksanakan Organik maupun Mitra. Alokasi individu hanya menghitung jam pegawai kantor.</p>';
+ }
+
  function render(){
   let total=0,org=0,mitra=0,reported=0,unknown=0,problems=0;const groups=new Map();
   for(const r of state.items){const x=audit(r);total+=x.total;org+=x.organic;mitra+=x.partner;reported+=r.reported==null?x.total:number(r.reported);
@@ -343,7 +366,7 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
    shell.remove();
   },{once:true});
  }
- win.__mpPlanningRefresh=()=>render();
+ win.__mpPlanningRefresh=page=>page==="dashboard"?refreshDashboard():render();
  el("mkpPlanClose").addEventListener("click",()=>doc.getElementById("navDashboard")?.click());
  el("mkpScenarioToInventory").addEventListener("click",()=>doc.getElementById("navInventory")?.click());
  el("mkpScenarioCapacity").addEventListener("change",e=>{state.capacity=Math.max(1,number(e.target.value));persist();render();});
