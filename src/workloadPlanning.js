@@ -261,7 +261,7 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
  ].join("");
  inventoryPage.append(dialog);
  trigger.remove();
- scenarioPage.innerHTML='<section id="mkpScenarioContent"><header><div><small>TAHAP 2 · SEBELUM PENETAPAN STRUKTUR</small><h2>Pemetaan &amp; Skenario Tim</h2><small>Gabung atau pisahkan kelompok fungsi untuk membandingkan kebutuhan SDM.</small></div></header><div class="scenario-body"><div class="scenario-toolbar"><label>Jam Efektif per Pegawai/Tahun <input id="mkpScenarioCapacity" type="number" min="1" value="1650"></label><button type="button" id="mkpScenarioToInventory">Lihat Inventarisasi</button></div><div id="mkpScenarioTables"></div></div></section>';
+ scenarioPage.innerHTML='<section id="mkpScenarioContent"><header><div><small>TAHAP 2 · SEBELUM PENETAPAN STRUKTUR</small><h2>Pemetaan &amp; Skenario Tim</h2><small>Gabung atau pisahkan kelompok fungsi untuk membandingkan kebutuhan SDM.</small></div></header><div class="scenario-body"><div class="scenario-toolbar"><label>Jam Efektif per Pegawai/Tahun <input id="mkpScenarioCapacity" type="number" min="1" value="1650"></label><button type="button" id="mkpScenarioToInventory">Lihat Inventarisasi</button><button type="button" id="mkpScenarioApprove">Tetapkan Struktur (Kepala BPS)</button><button type="button" id="mkpScenarioSync">Terapkan Uraian ke Input Alokasi</button></div><div id="mkpScenarioStatus" class="scenario-status" style="padding:10px 13px;margin-bottom:12px;background:#edf6fd;border:1px solid #d1e2ee;border-radius:9px"></div><div id="mkpScenarioTables"></div></div></section>';
  const body=dialog.querySelector("main"),headings=[...body.querySelectorAll("h3")];
  const start=headings.find(x=>x.textContent.startsWith("1. Kelompok Fungsi"));
  const stop=headings.find(x=>x.textContent.startsWith("Inventarisasi Kegiatan"));
@@ -308,6 +308,11 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
   }));
   el("mkpPlanRows").querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",()=>editRow(b.dataset.edit)));
   el("mkpPlanYear").value=String(state.year);el("mkpPlanCapacity").value=String(state.capacity);el("mkpScenarioCapacity").value=String(state.capacity);
+  el("mkpScenarioStatus").textContent=state.structureStatus==="approved"?
+   "Struktur disetujui dalam draf lokal pada "+(state.approvedAt?new Date(state.approvedAt).toLocaleString("id-ID"):"-")+". Lanjutkan penetapan ketua, anggota, dan KRO. Belum tersinkron antarpengguna.":
+   "Skenario masih berupa draf. Pastikan Total Jam = Jam Organik + Jam Mitra dan seluruh selisih sumber selesai diperiksa.";
+  el("mkpScenarioApprove").disabled=!isHead()||state.year===2026||!state.items.length;
+  el("mkpScenarioSync").disabled=!canEdit()||state.structureStatus!=="approved";
   for(const id of ["mkpPlanCapacity","mkpScenarioCapacity","mkpPlanPrevious","mkpPlanClear","mkpPlanImport"]){const x=el(id);if(x)x.disabled=!canEdit()}
   el("mkpPlanImportNow").disabled=!canEdit()||!previewRows;
   el("mkpPlanAdd").querySelectorAll("input,button").forEach(x=>x.disabled=!canEdit());
@@ -342,6 +347,29 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
  el("mkpPlanClose").addEventListener("click",()=>doc.getElementById("navDashboard")?.click());
  el("mkpScenarioToInventory").addEventListener("click",()=>doc.getElementById("navInventory")?.click());
  el("mkpScenarioCapacity").addEventListener("change",e=>{state.capacity=Math.max(1,number(e.target.value));persist();render();});
+
+ el("mkpScenarioApprove").addEventListener("click",()=>{
+  if(!isHead())return note("Penetapan struktur hanya dapat dilakukan Kepala BPS.",true);
+  if(!state.items.length)return note("Lengkapi inventarisasi sebelum menetapkan struktur.",true);
+  const invalid=state.items.filter(r=>{const a=audit(r);return a.missing||a.badSplit||a.badSource||!r.description||!r.activity||number(r.standard)<=0;});
+  if(invalid.length){el("mkpScenarioStatus").textContent="Belum dapat disetujui. "+invalid.length+" uraian masih perlu rekonsiliasi Total Jam, Organik/Mitra, atau identitas kegiatan.";return}
+  const names=[...new Set(state.items.map(r=>(state.assignments[r.id]||state.names[r.group]||r.group||"").trim()).filter(Boolean))];
+  if(!win.confirm("Tetapkan struktur "+names.length+" tim untuk tahun "+state.year+" dari pemetaan saat ini? Tim lama yang tidak dipilih akan dinonaktifkan hanya jika belum mempunyai penetapan/alokasi."))return;
+  const result=win.__mpPlanningApplyStructure?.(names);
+  if(!result?.ok){el("mkpScenarioStatus").textContent=result?.error||"Fungsi penerapan struktur belum tersedia.";return}
+  state.structureStatus="approved";state.approvedAt=new Date().toISOString();store();render();
+  el("mkpScenarioStatus").textContent="Struktur diterapkan dalam draf lokal: "+result.count+" tim ("+result.created+" baru, "+result.deactivated+" nonaktif). Lanjutkan Penetapan Tim dan Pembagian KRO.";
+ });
+ el("mkpScenarioSync").addEventListener("click",()=>{
+  if(!canEdit())return note("Hanya Admin yang dapat meneruskan kegiatan ke Input Alokasi.",true);
+  if(state.structureStatus!=="approved")return note("Skenario struktur tim harus ditetapkan oleh Kepala BPS terlebih dahulu.",true);
+  if(!win.confirm("Teruskan rincian inventarisasi "+state.year+" ke Input Alokasi? Aktivitas identik tidak akan digandakan. Jam individu tetap harus dialokasikan terpisah."))return;
+  const rows=state.items.map(r=>({...r,proposedTeam:(state.assignments[r.id]||state.names[r.group]||r.group||"").trim()}));
+  const result=win.__mpPlanningSyncActivities?.(rows,state.year);
+  if(!result?.ok){el("mkpScenarioStatus").textContent=result?.error||"Transfer belum tersedia.";return}
+  el("mkpScenarioStatus").textContent=result.created+" uraian berhasil diteruskan; "+result.duplicates+" duplikat dilewati. Buka Input Alokasi untuk menetapkan pekerjaan pegawai.";
+  render();
+ });
  el("mkpPlanYear").addEventListener("change",e=>{load(number(e.target.value));invalidatePreview();render()});
  el("mkpPlanCapacity").addEventListener("change",e=>{state.capacity=Math.max(1,number(e.target.value));persist();render()});
  el("mkpPlanSearch").addEventListener("input",e=>{state.search=e.target.value;render()});
