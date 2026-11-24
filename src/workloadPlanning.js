@@ -215,7 +215,12 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
  ].join("");
  doc.head.append(style);
  const trigger=doc.createElement("button");trigger.id="mkpPlanningOpen";trigger.type="button";trigger.textContent="Pemetaan Beban Kerja";
- (doc.querySelector(".rightbar")||doc.querySelector(".topbar")||doc.body).prepend(trigger);
+ const inventoryPage=doc.getElementById("pageInventory"),scenarioPage=doc.getElementById("pageScenario");
+ if(!inventoryPage||!scenarioPage)throw Error("Menu perencanaan belum tersedia.");
+ inventoryPage.append(trigger);
+ trigger.textContent="Buka Form Inventarisasi dan Impor Excel";
+ inventoryPage.insertAdjacentHTML("afterbegin", '<section class="panel" style="padding:20px"><h2>Inventarisasi Kegiatan</h2><p>Input Manual, Impor Excel berdasarkan sheet dan rentang baris, serta Gunakan Data Tahun Sebelumnya. Data Organik dan Mitra dicatat terpisah.</p></section>');
+ scenarioPage.innerHTML='<section class="panel" style="padding:20px"><h2>Pemetaan &amp; Skenario Tim</h2><p>Ubah usulan nama tim untuk menggabungkan kelompok fungsi, lalu bandingkan total jam, Jam Organik, Jam Mitra, FTE, dan kebutuhan anggota.</p><button type="button" class="btn primary" id="mkpScenarioOpen">Buka Skenario Pembentukan Tim</button></section>';
  const dialog=doc.createElement("dialog");dialog.id="mkpPlanningDialog";
  dialog.innerHTML=[
  '<header><div><small>PERENCANAAN · SEBELUM PENETAPAN TIM</small><h2>Pemetaan Beban Organik dan Mitra</h2><small>Inventarisasi → Skenario Tim → Kebutuhan SDM → Penetapan Anggota → Alokasi Individu</small></div><button id="mkpPlanClose" type="button">Tutup ×</button></header>',
@@ -309,6 +314,8 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
   },{once:true});
  }
  trigger.addEventListener("click",()=>{render();dialog.showModal()});
+ doc.getElementById("mkpScenarioOpen").addEventListener("click",()=>{render();dialog.showModal();el("mkpPlanGroups")?.scrollIntoView({block:"center"});});
+ win.__mpPlanningRefresh=()=>{if(dialog.open)render();};
  el("mkpPlanClose").addEventListener("click",()=>dialog.close());
  el("mkpPlanYear").addEventListener("change",e=>{load(number(e.target.value));invalidatePreview();render()});
  el("mkpPlanCapacity").addEventListener("change",e=>{state.capacity=Math.max(1,number(e.target.value));persist();render()});
