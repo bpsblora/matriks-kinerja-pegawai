@@ -778,16 +778,16 @@ function commitTeamDirectoryRename(tid){
 }
 // Annual structure decision is separate from member assignment and KRO approval.
 // This local workflow never modifies the historical Excel 2026 reference.
-window.__mpPlanningApplyStructure=function(proposed){
+window.__mpPlanningApplyStructure=function(proposed,year){
  if(currentRole!=='kepala')return {ok:false,error:'Penetapan struktur hanya untuk Kepala BPS.'};
- if(isBaseYear||yearInfo().status!=='draft')return {ok:false,error:'Buka draf tahun berjalan sebelum menetapkan struktur.'};
+ if(isBaseYear||Number(year)!==activeYear||yearInfo().status!=='draft')return {ok:false,error:'Pilih draf tahun yang sama sebelum menetapkan struktur.'};
  const names=[...new Set((Array.isArray(proposed)?proposed:[]).map(x=>String(x||'').trim()).filter(Boolean))];
  if(!names.length)return {ok:false,error:'Belum ada tim yang diusulkan.'};
  if(names.length>70)return {ok:false,error:'Jumlah usulan tim perlu diperiksa kembali.'};
  if(publishedAllocationCount()>0)return {ok:false,error:'Struktur tidak dapat ditimpa karena sudah ada alokasi ditetapkan.'};
  const normalized=new Set(names.map(x=>x.toLocaleLowerCase('id')));
  const old=demoTeams.filter(t=>t.active!==false&&!normalized.has(String(t.name).toLocaleLowerCase('id')));
- const blocked=old.filter(t=>teamHasAllocationHistory(t.id)||yearSetup.teams?.[t.id]?.reviewStatus==='approved');
+ const blocked=old.filter(t=>teamHasAllocationHistory(t.id)||Boolean(yearSetup.teams?.[t.id]));
  if(blocked.length)return {ok:false,error:'Susunan tim yang telah disetujui atau memiliki alokasi tidak dapat dinonaktifkan otomatis: '+blocked.map(t=>t.name).join(', ')};
  let created=0,deactivated=0;
  for(const team of demoTeams){
