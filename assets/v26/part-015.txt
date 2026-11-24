@@ -309,7 +309,7 @@ function setPage(page){
  if(page==='recon')renderRecon();
  if(page==='standards')renderStandards();
  if(page==='timeline')renderTimeline();
- if(page==='dashboard'){renderCombinedDashboard();renderMonitoring();}
+ if(page==='dashboard'){renderCombinedDashboard();renderMonitoring();window.__mpPlanningRefresh?.('dashboard');}
  if(page==='kro'){renderKroBoard();renderKroAudit();}
  if(page==='final')renderFinalBoard();
  applyRolePermissions();refreshStageNav();return true;
@@ -370,7 +370,7 @@ function renderMonitoring(){
  $('effectiveHoursWeeklyNote').textContent='Input '+nf(effectiveDailyHours)+' Jam/Hari = '+nf(weeklyEffective)+' Jam Efektif/Minggu ('+weeklyShare+'% dari 43 Jam Kotor).'+(weeklyEffective>43?' Periksa input yang melebihi jam kotor.':'');
  const cards=[
   {t:'Pegawai Terpantau',v:nf(org.length),note:'Seluruh pegawai organik '+activeYear,sty:'slate',ico:'♙'},
-  {t:'Total Jam Alokasi',v:nf(totalAll)+' Jam',note:'Jumlah Jam-Orang Januari–Desember',sty:'',ico:'◷'},
+  {t:'Jam Alokasi Organik',v:nf(totalAll)+' Jam',note:'Jumlah Jam-Orang Pegawai Kantor Januari–Desember',sty:'',ico:'◷'},
   {t:'Rata-rata Jam Kerja Harian',v:nf(avgAll)+' Jam',note:'Seluruh pegawai ÷ '+nf(generalDays)+' Hari Efektif',sty:'',ico:'◫'}
  ];
  $('monitorKpis').innerHTML=cards.map(c=>`<div class="mon-kpi ${c.sty}"><div class="kpi-label"><span>${c.ico}</span>${esc(c.t)}</div><span class="kpi-value">${esc(c.v)}</span><div class="kpi-note">${esc(c.note)}</div></div>`).join('');
