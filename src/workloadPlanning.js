@@ -298,13 +298,21 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
   const query=state.search.toLocaleLowerCase("id");
   el("mkpPlanRows").innerHTML=state.items.filter(r=>!query||[r.group,r.activity,r.description].join(" ").toLocaleLowerCase("id").includes(query)).slice(0,120).map(r=>{
    const x=audit(r);
-   return '<tr class="'+(x.badSplit||x.badSource?"bad":"")+'"><td>'+html(r.group)+'</td><td>'+html(r.activity)+'</td><td class="wrap">'+html(r.description)+'</td><td class="num">'+fmt(r.volume)+' '+html(r.unit)+'</td><td class="num">'+fmt(r.standard)+'</td><td class="num">'+fmt(x.total)+'</td><td class="num">'+(x.missing?"Belum dipisah":fmt(x.organic))+'</td><td class="num">'+(x.missing?"Belum dipisah":fmt(x.partner))+'</td><td>'+html(x.badSplit?"Organik + Mitra tidak sama":x.badSource?"Beda dengan Excel":x.missing?"Perlu dipisah":"Sesuai")+'</td><td><button data-edit="'+html(r.id)+'">Edit</button></td></tr>';
-  }).join("")||'<tr><td colspan="10">Tidak ada uraian yang sesuai.</td></tr>';
+   return '<tr class="'+(x.badSplit||x.badSource?"bad":"")+'"><td>'+html(r.group)+'</td><td>'+html(r.activity)+'</td><td class="wrap">'+html(r.description)+'</td><td class="num">'+fmt(r.volume)+' '+html(r.unit)+'</td><td class="num">'+fmt(r.standard)+'</td><td class="num">'+fmt(x.total)+'</td><td class="num">'+(x.missing?"Belum dipisah":fmt(x.organic))+'</td><td class="num">'+(x.missing?"Belum dipisah":fmt(x.partner))+'</td><td>'+html(x.badSplit?"Organik + Mitra tidak sama":x.badSource?"Beda dengan Excel":x.missing?"Perlu dipisah":"Sesuai")+'</td><td><input data-assign="'+html(r.id)+'" value="'+html(state.assignments[r.id]||'')+'" placeholder="'+html(state.names[r.group]||r.group)+'" style="min-width:160px" aria-label="Usulan tim per uraian"></td><td><button data-edit="'+html(r.id)+'">Edit</button></td></tr>';
+  }).join("")||'<tr><td colspan="11">Tidak ada uraian yang sesuai.</td></tr>';
   el("mkpPlanGroups").querySelectorAll("[data-func]").forEach(input=>input.addEventListener("change",()=>{
    state.names[input.dataset.func]=input.value.trim()||input.dataset.func;persist();render();
   }));
+  el("mkpPlanRows").querySelectorAll("[data-assign]").forEach(input=>input.addEventListener("change",()=>{
+   if(!canEdit())return;const name=input.value.trim();if(name)state.assignments[input.dataset.assign]=name;else delete state.assignments[input.dataset.assign];persist();render();
+  }));
   el("mkpPlanRows").querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",()=>editRow(b.dataset.edit)));
   el("mkpPlanYear").value=String(state.year);el("mkpPlanCapacity").value=String(state.capacity);el("mkpScenarioCapacity").value=String(state.capacity);
+  for(const id of ["mkpPlanCapacity","mkpScenarioCapacity","mkpPlanPrevious","mkpPlanClear","mkpPlanImport"]){const x=el(id);if(x)x.disabled=!canEdit()}
+  el("mkpPlanImportNow").disabled=!canEdit()||!previewRows;
+  el("mkpPlanAdd").querySelectorAll("input,button").forEach(x=>x.disabled=!canEdit());
+  el("mkpPlanGroups").querySelectorAll("[data-func]").forEach(x=>x.disabled=!canEdit());
+  el("mkpPlanRows").querySelectorAll("[data-assign],[data-edit]").forEach(x=>x.disabled=!canEdit());
   if(!state.items.length)note("Belum ada rincian "+state.year+". Impor workbook atau gunakan referensi tahun sebelumnya.",true);
   else if(unknown||problems)note("Audit: "+fmt(unknown)+" orang-jam belum dipisah Organik/Mitra; "+problems+" baris memiliki selisih. Total dihitung dari volume × standar waktu; angka sumber Excel (H) ditampilkan terpisah. Rekonsiliasi sebelum menentukan SDM.",true);
   else note(fmt(state.items.length)+" uraian terpetakan. Total Beban = Organik + Mitra. FTE hanya memakai Jam Organik.");
