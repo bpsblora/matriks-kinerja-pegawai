@@ -950,6 +950,7 @@ window.__mpPlanningSyncActivities=function(records,year){
  const candidate=[],missing=new Set();
  const existing=new Set(activities.map(a=>JSON.stringify([a.team_id,groupName(a),a.description,a.unit].map(x=>String(x||'').trim().toLocaleLowerCase('id')))));
  const incoming=new Set();
+ const usedSourceIds=new Set(activities.map(a=>String(a.sourceInventoryId||'')).filter(Boolean));
  for(const row of records){
   const proposed=String(row.proposedTeam||'').trim();
   const team=demoTeams.find(t=>t.active!==false&&String(t.name).toLocaleLowerCase('id')===proposed.toLocaleLowerCase('id'));
@@ -960,7 +961,7 @@ window.__mpPlanningSyncActivities=function(records,year){
   const standard=Number(row.standard);
   if(!description||!unit||!group||!Number.isFinite(standard)||standard<=0){missing.add('Uraian belum lengkap: '+description);continue}
   const signature=JSON.stringify([team.id,group,description,unit].map(x=>String(x||'').trim().toLocaleLowerCase('id')));
-  if(existing.has(signature)||incoming.has(signature))continue;
+  if((row.id&&usedSourceIds.has(String(row.id)))||existing.has(signature)||incoming.has(signature))continue;
   incoming.add(signature);
   candidate.push({
    id:'KNEW-PLAN-'+crypto.randomUUID(),team_id:team.id,team:team.name,group,description,unit,
