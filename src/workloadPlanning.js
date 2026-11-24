@@ -213,6 +213,8 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
  "#mkpPlanningDialog button:disabled{opacity:.5;cursor:not-allowed}",
  "@media(max-width:750px){#mkpPlanningDialog .stats{grid-template-columns:repeat(2,1fr)}#mkpPlanningDialog .form-grid{grid-template-columns:repeat(2,1fr)}}"
  ].join("");
+ style.textContent += style.textContent.replaceAll("#mkpPlanningDialog","#mkpScenarioContent");
+ style.textContent += '#mkpPlanningDialog,#mkpScenarioContent{position:static!important;inset:auto!important;display:block!important;margin:0!important;width:100%!important;height:auto!important;max-height:none!important;box-shadow:none!important;overflow:visible!important}#mkpPlanningDialog main{height:auto!important;overflow:visible!important}#mkpScenarioContent .scenario-body{padding:16px 20px}#mkpScenarioContent .scenario-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:8px 0 16px}#mkpScenarioContent .scenario-toolbar label{font-size:11px;display:grid;gap:4px;font-weight:bold}#mkpScenarioContent .scenario-toolbar input{width:135px}';
  doc.head.append(style);
  const trigger=doc.createElement("button");trigger.id="mkpPlanningOpen";trigger.type="button";trigger.textContent="Pemetaan Beban Kerja";
  const inventoryPage=doc.getElementById("pageInventory"),scenarioPage=doc.getElementById("pageScenario");
@@ -221,7 +223,7 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
  trigger.textContent="Buka Form Inventarisasi dan Impor Excel";
  inventoryPage.insertAdjacentHTML("afterbegin", '<section class="panel" style="padding:20px"><h2>Inventarisasi Kegiatan</h2><p>Input Manual, Impor Excel berdasarkan sheet dan rentang baris, serta Gunakan Data Tahun Sebelumnya. Data Organik dan Mitra dicatat terpisah.</p></section>');
  scenarioPage.innerHTML='<section class="panel" style="padding:20px"><h2>Pemetaan &amp; Skenario Tim</h2><p>Ubah usulan nama tim untuk menggabungkan kelompok fungsi, lalu bandingkan total jam, Jam Organik, Jam Mitra, FTE, dan kebutuhan anggota.</p><button type="button" class="btn primary" id="mkpScenarioOpen">Buka Skenario Pembentukan Tim</button></section>';
- const dialog=doc.createElement("dialog");dialog.id="mkpPlanningDialog";
+ const dialog=doc.createElement("section");dialog.id="mkpPlanningDialog";
  dialog.innerHTML=[
  '<header><div><small>PERENCANAAN · SEBELUM PENETAPAN TIM</small><h2>Pemetaan Beban Organik dan Mitra</h2><small>Inventarisasi → Skenario Tim → Kebutuhan SDM → Penetapan Anggota → Alokasi Individu</small></div><button id="mkpPlanClose" type="button">Tutup ×</button></header>',
  '<main><div class="toolbar"><label>Tahun<select id="mkpPlanYear"><option>2026</option><option selected>2027</option><option>2028</option><option>2029</option><option>2030</option><option>2031</option></select></label>',
@@ -253,7 +255,16 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
  '<p class="hint">Data pemetaan disimpan pada browser yang digunakan, terpisah dari data simulasi dan alokasi. Struktur tim final baru ditentukan setelah analisis disepakati.</p>',
  '</main>'
  ].join("");
- doc.body.append(dialog);
+ inventoryPage.append(dialog);
+ trigger.remove();
+ scenarioPage.innerHTML='<section id="mkpScenarioContent"><header><div><small>TAHAP 2 · SEBELUM PENETAPAN STRUKTUR</small><h2>Pemetaan &amp; Skenario Tim</h2><small>Gabung atau pisahkan kelompok fungsi untuk membandingkan kebutuhan SDM.</small></div></header><div class="scenario-body"><div class="scenario-toolbar"><label>Jam Efektif per Pegawai/Tahun <input id="mkpScenarioCapacity" type="number" min="1" value="1650"></label><button type="button" id="mkpScenarioToInventory">Lihat Inventarisasi</button></div><div id="mkpScenarioTables"></div></div></section>';
+ const body=dialog.querySelector("main"),headings=[...body.querySelectorAll("h3")];
+ const start=headings.find(x=>x.textContent.startsWith("1. Kelompok Fungsi"));
+ const stop=headings.find(x=>x.textContent.startsWith("Inventarisasi Kegiatan"));
+ if(!start||!stop)throw Error("Heading skenario tidak ditemukan.");
+ const scenarioTables=doc.getElementById("mkpScenarioTables");
+ let item=start;
+ while(item&&item!==stop){const next=item.nextElementSibling;scenarioTables.append(item);item=next;}
  const el=id=>doc.getElementById(id);
  const note=(s,warn)=>{el("mkpPlanNote").textContent=s;el("mkpPlanNote").classList.toggle("warn",!!warn)};
  function render(){
@@ -287,7 +298,7 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
    state.names[input.dataset.func]=input.value.trim()||input.dataset.func;persist();render();
   }));
   el("mkpPlanRows").querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",()=>editRow(b.dataset.edit)));
-  el("mkpPlanYear").value=String(state.year);el("mkpPlanCapacity").value=String(state.capacity);
+  el("mkpPlanYear").value=String(state.year);el("mkpPlanCapacity").value=String(state.capacity);el("mkpScenarioCapacity").value=String(state.capacity);
   if(!state.items.length)note("Belum ada rincian "+state.year+". Impor workbook atau gunakan referensi tahun sebelumnya.",true);
   else if(unknown||problems)note("Audit: "+fmt(unknown)+" orang-jam belum dipisah Organik/Mitra; "+problems+" baris memiliki selisih. Total dihitung dari volume × standar waktu; angka sumber Excel (H) ditampilkan terpisah. Rekonsiliasi sebelum menentukan SDM.",true);
   else note(fmt(state.items.length)+" uraian terpetakan. Total Beban = Organik + Mitra. FTE hanya memakai Jam Organik.");
@@ -313,10 +324,10 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
    shell.remove();
   },{once:true});
  }
- trigger.addEventListener("click",()=>{render();dialog.showModal()});
- doc.getElementById("mkpScenarioOpen").addEventListener("click",()=>{render();dialog.showModal();el("mkpPlanGroups")?.scrollIntoView({block:"center"});});
- win.__mpPlanningRefresh=()=>{if(dialog.open)render();};
- el("mkpPlanClose").addEventListener("click",()=>dialog.close());
+ win.__mpPlanningRefresh=()=>render();
+ el("mkpPlanClose").addEventListener("click",()=>doc.getElementById("navDashboard")?.click());
+ el("mkpScenarioToInventory").addEventListener("click",()=>doc.getElementById("navInventory")?.click());
+ el("mkpScenarioCapacity").addEventListener("change",e=>{state.capacity=Math.max(1,number(e.target.value));persist();render();});
  el("mkpPlanYear").addEventListener("change",e=>{load(number(e.target.value));invalidatePreview();render()});
  el("mkpPlanCapacity").addEventListener("change",e=>{state.capacity=Math.max(1,number(e.target.value));persist();render()});
  el("mkpPlanSearch").addEventListener("input",e=>{state.search=e.target.value;render()});
