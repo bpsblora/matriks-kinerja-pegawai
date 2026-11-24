@@ -2082,4 +2082,17 @@ assert.equal(vm.runInContext("window.__mpPreviewSwitchRole('superuser')",preview
  "Pilihan sesi hanya meliputi peran yang dikenali");
 
 
+// Workflow baru: Inventarisasi dan Skenario mendahului penetapan dan alokasi.
+for(const token of ['id="navInventory"','id="navScenario"','id="pageInventory"','id="pageScenario"',
+ 'id="navTeams"','id="navKRO"','id="navInput"','id="navFinal"']){
+ assert(html.includes(token),"Navigasi/tahapan tahunan tidak lengkap: "+token);
+}
+assert(inline.indexOf("function stageAccess(page)")>=0,"Tahapan navigasi tidak dapat diperiksa");
+const planningSource=fs.readFileSync("src/workloadPlanning.js","utf8");
+for(const token of ['mkpScenarioApprove','mkpScenarioSync','mkpPlanImport','mkpPlanPrevious',
+ 'state.assignments','state.structureStatus','sourceReported','refreshDashboard()']){
+ assert(planningSource.includes(token),"Tahapan pemetaan belum lengkap: "+token);
+}
+assert(inline.includes("window.__mpPlanningApplyStructure")&&inline.includes("window.__mpPlanningSyncActivities"),
+ "Penetapan struktur dan transfer kegiatan belum dihubungkan ke matriks utama");
 console.log("Matriks V25 v2.6 lengkap, referensi 2026 terverifikasi, tanpa password demo.");
