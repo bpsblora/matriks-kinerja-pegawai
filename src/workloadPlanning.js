@@ -380,7 +380,7 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
   if(invalid.length){el("mkpScenarioStatus").textContent="Belum dapat disetujui. "+invalid.length+" uraian masih perlu rekonsiliasi Total Jam, Organik/Mitra, atau identitas kegiatan.";return}
   const names=[...new Set(state.items.map(r=>(state.assignments[r.id]||state.names[r.group]||r.group||"").trim()).filter(Boolean))];
   if(!win.confirm("Tetapkan struktur "+names.length+" tim untuk tahun "+state.year+" dari pemetaan saat ini? Tim lama yang tidak dipilih akan dinonaktifkan hanya jika belum mempunyai penetapan/alokasi."))return;
-  const result=win.__mpPlanningApplyStructure?.(names);
+  const result=win.__mpPlanningApplyStructure?.(names,state.year);
   if(!result?.ok){el("mkpScenarioStatus").textContent=result?.error||"Fungsi penerapan struktur belum tersedia.";return}
   state.structureStatus="approved";state.approvedAt=new Date().toISOString();store();render();
   el("mkpScenarioStatus").textContent="Struktur diterapkan dalam draf lokal: "+result.count+" tim ("+result.created+" baru, "+result.deactivated+" nonaktif). Lanjutkan Penetapan Tim dan Pembagian KRO.";
