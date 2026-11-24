@@ -324,7 +324,7 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
    return '<tr class="'+(x.badSplit||x.badSource?"bad":"")+'"><td>'+html(r.group)+'</td><td>'+html(r.activity)+'</td><td class="wrap">'+html(r.description)+'</td><td class="num">'+fmt(r.volume)+' '+html(r.unit)+'</td><td class="num">'+fmt(r.standard)+'</td><td class="num">'+fmt(x.total)+'</td><td class="num">'+(x.missing?"Belum dipisah":fmt(x.organic))+'</td><td class="num">'+(x.missing?"Belum dipisah":fmt(x.partner))+'</td><td>'+html(x.badSplit?"Organik + Mitra tidak sama":x.badSource?"Beda dengan Excel":x.missing?"Perlu dipisah":"Sesuai")+'</td><td><input data-assign="'+html(r.id)+'" value="'+html(state.assignments[r.id]||'')+'" placeholder="'+html(state.names[r.group]||r.group)+'" style="min-width:160px" aria-label="Usulan tim per uraian"></td><td><button data-edit="'+html(r.id)+'">Edit</button></td></tr>';
   }).join("")||'<tr><td colspan="11">Tidak ada uraian yang sesuai.</td></tr>';
   el("mkpPlanGroups").querySelectorAll("[data-func]").forEach(input=>input.addEventListener("change",()=>{
-   state.names[input.dataset.func]=input.value.trim()||input.dataset.func;persist();render();
+   if(!canEdit())return;state.names[input.dataset.func]=input.value.trim()||input.dataset.func;persist();render();
   }));
   el("mkpPlanRows").querySelectorAll("[data-assign]").forEach(input=>input.addEventListener("change",()=>{
    if(!canEdit())return;const name=input.value.trim();if(name)state.assignments[input.dataset.assign]=name;else delete state.assignments[input.dataset.assign];persist();render();
@@ -371,7 +371,7 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
  win.__mpPlanningRefresh=page=>page==="dashboard"?refreshDashboard():render();
  el("mkpPlanClose").addEventListener("click",()=>doc.getElementById("navDashboard")?.click());
  el("mkpScenarioToInventory").addEventListener("click",()=>doc.getElementById("navInventory")?.click());
- el("mkpScenarioCapacity").addEventListener("change",e=>{state.capacity=Math.max(1,number(e.target.value));persist();render();});
+ el("mkpScenarioCapacity").addEventListener("change",e=>{if(!canEdit())return;state.capacity=Math.max(1,number(e.target.value));persist();render();});
 
  el("mkpScenarioApprove").addEventListener("click",()=>{
   if(!isHead())return note("Penetapan struktur hanya dapat dilakukan Kepala BPS.",true);
@@ -396,7 +396,7 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
   render();
  });
  el("mkpPlanYear").addEventListener("change",e=>{load(number(e.target.value));invalidatePreview();render()});
- el("mkpPlanCapacity").addEventListener("change",e=>{state.capacity=Math.max(1,number(e.target.value));persist();render()});
+ el("mkpPlanCapacity").addEventListener("change",e=>{if(!canEdit())return;state.capacity=Math.max(1,number(e.target.value));persist();render()});
  el("mkpPlanSearch").addEventListener("input",e=>{state.search=e.target.value;render()});
 
  function setSourceMode(next){
@@ -460,10 +460,11 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
    const samples=rows.slice(0,3).map(x=>x.source+" · "+x.group+" · "+x.description).join("\n");
    preview.textContent="Ditemukan "+fmt(rows.length)+" uraian pada "+fmt(groups.size)+" kelompok fungsi.\nContoh:\n"+samples+
     "\n\nLanjutkan dengan Impor Data Terpilih. Periksa kolom A–J dan audit perhitungan setelah impor.";
-   el("mkpPlanImportNow").disabled=false;
+   el("mkpPlanImportNow").disabled=!canEdit();
   }catch(error){preview.textContent="Pratinjau gagal: "+String(error?.message||error);note("Periksa nama sheet, header dan batas baris Excel.",true)}
  });
  el("mkpPlanImportNow").addEventListener("click",()=>{
+  if(!canEdit())return note("Hanya Admin yang dapat mengimpor inventarisasi.",true);
   if(!previewRows||previewSignature!==previewSignatureOf())return note("Ulangi Pratinjau Rentang sebelum impor.",true);
   const mode=el("mkpPlanMerge").value,items=previewRows;
   const duplicates=new Set(state.items.map(x=>JSON.stringify([x.group,x.activity,x.description,x.unit].map(v=>String(v||"").toLocaleLowerCase("id").trim()))));
@@ -473,24 +474,26 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
    (mode==="replace"?"? Inventarisasi yang tersimpan pada tahun ini akan diganti.":"? Data yang sudah ada akan dipertahankan.");
   if(!win.confirm(prompt))return;
   state.items=mode==="append"?state.items.concat(newRows.map((x,i)=>({...x,id:x.id+"-IMPORT-"+Date.now()+"-"+i}))):items;
-  if(mode==="replace")state.names={};
+  if(mode==="replace"){state.names={};state.assignments={}}
   persist();render();
   el("mkpPlanPreview").textContent="Impor berhasil: "+fmt(newRows.length)+" uraian. Data tersimpan lokal pada browser ini.";
   invalidatePreview();
  });
  el("mkpPlanPrevious").addEventListener("click",()=>{
+  if(!canEdit())return note("Hanya Admin yang dapat menggunakan referensi tahun sebelumnya.",true);
   if(state.year<=2026)return note("Tahun 2026 sudah menjadi sumber referensi awal.",true);
   let prev;try{prev=JSON.parse(win.localStorage.getItem(key(state.year-1))||"null")}catch{}
   const rows=prev?.items||(state.year===2027?base:[]);
   if(!rows.length)return note("Belum ada kegiatan dari tahun "+(state.year-1)+". Lengkapi terlebih dahulu atau input manual.",true);
   if(!win.confirm("Gunakan "+fmt(rows.length)+" uraian dari "+(state.year-1)+" sebagai draf "+state.year+
     "? Seluruh pembagian Organik/Mitra akan dikosongkan untuk ditinjau ulang, dan data pemetaan tahun ini akan diganti."))return;
-  state.items=previousYearDraft(rows,state.year);state.names={};persist();render();
+  state.items=previousYearDraft(rows,state.year);state.names={};state.assignments={};persist();render();
   note("Daftar tahun lalu telah disalin sebagai draf "+state.year+". Edit volume, standar waktu, dan Jam Organik/Mitra sebelum menetapkan kebutuhan tim.");
  });
  el("mkpPlanClear").addEventListener("click",()=>{
+  if(!canEdit())return note("Hanya Admin yang dapat mengatur ulang inventarisasi.",true);
   if(!win.confirm("Mulai inventarisasi "+state.year+" dari kosong? Semua rincian yang disimpan lokal untuk tahun tersebut akan dihapus."))return;
-  state.items=[];state.names={};persist();render();note("Inventarisasi kosong. Silakan input kegiatan dan uraian secara manual.");
+  state.items=[];state.names={};state.assignments={};persist();render();note("Inventarisasi kosong. Silakan input kegiatan dan uraian secara manual.");
  });
  el("mkpPlanExport").addEventListener("click",()=>{
   const map=new Map();
@@ -503,9 +506,9 @@ export function mountWorkloadPlanning(doc,{simulation=false}={}){
   a.href=url;a.download="Pemetaan_Beban_"+state.year+".csv";a.click();win.setTimeout(()=>URL.revokeObjectURL(url),3000);
  });
  el("mkpPlanAdd").addEventListener("submit",e=>{
-  e.preventDefault();const v=new FormData(e.currentTarget),total=number(v.get("volume"))*number(v.get("standard")),organic=number(v.get("organic")),partner=number(v.get("partner"));
+  e.preventDefault();if(!canEdit())return note("Hanya Admin yang dapat menambah uraian.",true);const v=new FormData(e.currentTarget),total=number(v.get("volume"))*number(v.get("standard")),organic=number(v.get("organic")),partner=number(v.get("partner"));
   if(total<=0||Math.abs(total-organic-partner)>.02)return note("Total harus sama dengan Jam Organik + Jam Mitra. Periksa volume dan standar waktu.",true);
-  state.items.push({id:"NEW-"+Date.now(),group:String(v.get("group")).trim(),activity:String(v.get("activity")).trim(),
+  state.items.push({id:"NEW-"+Date.now()+"-"+Math.random().toString(36).slice(2),group:String(v.get("group")).trim(),activity:String(v.get("activity")).trim(),
    description:String(v.get("description")).trim(),unit:String(v.get("unit")).trim(),volume:number(v.get("volume")),standard:number(v.get("standard")),
    reported:total,organic,partner,source:"Input perencanaan "+state.year});
   persist();e.currentTarget.reset();render();note("Uraian berhasil ditambahkan dengan total "+fmt(total)+" orang-jam.");
