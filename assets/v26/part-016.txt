@@ -776,6 +776,39 @@ function commitTeamDirectoryRename(tid){
  renderTeamAdminPage();renderYearUI();
  toast('Nama tim tersimpan. Kegiatan dan alokasi tetap terkait pada ID tim yang sama.');
 }
+// Annual structure decision is separate from member assignment and KRO approval.
+// This local workflow never modifies the historical Excel 2026 reference.
+window.__mpPlanningApplyStructure=function(proposed){
+ if(currentRole!=='kepala')return {ok:false,error:'Penetapan struktur hanya untuk Kepala BPS.'};
+ if(isBaseYear||yearInfo().status!=='draft')return {ok:false,error:'Buka draf tahun berjalan sebelum menetapkan struktur.'};
+ const names=[...new Set((Array.isArray(proposed)?proposed:[]).map(x=>String(x||'').trim()).filter(Boolean))];
+ if(!names.length)return {ok:false,error:'Belum ada tim yang diusulkan.'};
+ if(names.length>70)return {ok:false,error:'Jumlah usulan tim perlu diperiksa kembali.'};
+ if(publishedAllocationCount()>0)return {ok:false,error:'Struktur tidak dapat ditimpa karena sudah ada alokasi ditetapkan.'};
+ const normalized=new Set(names.map(x=>x.toLocaleLowerCase('id')));
+ const old=demoTeams.filter(t=>t.active!==false&&!normalized.has(String(t.name).toLocaleLowerCase('id')));
+ const blocked=old.filter(t=>teamHasAllocationHistory(t.id)||yearSetup.teams?.[t.id]?.reviewStatus==='approved');
+ if(blocked.length)return {ok:false,error:'Susunan tim yang telah disetujui atau memiliki alokasi tidak dapat dinonaktifkan otomatis: '+blocked.map(t=>t.name).join(', ')};
+ let created=0,deactivated=0;
+ for(const team of demoTeams){
+  const active=normalized.has(String(team.name).toLocaleLowerCase('id'));
+  if(!active&&team.active!==false){team.active=false;deactivated++}
+  else if(active)team.active=true;
+ }
+ for(const name of names){
+  if(demoTeams.some(t=>String(t.name).toLocaleLowerCase('id')===name.toLocaleLowerCase('id')))continue;
+  const id='TEAM-PLAN-'+activeYear+'-'+crypto.randomUUID();
+  demoTeams.push({id,name,kroCodes:[],active:true});
+  demoRoster[id]={leaderId:'',leaderName:'',members:[]};
+  created++;
+ }
+ saveTeamStore();
+ try{localStorage.setItem(ROSTER_KEY,JSON.stringify(demoRoster))}catch(e){}
+ syncAllTeamSelectors();renderYearUI();renderTeamAdminPage();
+ logChange('Tetapkan struktur tim berdasarkan pemetaan',names.length+' Tim · '+created+' baru · '+deactivated+' nonaktif');
+ persist();
+ return {ok:true,count:names.length,created,deactivated};
+};
 async function createTeamAdmin(){
  if(!(currentRole==='admin'||currentRole==='kepala')||yearInfo().status==='closed')return toast('Tambah tim hanya dapat dilakukan Admin/Kepala pada tahun yang terbuka.');
  const name=await uiPrompt('Nama tim kerja baru:','','Tambah Tim Kerja');if(name===null||name===undefined)return;
